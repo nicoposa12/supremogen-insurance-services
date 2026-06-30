@@ -1,0 +1,265 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Models\Policy;
+use App\Models\PolicyCoverage;
+use App\Models\Quotation;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+
+class PolicyController extends Controller
+{
+    /**
+     * Paginated list of policies.
+     */
+    public function index(Request $request)
+    {
+        $perPage = min((int) $request->input('per_page', 15), 100);
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = strtolower($request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        $allowed = ['policy_number', 'total_premium', 'status', 'effective_date', 'expiry_date', 'created_at'];
+        if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
+
+        $query = Policy::with([
+                'customer:id,customer_code,first_name,last_name',
+                'insuranceProduct:id,name,code',
+                'issuedBy:id,name',
+            ]);
+
+        if ($request->user()->hasRole('Sales Agent')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('issued_by', $request->user()->id)
+                  ->orWhereHas('quotation', function ($q2) use ($request) {
+                      $q2->where('prepared_by', $request->user()->id);
+                  });
+            });
+        }
+
+        $policies = $query
+            ->search($request->input('search'))
+            ->ofStatus($request->input('status'))
+            ->orderBy($sortBy, $sortDir)
+            ->paginate($perPage)
+            ->appends($request->query());
+
+        return response()->json([
+            'success' => true,
+            'data' => $policies,
+        ]);
+    }
+
+    /**
+     * Issue a new policy (typically from an approved quotation).
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'quotation_id' => 'nullable|exists:quotations,id',
+            'customer_id' => 'required|exists:customers,id',
+            'insurance_product_id' => 'required|exists:insurance_products,id',
+            'effective_date' => 'required|date',
+            'expiry_date' => 'required|date|after:effective_date',
+            'total_premium' => 'required|numeric|min:0',
+            'sum_insured' => 'required|numeric|min:0',
+            'terms_and_conditions' => 'nullable|string|max:5000',
+            'coverages' => 'nullable|array',
+            'coverages.*.coverage_name' => 'required|string|max:200',
+            'coverages.*.coverage_description' => 'nullable|string|max:1000',
+            'coverages.*.sum_insured' => 'required|numeric|min:0',
+            'coverages.*.premium_amount' => 'required|numeric|min:0',
+            'coverages.*.deductible' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // If from a quotation, verify it's approved
+        if ($request->input('quotation_id')) {
+            $quotation = Quotation::find($request->input('quotation_id'));
+            if (!$quotation || $quotation->status !== 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Policy can only be issued from an approved quotation.',
+                ], 422);
+            }
+        }
+
+        $policy = DB::transaction(function () use ($request) {
+            $policy = Policy::create([
+                'policy_number' => Policy::generateNumber(),
+                'quotation_id' => $request->input('quotation_id'),
+                'customer_id' => $request->input('customer_id'),
+                'insurance_product_id' => $request->input('insurance_product_id'),
+                'issued_by' => $request->user()->id,
+                'status' => 'active',
+                'effective_date' => $request->input('effective_date'),
+                'expiry_date' => $request->input('expiry_date'),
+                'total_premium' => $request->input('total_premium'),
+                'sum_insured' => $request->input('sum_insured'),
+                'terms_and_conditions' => $request->input('terms_and_conditions'),
+            ]);
+
+            // Create coverages
+            if ($request->has('coverages')) {
+                foreach ($request->input('coverages') as $coverage) {
+                    $policy->coverages()->create($coverage);
+                }
+            }
+
+            return $policy;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Policy issued successfully.',
+            'data' => $policy->load(['customer', 'insuranceProduct', 'coverages', 'issuedBy']),
+        ], 201);
+    }
+
+    /**
+     * Show policy details.
+     */
+    public function show(string $id)
+    {
+        $policy = Policy::with([
+            'customer',
+            'quotation:id,quotation_number,status,prepared_by',
+            'insuranceProduct',
+            'issuedBy:id,name,email',
+            'coverages',
+        ])->find($id);
+
+        if (!$policy) {
+            return response()->json(['success' => false, 'message' => 'Policy not found.'], 404);
+        }
+
+        if (request()->user()->hasRole('Sales Agent')) {
+            $isOwner = $policy->issued_by === request()->user()->id || 
+                       ($policy->quotation && $policy->quotation->prepared_by === request()->user()->id);
+            if (!$isOwner) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access to this policy record.',
+                ], 403);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $policy,
+        ]);
+    }
+
+    /**
+     * Update policy details (limited fields).
+     */
+    public function update(Request $request, string $id)
+    {
+        $policy = Policy::with('quotation')->find($id);
+
+        if (!$policy) {
+            return response()->json(['success' => false, 'message' => 'Policy not found.'], 404);
+        }
+
+        if ($request->user()->hasRole('Sales Agent')) {
+            $isOwner = $policy->issued_by === $request->user()->id || 
+                       ($policy->quotation && $policy->quotation->prepared_by === $request->user()->id);
+            if (!$isOwner) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access to this policy record.',
+                ], 403);
+            }
+        }
+
+        if ($policy->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only active policies can be updated.',
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'terms_and_conditions' => 'nullable|string|max:5000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $policy->update($validator->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Policy updated successfully.',
+            'data' => $policy->fresh(['customer', 'coverages']),
+        ]);
+    }
+
+    /**
+     * Cancel an active policy with reason.
+     */
+    public function cancel(Request $request, string $id)
+    {
+        $policy = Policy::with('quotation')->find($id);
+
+        if (!$policy) {
+            return response()->json(['success' => false, 'message' => 'Policy not found.'], 404);
+        }
+
+        if ($request->user()->hasRole('Sales Agent')) {
+            $isOwner = $policy->issued_by === $request->user()->id || 
+                       ($policy->quotation && $policy->quotation->prepared_by === $request->user()->id);
+            if (!$isOwner) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access to this policy record.',
+                ], 403);
+            }
+        }
+
+        if ($policy->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only active policies can be cancelled.',
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'cancellation_reason' => 'required|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $policy->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+            'cancellation_reason' => $request->input('cancellation_reason'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Policy cancelled successfully.',
+            'data' => $policy->fresh(),
+        ]);
+    }
+}

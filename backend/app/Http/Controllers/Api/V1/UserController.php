@@ -1,0 +1,170 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Spatie\Permission\Models\Role;
+use Illuminate\Validation\Rules\Password;
+
+class UserController extends Controller
+{
+    /**
+     * Display a listing of the users.
+     */
+    public function index(Request $request)
+    {
+        $perPage = min((int) $request->input('per_page', 15), 100);
+        
+        $users = User::with('roles')
+            ->when($request->input('search'), function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->paginate($perPage);
+
+        // Map roles to a simple string array for frontend convenience
+        $users->getCollection()->transform(function ($user) {
+            $user->role_name = $user->getRoleNames()->first() ?? 'None';
+            return $user;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $users,
+        ]);
+    }
+
+    /**
+     * Store a newly created user.
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => [
+                'required',
+                'string',
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ],
+            'role' => 'required|string|exists:roles,name',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        $user->assignRole($request->role);
+        $user->role_name = $request->role;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User account created successfully.',
+            'data' => $user,
+        ], 201);
+    }
+
+    /**
+     * Display the specified user.
+     */
+    public function show(User $user)
+    {
+        $user->role_name = $user->getRoleNames()->first() ?? 'None';
+        return response()->json([
+            'success' => true,
+            'data' => $user,
+        ]);
+    }
+
+    /**
+     * Update the specified user.
+     */
+    public function update(Request $request, User $user)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'password' => [
+                'nullable',
+                'string',
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ],
+            'role' => 'required|string|exists:roles,name',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->save();
+        $user->syncRoles([$request->role]);
+        $user->role_name = $request->role;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User account updated successfully.',
+            'data' => $user,
+        ]);
+    }
+
+    /**
+     * Remove the specified user.
+     */
+    public function destroy(User $user)
+    {
+        // Prevent deleting the currently logged-in user or the primary admin
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot delete your own account.',
+            ], 422);
+        }
+
+        if ($user->email === 'admin@supremogen.com') {
+            return response()->json([
+                'success' => false,
+                'message' => 'The primary administrator account cannot be deleted.',
+            ], 422);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User account deleted successfully.',
+        ]);
+    }
+}

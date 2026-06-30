@@ -1,0 +1,131 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Models\Invoice;
+use App\Models\Payment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class PaymentController extends Controller
+{
+    /**
+     * Paginated list of payments.
+     */
+    public function index(Request $request)
+    {
+        $perPage = min((int) $request->input('per_page', 15), 100);
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = strtolower($request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        $allowed = ['payment_number', 'amount', 'payment_method', 'payment_date', 'status', 'created_at'];
+        if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
+
+        $payments = Payment::with([
+                'invoice:id,invoice_number,total_amount,balance',
+                'invoice.customer:id,customer_code,first_name,last_name',
+                'receivedBy:id,name',
+            ])
+            ->search($request->input('search'))
+            ->ofStatus($request->input('status'))
+            ->ofMethod($request->input('method'))
+            ->orderBy($sortBy, $sortDir)
+            ->paginate($perPage)
+            ->appends($request->query());
+
+        return response()->json(['success' => true, 'data' => $payments]);
+    }
+
+    /**
+     * Record a new payment against an invoice.
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'invoice_id' => 'required|exists:invoices,id',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|in:cash,check,bank_transfer,online,gcash,maya',
+            'payment_date' => 'required|date',
+            'reference_number' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false, 'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Validate payment doesn't exceed balance
+        $invoice = Invoice::find($request->input('invoice_id'));
+        if (in_array($invoice->status, ['paid', 'cancelled'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot record payment for a ' . $invoice->status . ' invoice.',
+            ], 422);
+        }
+
+        $payment = Payment::create([
+            'payment_number' => Payment::generateNumber(),
+            'invoice_id' => $request->input('invoice_id'),
+            'received_by' => $request->user()->id,
+            'amount' => $request->input('amount'),
+            'payment_method' => $request->input('payment_method'),
+            'payment_date' => $request->input('payment_date'),
+            'reference_number' => $request->input('reference_number'),
+            'notes' => $request->input('notes'),
+            'status' => 'completed',
+        ]);
+
+        // Recalculate invoice totals & status
+        $invoice->recalculate();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment recorded successfully.',
+            'data' => $payment->load(['invoice.customer', 'receivedBy']),
+        ], 201);
+    }
+
+    /**
+     * Show payment details.
+     */
+    public function show(string $id)
+    {
+        $payment = Payment::with([
+            'invoice.customer', 'invoice.policy:id,policy_number',
+            'receivedBy:id,name,email',
+        ])->find($id);
+
+        if (!$payment) {
+            return response()->json(['success' => false, 'message' => 'Payment not found.'], 404);
+        }
+
+        return response()->json(['success' => true, 'data' => $payment]);
+    }
+
+    /**
+     * Void a completed payment.
+     */
+    public function void(Request $request, string $id)
+    {
+        $payment = Payment::find($id);
+        if (!$payment) return response()->json(['success' => false, 'message' => 'Payment not found.'], 404);
+
+        if ($payment->status !== 'completed') {
+            return response()->json(['success' => false, 'message' => 'Only completed payments can be voided.'], 422);
+        }
+
+        $payment->update(['status' => 'voided']);
+
+        // Recalculate invoice
+        $payment->invoice->recalculate();
+
+        return response()->json([
+            'success' => true, 'message' => 'Payment voided.',
+            'data' => $payment->fresh(['invoice']),
+        ]);
+    }
+}
