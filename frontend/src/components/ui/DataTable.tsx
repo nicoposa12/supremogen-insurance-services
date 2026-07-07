@@ -82,7 +82,7 @@ export default function DataTable<T extends Record<string, any>>({
                 {col.sortable && onSort ? (
                   <button
                     onClick={() => onSort(col.key)}
-                    className="inline-flex items-center gap-1.5 hover:text-slate-700 transition"
+                    className="inline-flex items-center gap-1.5 hover:text-slate-700 transition uppercase tracking-wider"
                   >
                     {col.label}
                     {getSortIcon(col.key)}

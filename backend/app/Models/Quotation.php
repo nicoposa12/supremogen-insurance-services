@@ -17,6 +17,9 @@ class Quotation extends Model
      */
     protected $fillable = [
         'quotation_number',
+        'ir_number',
+        'or_number',
+        'trip_number',
         'customer_id',
         'prepared_by',
         'reviewed_by',
@@ -83,6 +86,7 @@ class Quotation extends Model
 
         return $query->where(function ($q) use ($term) {
             $q->where('quotation_number', 'like', "%{$term}%")
+              ->orWhere('ir_number', 'like', "%{$term}%")
               ->orWhere('notes', 'like', "%{$term}%")
               ->orWhereHas('customer', function ($cq) use ($term) {
                   $cq->where('first_name', 'like', "%{$term}%")
@@ -97,6 +101,18 @@ class Quotation extends Model
         if (!$status || $status === 'all') return $query;
         return $query->where('status', $status);
     }
+
+    public function scopeBetweenDates($query, ?string $startDate, ?string $endDate)
+    {
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+        return $query;
+    }
+
 
     /**
      * Scope for a specific sales agent.
@@ -127,6 +143,28 @@ class Quotation extends Model
         }
 
         return "QUO-{$year}-" . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate a unique IR number (IR-YY-NNNNN).
+     */
+    public static function generateIRNumber(): string
+    {
+        $yearShort = now()->format('y');
+        $latest = static::withTrashed()
+            ->whereNotNull('ir_number')
+            ->where('ir_number', 'like', "IR-{$yearShort}-%")
+            ->orderByDesc('id')
+            ->first();
+
+        if ($latest) {
+            $lastSeq = (int) substr($latest->ir_number, -5);
+            $nextSeq = $lastSeq + 1;
+        } else {
+            $nextSeq = 1;
+        }
+
+        return "IR-{$yearShort}-" . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
     }
 
     /**

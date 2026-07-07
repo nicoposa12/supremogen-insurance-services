@@ -61,6 +61,32 @@ export interface Customer {
   expiry_date?: string | null;
   delivery_date?: string | null;
   date_delivered?: string | null;
+
+  // Revised fields
+  request_type?: string | null;
+  activity?: string | null;
+  quotation_used?: string | null;
+  usage?: string | null;
+  chassis_no?: string | null;
+  engine_no?: string | null;
+  color?: string | null;
+  ownership?: string | null;
+  own_damage_coverage?: number | string;
+  bi_coverage?: number | string;
+  pd_coverage?: number | string;
+  payment_terms?: string | number | null;
+  agent_markup?: number | string;
+  sub_agent_markup?: number | string;
+  sub_agent_name?: string | null;
+  freebie?: number | string;
+  receiver_name?: string | null;
+  delivery_address?: string | null;
+  landmark?: string | null;
+  backup_phone?: string | null;
+  fb_link?: string | null;
+  used_rate_type?: string | null;
+  used_rate?: string | null;
+  duplicate_plates?: { id: number; customer_code: string; first_name: string; last_name: string }[];
 }
 
 export interface CustomerDocument {
@@ -121,6 +147,18 @@ export interface DashboardStats {
   claims_trend: number;
   monthly_revenue: number;
   revenue_trend: number;
+  premium?: {
+    daily: { value: number; trend: number };
+    weekly: { value: number; trend: number };
+    monthly: { value: number; trend: number };
+    yearly: { value: number; trend: number };
+  };
+  customers?: {
+    daily: { value: number; trend: number };
+    weekly: { value: number; trend: number };
+    monthly: { value: number; trend: number };
+    yearly: { value: number; trend: number };
+  };
 }
 
 export interface MonthlyOverview {
@@ -139,9 +177,17 @@ export interface ChartSlice {
 export interface DashboardData {
   stats: DashboardStats;
   charts: {
+    daily_overview: { short: string; customers: number; revenue: number }[];
+    weekly_overview: { short: string; customers: number; revenue: number }[];
     monthly_overview: MonthlyOverview[];
+    yearly_overview: { short: string; customers: number; revenue: number }[];
     customer_types: ChartSlice[];
-    customer_statuses: ChartSlice[];
+    customer_statuses: ChartSlice[] | {
+      daily: ChartSlice[];
+      weekly: ChartSlice[];
+      monthly: ChartSlice[];
+      yearly: ChartSlice[];
+    };
   };
   recent_customers: Customer[];
 }
@@ -156,6 +202,9 @@ export interface CustomerListParams {
   type?: string;
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';
+  start_date?: string;
+  end_date?: string;
+  no_paginate?: boolean;
 }
 
 export interface CustomerFormData {
@@ -207,4 +256,29 @@ export interface CustomerFormData {
   expiry_date?: string;
   delivery_date?: string;
   date_delivered?: string;
+
+  // Revised fields
+  request_type?: string;
+  activity?: string;
+  quotation_used?: string;
+  usage?: string;
+  chassis_no?: string;
+  engine_no?: string;
+  color?: string;
+  ownership?: string;
+  own_damage_coverage?: number | string;
+  bi_coverage?: number | string;
+  pd_coverage?: number | string;
+  payment_terms?: string | number;
+  agent_markup?: number | string;
+  sub_agent_markup?: number | string;
+  sub_agent_name?: string;
+  freebie?: number | string;
+  receiver_name?: string;
+  delivery_address?: string;
+  landmark?: string;
+  backup_phone?: string;
+  fb_link?: string;
+  used_rate_type?: string;
+  used_rate?: string;
 }

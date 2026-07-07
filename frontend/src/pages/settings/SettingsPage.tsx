@@ -17,11 +17,11 @@ interface UserAccount {
 }
 
 export default function SettingsPage() {
-  const { user, updateUser, permissions } = useAuth();
+  const { user, updateUser, permissions, roles } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  const isAdmin = permissions.includes('users.view');
+  const isAdmin = permissions.includes('users.view') || roles.includes('Underwriter') || roles.includes('Administrator');
 
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'system' | 'accounts' | 'preferences'>('profile');
 
@@ -125,7 +125,12 @@ export default function SettingsPage() {
     },
     enabled: isAdmin && activeTab === 'accounts',
   });
-  const userAccounts: UserAccount[] = usersRes?.data?.data ?? [];
+  const userAccounts: UserAccount[] = (usersRes?.data?.data ?? []).filter((u: UserAccount) => {
+    if (roles?.includes('Underwriter')) {
+      return u.email !== 'admin@supremogen.com' && u.email !== 'owner@supremogen.com';
+    }
+    return true;
+  });
 
   // Mutations
   const updateProfileMut = useMutation({
@@ -294,6 +299,7 @@ export default function SettingsPage() {
     'Underwriter': 'Underwriter (Quotations / Policies)',
     'Accounting Officer': 'Accounting Officer (Billing / Payments)',
     'Claims Officer': 'Claims Officer (Claims filing / Settle)',
+    'Team Renewal': 'Team Renewal (Renewal Accounts)',
   };
 
   return (
@@ -597,7 +603,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Modal Form Body */}
-            <form onSubmit={handleSaveUser} className="flex-1 overflow-y-auto p-6 space-y-4">
+            <form onSubmit={handleSaveUser} className="flex-1 overflow-y-auto p-6 space-y-4" autoComplete="off">
               <div>
                 <label className={labelClass}>Full Name *</label>
                 <input 
@@ -606,6 +612,7 @@ export default function SettingsPage() {
                   onChange={(e) => setUserFormName(e.target.value)} 
                   className={inputClass}
                   placeholder="Enter full name..."
+                  autoComplete="new-user-name"
                 />
               </div>
               <div>
@@ -616,6 +623,7 @@ export default function SettingsPage() {
                   onChange={(e) => setUserFormEmail(e.target.value)} 
                   className={inputClass}
                   placeholder="e.g. agent.name@supremogen.com"
+                  autoComplete="new-user-email"
                 />
               </div>
               <div>
@@ -630,6 +638,7 @@ export default function SettingsPage() {
                   onBlur={() => setIsUserFormPasswordFocused(false)}
                   className={inputClass}
                   placeholder="e.g. P@ssword123!"
+                  autoComplete="new-password"
                 />
                 {isUserFormPasswordFocused && (
                   <div className="mt-2.5 space-y-1.5 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 animate-scale-in">
@@ -666,9 +675,11 @@ export default function SettingsPage() {
                   onChange={(e) => setUserFormRole(e.target.value)} 
                   className={inputClass}
                 >
-                  {Object.entries(roleLabels).map(([val, label]) => (
-                    <option key={val} value={val}>{label}</option>
-                  ))}
+                  {Object.entries(roleLabels)
+                    .filter(([val]) => !(roles?.includes('Underwriter') && val === 'Administrator'))
+                    .map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
                 </select>
               </div>
 

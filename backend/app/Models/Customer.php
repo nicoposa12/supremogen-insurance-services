@@ -63,6 +63,40 @@ class Customer extends Model
         'status',
         'notes',
         'created_by',
+        
+        // Revised fields
+        'request_type',
+        'activity',
+        'quotation_used',
+        'usage',
+        'chassis_no',
+        'engine_no',
+        'color',
+        'ownership',
+        'own_damage_coverage',
+        'bi_coverage',
+        'pd_coverage',
+        'payment_terms',
+        'agent_markup',
+        'sub_agent_markup',
+        'sub_agent_name',
+        'freebie',
+        'receiver_name',
+        'delivery_address',
+        'landmark',
+        'backup_phone',
+        'fb_link',
+        'used_rate_type',
+        'used_rate',
+    ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'approved',
     ];
 
     /**
@@ -89,6 +123,14 @@ class Customer extends Model
             'aog' => 'decimal:2',
             'policy_rate' => 'decimal:4',
             'discount_rate' => 'decimal:4',
+            
+            // Revised fields decimals
+            'own_damage_coverage' => 'decimal:2',
+            'bi_coverage' => 'decimal:2',
+            'pd_coverage' => 'decimal:2',
+            'agent_markup' => 'decimal:2',
+            'sub_agent_markup' => 'decimal:2',
+            'freebie' => 'decimal:2',
         ];
     }
 
@@ -230,5 +272,31 @@ class Customer extends Model
     public function attachments(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
         return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    /**
+     * Quotations for this customer.
+     */
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
+    /**
+     * Get the customer's approved status.
+     */
+    public function getApprovedAttribute(): string
+    {
+        return $this->quotations()->where('status', 'approved')->exists() ? 'YES' : 'NO';
+    }
+
+    /**
+     * Scope: filter customers with approved quotations.
+     */
+    public function scopeApproved($query)
+    {
+        return $query->whereHas('quotations', function ($q) {
+            $q->where('status', 'approved');
+        });
     }
 }

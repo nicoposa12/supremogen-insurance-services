@@ -48,11 +48,27 @@ export async function submitQuotation(id: number): Promise<SingleResponse<Quotat
 export async function reviewQuotation(
   id: number,
   action: 'approve' | 'reject',
-  reviewerRemarks?: string
+  reviewerRemarks?: string,
+  orNumber?: string,
+  tripNumber?: string
 ): Promise<SingleResponse<Quotation>> {
   const { data } = await axios.post<SingleResponse<Quotation>>(`${BASE}/${id}/review`, {
     action,
     reviewer_remarks: reviewerRemarks,
+    or_number: orNumber,
+    trip_number: tripNumber,
+  });
+  return data;
+}
+
+export async function updateQuotationMetadata(
+  id: number,
+  orNumber: string,
+  tripNumber: string
+): Promise<SingleResponse<Quotation>> {
+  const { data } = await axios.post<SingleResponse<Quotation>>(`${BASE}/${id}/metadata`, {
+    or_number: orNumber,
+    trip_number: tripNumber,
   });
   return data;
 }

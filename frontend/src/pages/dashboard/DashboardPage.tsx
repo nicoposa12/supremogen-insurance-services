@@ -1,20 +1,21 @@
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
   ShieldCheck,
-  AlertTriangle,
   DollarSign,
-  UserPlus,
-  FileText,
-  CreditCard,
-  BarChart3,
   ArrowRight,
   Clock,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react';
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -46,34 +47,81 @@ export default function DashboardPage() {
 
   const dashboard: DashboardData | undefined = response?.data;
 
-  // ─── Quick Actions ────────────────────
+  const [overviewTimeframe, setOverviewTimeframe] = useState('monthly');
+  const [revenueTimeframe, setRevenueTimeframe] = useState('monthly');
+  const [distributionTimeframe, setDistributionTimeframe] = useState('monthly');
+  const [premiumTimeframe, setPremiumTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [customerTimeframe, setCustomerTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
 
-  const quickActions = [
-    {
-      label: 'New Customer',
-      icon: UserPlus,
-      path: '/dashboard/customers/new',
-      color: 'bg-blue-50 text-blue-600 hover:bg-blue-100',
-    },
-    {
-      label: 'New Quotation',
-      icon: FileText,
-      path: '/dashboard/quotations',
-      color: 'bg-violet-50 text-violet-600 hover:bg-violet-100',
-    },
-    {
-      label: 'Record Payment',
-      icon: CreditCard,
-      path: '/dashboard/payments',
-      color: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100',
-    },
-    {
-      label: 'View Reports',
-      icon: BarChart3,
-      path: '/dashboard/reports',
-      color: 'bg-amber-50 text-amber-600 hover:bg-amber-100',
-    },
-  ];
+  const activePremium = useMemo(() => {
+    if (!dashboard || !dashboard.stats || !dashboard.stats.premium) {
+      return { value: 0, trend: 0 };
+    }
+    return dashboard.stats.premium[premiumTimeframe] || { value: 0, trend: 0 };
+  }, [dashboard, premiumTimeframe]);
+
+  const activeCustomers = useMemo(() => {
+    if (!dashboard || !dashboard.stats || !dashboard.stats.customers) {
+      const val = dashboard?.stats?.total_customers ?? 0;
+      const tr = dashboard?.stats?.customer_trend ?? 0;
+      return { value: val, trend: tr };
+    }
+    return dashboard.stats.customers[customerTimeframe] || { value: 0, trend: 0 };
+  }, [dashboard, customerTimeframe]);
+
+  const getOverviewData = () => {
+    if (!dashboard) return [];
+    switch (overviewTimeframe) {
+      case 'daily':
+        return dashboard.charts.daily_overview || [];
+      case 'weekly':
+        return dashboard.charts.weekly_overview || [];
+      case 'yearly':
+        return dashboard.charts.yearly_overview || [];
+      case 'monthly':
+      default:
+        return dashboard.charts.monthly_overview || [];
+    }
+  };
+
+  const getRevenueData = () => {
+    if (!dashboard) return [];
+    switch (revenueTimeframe) {
+      case 'daily':
+        return dashboard.charts.daily_overview || [];
+      case 'weekly':
+        return dashboard.charts.weekly_overview || [];
+      case 'yearly':
+        return dashboard.charts.yearly_overview || [];
+      case 'monthly':
+      default:
+        return dashboard.charts.monthly_overview || [];
+    }
+  };
+
+  const getDistributionData = () => {
+    if (!dashboard) return [];
+    const statuses = dashboard.charts.customer_statuses;
+    if (!statuses) return [];
+
+    if (Array.isArray(statuses)) {
+      return statuses;
+    }
+
+    switch (distributionTimeframe) {
+      case 'daily':
+        return statuses.daily || [];
+      case 'weekly':
+        return statuses.weekly || [];
+      case 'yearly':
+        return statuses.yearly || [];
+      case 'monthly':
+      default:
+        return statuses.monthly || [];
+    }
+  };
+
+
 
   // ─── Loading Skeleton ─────────────────
 
@@ -102,14 +150,53 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* ─── Statistics Cards ──────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Customers"
-          value={dashboard.stats.total_customers}
-          icon={Users}
-          trend={dashboard.stats.customer_trend}
-          iconColor="text-blue-600"
-          iconBg="bg-blue-50"
-        />
+        {/* Total Customers Card with Timeframe Selector */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-lg hover:shadow-slate-200/50 hover:border-slate-300/80 transition-all duration-300 group">
+          <div className="flex items-start justify-between">
+            <div className="space-y-3 flex-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-500">Total Customers</span>
+                <select
+                  value={customerTimeframe}
+                  onChange={(e) => setCustomerTimeframe(e.target.value as any)}
+                  className="text-[11px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 outline-none focus:border-[#4A0E17] cursor-pointer no-print mr-2"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+              <p className="text-3xl font-bold text-slate-900 tracking-tight">
+                {activeCustomers.value.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-blue-50 group-hover:scale-110 transition-transform duration-300">
+              <Users className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-1.5 text-sm">
+            {activeCustomers.trend > 0 ? (
+              <>
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                <span className="font-medium text-emerald-600">+{activeCustomers.trend}%</span>
+              </>
+            ) : activeCustomers.trend < 0 ? (
+              <>
+                <TrendingDown className="h-4 w-4 text-red-500" />
+                <span className="font-medium text-red-600">{activeCustomers.trend}%</span>
+              </>
+            ) : (
+              <>
+                <Minus className="h-4 w-4 text-slate-400" />
+                <span className="font-medium text-slate-500">0%</span>
+              </>
+            )}
+            <span className="text-slate-400">vs last {customerTimeframe === 'daily' ? 'day' : customerTimeframe === 'weekly' ? 'week' : customerTimeframe === 'monthly' ? 'month' : 'year'}</span>
+          </div>
+        </div>
         <StatCard
           label="Active Policies"
           value={dashboard.stats.active_policies}
@@ -118,14 +205,53 @@ export default function DashboardPage() {
           iconColor="text-emerald-600"
           iconBg="bg-emerald-50"
         />
-        <StatCard
-          label="Pending Claims"
-          value={dashboard.stats.pending_claims}
-          icon={AlertTriangle}
-          trend={dashboard.stats.claims_trend}
-          iconColor="text-amber-600"
-          iconBg="bg-amber-50"
-        />
+        {/* Total Premium Card with Timeframe Selector */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:shadow-lg hover:shadow-slate-200/50 hover:border-slate-300/80 transition-all duration-300 group">
+          <div className="flex items-start justify-between">
+            <div className="space-y-3 flex-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-500">Total Premium</span>
+                <select
+                  value={premiumTimeframe}
+                  onChange={(e) => setPremiumTimeframe(e.target.value as any)}
+                  className="text-[11px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 outline-none focus:border-[#4A0E17] cursor-pointer no-print mr-2"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+              <p className="text-3xl font-bold text-slate-900 tracking-tight">
+                ₱{activePremium.value.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-50 group-hover:scale-110 transition-transform duration-300">
+              <DollarSign className="h-6 w-6 text-amber-600" />
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-1.5 text-sm">
+            {activePremium.trend > 0 ? (
+              <>
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                <span className="font-medium text-emerald-600">+{activePremium.trend}%</span>
+              </>
+            ) : activePremium.trend < 0 ? (
+              <>
+                <TrendingDown className="h-4 w-4 text-red-500" />
+                <span className="font-medium text-red-600">{activePremium.trend}%</span>
+              </>
+            ) : (
+              <>
+                <Minus className="h-4 w-4 text-slate-400" />
+                <span className="font-medium text-slate-500">0%</span>
+              </>
+            )}
+            <span className="text-slate-400">vs last {premiumTimeframe === 'daily' ? 'day' : premiumTimeframe === 'weekly' ? 'week' : premiumTimeframe === 'monthly' ? 'month' : 'year'}</span>
+          </div>
+        </div>
         <StatCard
           label="Monthly Revenue"
           value={`₱${dashboard.stats.monthly_revenue.toLocaleString()}`}
@@ -143,11 +269,21 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-base font-semibold text-slate-800">Monthly Overview</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Customer registrations over the last 12 months</p>
+              <p className="text-xs text-slate-500 mt-0.5">Customer registrations over time</p>
             </div>
+            <select
+              value={overviewTimeframe}
+              onChange={(e) => setOverviewTimeframe(e.target.value)}
+              className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 outline-none focus:border-[#4A0E17] focus:ring-1 focus:ring-[#4A0E17]/20 cursor-pointer transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
           </div>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={dashboard.charts.monthly_overview} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <AreaChart data={getOverviewData()} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <defs>
                 <linearGradient id="colorCustomers" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -180,23 +316,84 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Pie Chart: Customer Types */}
+        {/* Monthly Revenue Chart */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6">
-          <h3 className="text-base font-semibold text-slate-800 mb-1">Customer Distribution</h3>
-          <p className="text-xs text-slate-500 mb-4">By status</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-semibold text-slate-800">Monthly Revenue</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Revenue over time</p>
+            </div>
+            <select
+              value={revenueTimeframe}
+              onChange={(e) => setRevenueTimeframe(e.target.value)}
+              className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 outline-none focus:border-[#4A0E17] focus:ring-1 focus:ring-[#4A0E17]/20 cursor-pointer transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
           <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={getRevenueData()} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+              <XAxis dataKey="short" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis 
+                tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                axisLine={false} 
+                tickLine={false}
+                tickFormatter={(value) => `₱${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip
+                formatter={(value: any) => [`₱${Number(value).toLocaleString()}`, 'Revenue']}
+                contentStyle={{
+                  backgroundColor: '#1e293b',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: '#f8fafc',
+                  fontSize: '12px',
+                }}
+                labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+              />
+              <Bar dataKey="revenue" fill="#c92a3e" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* ─── Quick Actions + Recent Customers ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Pie Chart: Customer Distribution */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-6">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h3 className="text-base font-semibold text-slate-800">Customer Distribution</h3>
+              <p className="text-xs text-slate-500 mt-0.5">By status</p>
+            </div>
+            <select
+              value={distributionTimeframe}
+              onChange={(e) => setDistributionTimeframe(e.target.value)}
+              className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 outline-none focus:border-[#4A0E17] focus:ring-1 focus:ring-[#4A0E17]/20 cursor-pointer transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie
-                data={dashboard.charts.customer_statuses}
+                data={getDistributionData()}
                 cx="50%"
                 cy="50%"
-                innerRadius={55}
-                outerRadius={85}
+                innerRadius={40}
+                outerRadius={65}
                 paddingAngle={4}
                 dataKey="value"
                 strokeWidth={0}
               >
-                {dashboard.charts.customer_statuses.map((_, index) => (
+                {getDistributionData().map((_, index) => (
                   <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
                 ))}
               </Pie>
@@ -218,26 +415,6 @@ export default function DashboardPage() {
               />
             </PieChart>
           </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* ─── Quick Actions + Recent Customers ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Quick Actions */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6">
-          <h3 className="text-base font-semibold text-slate-800 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action) => (
-              <button
-                key={action.label}
-                onClick={() => navigate(action.path)}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all duration-200 ${action.color}`}
-              >
-                <action.icon className="h-6 w-6" />
-                <span className="text-xs font-medium text-center leading-tight">{action.label}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Recent Customers */}

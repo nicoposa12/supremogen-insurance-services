@@ -229,11 +229,11 @@ export default function WebsiteLayout() {
             <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span>2nd Floor Unit F &amp; H Village Mall, Commonwealth Avenue, East Fairview Park Subdivision, Barangay Fairview, Quezon City, Quezon City, Philippines, 1121</span>
+                <span>VILL STATE CORP BUILDING, 2ND FLR UNIT F&amp;H BRGY, COMMONWEALTH , QUEZON CITY, PHILIPPINES, 1121</span>
               </li>
               <li className="flex gap-2">
                 <Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span>0994 364 2241</span>
+                <span>0994-364-2241 / 027-091-5125</span>
               </li>
               <li className="flex gap-2">
                 <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

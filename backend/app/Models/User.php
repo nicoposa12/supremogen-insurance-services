@@ -28,6 +28,15 @@ class User extends Authenticatable
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'role_name',
+    ];
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
@@ -48,5 +57,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Check if the user is a sales agent or renewal team member.
+     */
+    public function isSalesOrRenewal(): bool
+    {
+        return $this->hasRole('Sales Agent') || $this->hasRole('Team Renewal');
+    }
+
+    /**
+     * Get the user's primary role name.
+     */
+    public function getRoleNameAttribute(): string
+    {
+        return $this->roles->first()?->name ?? 'None';
     }
 }

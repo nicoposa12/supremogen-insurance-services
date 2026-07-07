@@ -23,15 +23,19 @@ class QuotationController extends Controller
         $allowed = ['quotation_number', 'total_premium', 'status', 'valid_until', 'created_at'];
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
-        $query = Quotation::with(['customer:id,customer_code,first_name,last_name', 'preparedBy:id,name']);
+        $query = Quotation::with(['customer:id,customer_code,first_name,last_name,plate_no,unit', 'preparedBy:id,name']);
 
-        if ($request->user()->hasRole('Sales Agent')) {
+        if ($request->user()->isSalesOrRenewal()) {
             $query->where('prepared_by', $request->user()->id);
+        } elseif ($request->user()->hasRole('Underwriter')) {
+            // Underwriters only see submitted / under_review / approved / rejected
+            $query->whereIn('status', ['submitted', 'under_review', 'approved', 'rejected']);
         }
 
         $quotations = $query
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
+            ->betweenDates($request->input('start_date'), $request->input('end_date'))
             ->orderBy($sortBy, $sortDir)
             ->paginate($perPage)
             ->appends($request->query());
@@ -113,11 +117,20 @@ class QuotationController extends Controller
             return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
         }
 
-        if (request()->user()->hasRole('Sales Agent') && $quotation->prepared_by !== request()->user()->id) {
+        if (request()->user()->isSalesOrRenewal() && $quotation->prepared_by !== request()->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to this quotation record.',
             ], 403);
+        }
+
+        // Underwriters can view any quotation (needed for IR review)
+        if (request()->user()->hasRole('Underwriter') && $quotation->customer && $quotation->customer->plate_no) {
+            $duplicateCustomers = \App\Models\Customer::where('plate_no', $quotation->customer->plate_no)
+                ->where('id', '!=', $quotation->customer->id)
+                ->get(['id', 'customer_code', 'first_name', 'last_name']);
+            
+            $quotation->customer->setAttribute('duplicate_plates', $duplicateCustomers);
         }
 
         return response()->json([
@@ -137,7 +150,7 @@ class QuotationController extends Controller
             return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
         }
 
-        if ($request->user()->hasRole('Sales Agent') && $quotation->prepared_by !== $request->user()->id) {
+        if ($request->user()->isSalesOrRenewal() && $quotation->prepared_by !== $request->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to this quotation record.',
@@ -207,7 +220,7 @@ class QuotationController extends Controller
             return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
         }
 
-        if (request()->user()->hasRole('Sales Agent') && $quotation->prepared_by !== request()->user()->id) {
+        if (request()->user()->isSalesOrRenewal() && $quotation->prepared_by !== request()->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to this quotation record.',
@@ -237,7 +250,7 @@ class QuotationController extends Controller
             return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
         }
 
-        if (request()->user()->hasRole('Sales Agent') && $quotation->prepared_by !== request()->user()->id) {
+        if (request()->user()->isSalesOrRenewal() && $quotation->prepared_by !== request()->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to this quotation record.',
@@ -261,7 +274,24 @@ class QuotationController extends Controller
         $quotation->update([
             'status' => 'submitted',
             'submitted_at' => now(),
+            'ir_number' => $quotation->ir_number ?? Quotation::generateIRNumber(),
         ]);
+
+        // Notify all Underwriters
+        try {
+            $underwriters = \App\Models\User::role('Underwriter')->get();
+            foreach ($underwriters as $underwriter) {
+                \App\Models\Notification::create([
+                    'user_id' => $underwriter->id,
+                    'title' => 'Quotation Submitted for Review',
+                    'message' => "Quotation {$quotation->quotation_number} has been submitted by " . request()->user()->name . " and requires your review.",
+                    'type' => 'info',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send quotation submission notifications: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,
@@ -291,6 +321,8 @@ class QuotationController extends Controller
         $validator = Validator::make($request->all(), [
             'action' => 'required|in:approve,reject',
             'reviewer_remarks' => 'nullable|string|max:2000',
+            'or_number' => 'nullable|string|max:100',
+            'trip_number' => 'nullable|string|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -308,6 +340,8 @@ class QuotationController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewer_remarks' => $request->input('reviewer_remarks'),
             'reviewed_at' => now(),
+            'or_number' => $request->input('or_number', $quotation->or_number),
+            'trip_number' => $request->input('trip_number', $quotation->trip_number),
         ]);
 
         $message = $action === 'approve' ? 'Quotation approved.' : 'Quotation rejected.';
@@ -316,6 +350,50 @@ class QuotationController extends Controller
             'success' => true,
             'message' => $message,
             'data' => $quotation->fresh(['customer', 'items.insuranceProduct', 'reviewedBy']),
+        ]);
+    }
+
+    /**
+     * Update quotation metadata (OR No. and Trip No.) by underwriter.
+     */
+    public function updateMetadata(Request $request, string $id)
+    {
+        $quotation = Quotation::find($id);
+
+        if (!$quotation) {
+            return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
+        }
+
+        // Only underwriters can update metadata
+        if (!$request->user()->hasRole('Underwriter')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access.',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'or_number' => 'nullable|string|max:100',
+            'trip_number' => 'nullable|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $quotation->update([
+            'or_number' => $request->input('or_number', $quotation->or_number),
+            'trip_number' => $request->input('trip_number', $quotation->trip_number),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Quotation metadata updated successfully.',
+            'data' => $quotation->fresh(['customer', 'items.insuranceProduct']),
         ]);
     }
 }

@@ -6,12 +6,15 @@ import {
   UserPlus,
   Pencil,
   Trash2,
-  Filter,
   Users,
   FileText,
   X,
   Save,
   Loader2,
+  UploadCloud,
+  Paperclip,
+  ChevronDown,
+  Calendar,
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -22,17 +25,19 @@ import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { getCustomers, deleteCustomer, createCustomer, updateCustomer } from '../../services/customerApi';
+import { uploadAttachment, getAttachments } from '../../services/attachmentApi';
 import type { Customer, CustomerListParams, CustomerFormData } from '../../types/CustomerTypes';
 import AttachmentPanel from '../../components/ui/AttachmentPanel';
 
 export default function CustomersPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { roles } = useAuth();
-  const isAgent = roles.includes('Sales Agent');
-  const isAdmin = roles.includes('Administrator');
-  const isAccounting = roles.includes('Accounting Officer');
-  const cannotEdit = isAgent || isAdmin || isAccounting;
+  const { permissions, roles } = useAuth();
+  const isUnderwriter = roles?.includes('Underwriter') || false;
+  const canCreate = permissions.includes('customers.create');
+  const canEdit = permissions.includes('customers.update');
+  const canDelete = permissions.includes('customers.delete');
+  const cannotEdit = !canEdit;
 
   // ─── Filters / Sort / Pagination ─────
   const [params, setParams] = useState<CustomerListParams>({
@@ -51,11 +56,25 @@ export default function CustomersPage() {
   // Modal states
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [activeModalTab, setActiveModalTab] = useState<'info' | 'payment' | 'claims' | 'documents'>('info');
+
+
   
   // Form Modal states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formEditTarget, setFormEditTarget] = useState<Customer | null>(null);
   const [activeFormTab, setActiveFormTab] = useState<'info' | 'payment' | 'claims'>('info');
+
+  // File Upload states for modal form
+  const [orcrFile, setOrcrFile] = useState<File | null>(null);
+  const [ellaScreenshotFile, setEllaScreenshotFile] = useState<File | null>(null);
+
+  // Fetch attachments for selected customer details view
+  const { data: selectedAttachmentsRes } = useQuery({
+    queryKey: ['attachments', 'customer', selectedCustomer?.id],
+    queryFn: () => getAttachments('customer', selectedCustomer?.id || 0),
+    enabled: !!selectedCustomer?.id,
+  });
+  const selectedAttachments = selectedAttachmentsRes?.data ?? [];
 
   // ─── React Hook Form ─────────────────
   const {
@@ -77,6 +96,30 @@ export default function CustomersPage() {
       aog: 0,
       policy_rate: 0,
       discount_rate: 0,
+      
+      request_type: '',
+      activity: '',
+      quotation_used: '',
+      usage: '',
+      chassis_no: '',
+      engine_no: '',
+      color: '',
+      ownership: '',
+      own_damage_coverage: 0,
+      bi_coverage: 0,
+      pd_coverage: 0,
+      payment_terms: '',
+      agent_markup: 0,
+      sub_agent_markup: 0,
+      sub_agent_name: '',
+      freebie: 0,
+      receiver_name: '',
+      delivery_address: '',
+      landmark: '',
+      backup_phone: '',
+      fb_link: '',
+      used_rate_type: '',
+      used_rate: '',
     },
   });
 
@@ -84,6 +127,8 @@ export default function CustomersPage() {
   useEffect(() => {
     if (isFormOpen) {
       setActiveFormTab('info');
+      setOrcrFile(null);
+      setEllaScreenshotFile(null);
       if (formEditTarget) {
         reset({
           customer_type: formEditTarget.customer_type ?? 'individual',
@@ -118,6 +163,30 @@ export default function CustomersPage() {
           expiry_date: formEditTarget.expiry_date?.split('T')[0] ?? '',
           delivery_date: formEditTarget.delivery_date?.split('T')[0] ?? '',
           date_delivered: formEditTarget.date_delivered?.split('T')[0] ?? '',
+          
+          request_type: formEditTarget.request_type ?? '',
+          activity: formEditTarget.activity ?? '',
+          quotation_used: formEditTarget.quotation_used ?? '',
+          usage: formEditTarget.usage ?? '',
+          chassis_no: formEditTarget.chassis_no ?? '',
+          engine_no: formEditTarget.engine_no ?? '',
+          color: formEditTarget.color ?? '',
+          ownership: formEditTarget.ownership ?? '',
+          own_damage_coverage: formEditTarget.own_damage_coverage ?? 0,
+          bi_coverage: formEditTarget.bi_coverage ?? 0,
+          pd_coverage: formEditTarget.pd_coverage ?? 0,
+          payment_terms: formEditTarget.payment_terms ?? '',
+          agent_markup: formEditTarget.agent_markup ?? 0,
+          sub_agent_markup: formEditTarget.sub_agent_markup ?? 0,
+          sub_agent_name: formEditTarget.sub_agent_name ?? '',
+          freebie: formEditTarget.freebie ?? 0,
+          receiver_name: formEditTarget.receiver_name ?? '',
+          delivery_address: formEditTarget.delivery_address ?? '',
+          landmark: formEditTarget.landmark ?? '',
+          backup_phone: formEditTarget.backup_phone ?? '',
+          fb_link: formEditTarget.fb_link ?? '',
+          used_rate_type: formEditTarget.used_rate_type ?? '',
+          used_rate: formEditTarget.used_rate ?? '',
         });
       } else {
         reset({
@@ -154,6 +223,30 @@ export default function CustomersPage() {
           expiry_date: '',
           delivery_date: '',
           date_delivered: '',
+          
+          request_type: '',
+          activity: '',
+          quotation_used: '',
+          usage: '',
+          chassis_no: '',
+          engine_no: '',
+          color: '',
+          ownership: '',
+          own_damage_coverage: 0,
+          bi_coverage: 0,
+          pd_coverage: 0,
+          payment_terms: '',
+          agent_markup: 0,
+          sub_agent_markup: 0,
+          sub_agent_name: '',
+          freebie: 0,
+          receiver_name: '',
+          delivery_address: '',
+          landmark: '',
+          backup_phone: '',
+          fb_link: '',
+          used_rate_type: '',
+          used_rate: '',
         });
       }
     }
@@ -168,6 +261,26 @@ export default function CustomersPage() {
 
   const pagination = response?.data;
   const customers = pagination?.data ?? [];
+
+  // Helper function for sequential uploads
+  const uploadFormFiles = async (customerId: number) => {
+    if (orcrFile) {
+      try {
+        await uploadAttachment('customer', customerId, orcrFile, 'orcr_ndos_4sides');
+      } catch (e) {
+        console.error('Failed to upload ORCR attachment', e);
+      }
+    }
+    if (ellaScreenshotFile) {
+      try {
+        await uploadAttachment('customer', customerId, ellaScreenshotFile, 'ella_langrio_screenshot');
+      } catch (e) {
+        console.error('Failed to upload Ella Langrio screenshot', e);
+      }
+    }
+    setOrcrFile(null);
+    setEllaScreenshotFile(null);
+  };
 
   // ─── Mutations ──────────────────────
   const deleteMutation = useMutation({
@@ -185,7 +298,10 @@ export default function CustomersPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: CustomerFormData) => createCustomer(data),
-    onSuccess: () => {
+    onSuccess: async (res) => {
+      if (res.data?.id) {
+        await uploadFormFiles(res.data.id);
+      }
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       showToast('Transaction record created successfully.');
       setIsFormOpen(false);
@@ -201,14 +317,15 @@ export default function CustomersPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: CustomerFormData) => updateCustomer(Number(formEditTarget?.id), data),
-    onSuccess: () => {
+    onSuccess: async () => {
+      const customerId = formEditTarget?.id;
+      if (customerId) {
+        await uploadFormFiles(customerId);
+      }
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       showToast('Transaction record updated successfully.');
       setIsFormOpen(false);
-      // If the currently viewed customer details modal is open, refresh its data
       if (selectedCustomer && selectedCustomer.id === formEditTarget?.id) {
-        setSelectedCustomer((prev) => (prev ? { ...prev, ...updateMutation.data?.data } : null));
-        // Simple way is to just close the view modal and let user reopen
         setSelectedCustomer(null);
       }
     },
@@ -292,7 +409,7 @@ export default function CustomersPage() {
       label: 'No',
       render: (_row: Customer, idx: number) => (
         <span className="text-slate-500 text-sm">
-          {idx + 1 + (params.page - 1) * params.per_page}
+          {idx + 1 + ((params.page ?? 1) - 1) * (params.per_page ?? 10)}
         </span>
       ),
     },
@@ -334,6 +451,22 @@ export default function CustomersPage() {
         </span>
       ),
     },
+    ...(isUnderwriter ? [{
+      key: 'created_by',
+      label: 'Agent',
+      sortable: false,
+      render: (row: Customer) => {
+        const creator = (row as any).created_by;
+        const creatorName = (typeof creator === 'object' && creator) ? creator.name : '—';
+        const role = (typeof creator === 'object' && creator) ? creator.role_name : '';
+        const displayText = role && role !== 'None' ? `${creatorName} - ${role}` : creatorName;
+        return (
+          <span className="inline-flex items-center rounded-full bg-[#8A1C2E]/5 px-2.5 py-0.5 text-[11px] font-bold text-[#8A1C2E] ring-1 ring-inset ring-[#8A1C2E]/10 uppercase tracking-wider">
+            {displayText}
+          </span>
+        );
+      }
+    }] : []),
     {
       key: 'plate_no',
       label: 'Plate No',
@@ -356,33 +489,35 @@ export default function CustomersPage() {
       className: 'text-right',
       render: (row: Customer) => (
         <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setFormEditTarget(row);
-              setIsFormOpen(true);
-            }}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
-            title="Edit"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteTarget(row);
-            }}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-            title="Delete"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {canEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFormEditTarget(row);
+                setIsFormOpen(true);
+              }}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(row);
+              }}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+              title="Delete"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ),
     },
-  ].filter((col) => !(cannotEdit && col.key === 'actions'));
-
-  const statusFilters = ['all', 'active', 'inactive', 'blacklisted'];
+  ].filter((col) => !(col.key === 'actions' && !canEdit && !canDelete));
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const inputClass = (error?: any) =>
@@ -401,23 +536,26 @@ export default function CustomersPage() {
             Manage insurance transaction records and client portfolios
           </p>
         </div>
-        {!cannotEdit && (
-          <button
-            onClick={() => {
-              setFormEditTarget(null);
-              setIsFormOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-medium rounded-xl shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
-          >
-            <UserPlus className="h-4 w-4" />
-            Create New Record
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {canCreate && (
+            <button
+              onClick={() => {
+                setFormEditTarget(null);
+                setIsFormOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-medium rounded-xl shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
+            >
+              <UserPlus className="h-4 w-4" />
+              Create New Record
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 space-y-3">
-        <div className="relative w-full">
+      <div className="flex flex-col lg:flex-row items-center gap-3 bg-white rounded-2xl border border-slate-200/80 p-4">
+        {/* Search field */}
+        <div className="relative flex-grow w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
@@ -428,25 +566,46 @@ export default function CustomersPage() {
           />
         </div>
 
-        {/* Filter chips */}
-        <div className="flex flex-wrap items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
-            <span className="text-xs font-medium text-slate-500 uppercase">Status:</span>
-            <div className="flex gap-1">
-              {statusFilters.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setParams((p) => ({ ...p, status: s, page: 1 }))}
-                  className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition ${
-                    params.status === s
-                      ? 'bg-[#4A0E17] text-white font-semibold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {s === 'active' ? 'Insured' : s === 'blacklisted' ? 'Insured with Balance' : s}
-                </button>
-              ))}
+        {/* Filters Group (Dates & Status) */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto shrink-0">
+          {/* Start Date */}
+          <div className="relative w-full sm:w-44">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <input
+              type="date"
+              value={params.start_date || ''}
+              onChange={(e) => setParams((p) => ({ ...p, start_date: e.target.value || undefined, page: 1 }))}
+              className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
+              title="Start Date"
+            />
+          </div>
+
+          {/* End Date */}
+          <div className="relative w-full sm:w-44">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <input
+              type="date"
+              value={params.end_date || ''}
+              onChange={(e) => setParams((p) => ({ ...p, end_date: e.target.value || undefined, page: 1 }))}
+              className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
+              title="End Date"
+            />
+          </div>
+
+          {/* Status Dropdown */}
+          <div className="relative w-full sm:w-48">
+            <select
+              value={params.status}
+              onChange={(e) => setParams((p) => ({ ...p, status: e.target.value, page: 1 }))}
+              className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer font-medium"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Insured</option>
+              <option value="inactive">Inactive</option>
+              <option value="blacklisted">Insured with Balance</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <ChevronDown className="h-4 w-4" />
             </div>
           </div>
         </div>
@@ -460,7 +619,7 @@ export default function CustomersPage() {
             title="No records found"
             description="Try adjusting your search or filters, or create a new record."
             action={
-              !cannotEdit ? (
+              canCreate ? (
                 <button
                   onClick={() => {
                     setFormEditTarget(null);
@@ -573,152 +732,269 @@ export default function CustomersPage() {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {activeModalTab === 'info' && (
-                <div className="space-y-6">
-                  {/* Record No & Status Row */}
-                  <div className="grid grid-cols-2 gap-6 pb-6 border-b border-slate-100">
-                    <div>
-                      <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Record No.</span>
-                      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono font-bold text-[#4A0E17] text-sm shadow-sm">
-                        {selectedCustomer.record_no || '—'}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Status</span>
-                      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-bold text-[#4A0E17] text-sm shadow-sm uppercase">
-                        {selectedCustomer.status === 'inactive' ? 'DRAFT' : selectedCustomer.status === 'blacklisted' ? 'INSURED WITH BALANCE' : 'INSURED'}
-                      </div>
-                    </div>
-                  </div>
+              {activeModalTab === 'info' && (() => {
+                const orcrAttachment = selectedAttachments.find(a => a.document_type === 'orcr_ndos_4sides');
+                const ellaAttachment = selectedAttachments.find(a => a.document_type === 'ella_langrio_screenshot');
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                    {/* Left Column */}
-                    <div className="space-y-6">
-                      {/* Customer Information */}
-                      <div className="space-y-3">
-                        <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Customer Information</h4>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
-                          <span className="text-slate-500 font-semibold text-xs">Client's Name</span>
-                          <span className="col-span-2 text-slate-800 font-bold uppercase">{selectedCustomer.first_name} {selectedCustomer.last_name}</span>
-                          
-                          <span className="text-slate-500 font-semibold text-xs">Contact No</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.mobile || selectedCustomer.phone || '—'}</span>
-                          
-                          <span className="text-slate-500 font-semibold text-xs">Email</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.email}</span>
+                return (
+                  <div className="space-y-6">
+                    {/* Record No & Status Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 border-b border-slate-100">
+                      <div>
+                        <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Record No.</span>
+                        <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono font-bold text-[#4A0E17] text-sm shadow-sm">
+                          {selectedCustomer.record_no || '—'}
                         </div>
                       </div>
-
-                      {/* Policy Information */}
-                      <div className="space-y-3">
-                        <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Policy Information</h4>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
-                          <span className="text-slate-500 font-semibold text-xs">Agent</span>
-                          <span className="col-span-2 text-slate-800 font-bold">{selectedCustomer.agent || '—'}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">Insurance Provider</span>
-                          <span className="col-span-2 text-slate-800 font-medium capitalize">{selectedCustomer.insurance_provider || '—'}</span>
+                      <div>
+                        <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Status</span>
+                        <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-bold text-[#4A0E17] text-sm shadow-sm uppercase">
+                          {selectedCustomer.status === 'inactive' ? 'DRAFT' : selectedCustomer.status === 'blacklisted' ? 'INSURED WITH BALANCE' : 'INSURED'}
                         </div>
                       </div>
-
-                      {/* Financial Details */}
-                      <div className="space-y-3">
-                        <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Financial Details</h4>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
-                          <span className="text-slate-500 font-semibold text-xs">Assured Value</span>
-                          <span className="col-span-2 text-[#4A0E17] font-bold">{formatCurrency(selectedCustomer.assured_value)}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">Gross Premium</span>
-                          <span className="col-span-2 text-slate-800 font-semibold">{formatCurrency(selectedCustomer.gross_premium)}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">Policy Premium</span>
-                          <span className="col-span-2 text-slate-800 font-semibold">{formatCurrency(selectedCustomer.policy_premium)}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">Discount</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatCurrency(selectedCustomer.discount)}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">BI / PD</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatCurrency(selectedCustomer.bi_pd)}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">PA</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatCurrency(selectedCustomer.pa)}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">AOG</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatCurrency(selectedCustomer.aog)}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">Policy Rate</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.policy_rate ? `${selectedCustomer.policy_rate}%` : '—'}</span>
-
-                          <span className="text-slate-500 font-semibold text-xs">Discount Rate</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.discount_rate ? `${selectedCustomer.discount_rate}%` : '—'}</span>
+                      <div>
+                        <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Date Request</span>
+                        <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-bold text-slate-700 text-sm shadow-sm">
+                          {formatDate(selectedCustomer.writing_date)}
                         </div>
                       </div>
                     </div>
 
-                    {/* Right Column */}
-                    <div className="space-y-6">
-                      {/* Vehicle Information */}
-                      <div className="space-y-3">
-                        <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Vehicle Information</h4>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
-                          <span className="text-slate-500 font-semibold text-xs">Plate No</span>
-                          <span className="col-span-2 text-slate-800 font-mono font-bold uppercase">{selectedCustomer.plate_no || '—'}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                      {/* Left Column */}
+                      <div className="space-y-6">
+                        {/* Request & Activity Details */}
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Request & Activity Details</h4>
+                          <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+                            <span className="text-slate-500 font-semibold text-xs">Type</span>
+                            <span className="col-span-2 text-slate-800 font-bold">{selectedCustomer.request_type || '—'}</span>
 
-                          <span className="text-slate-500 font-semibold text-xs">Unit</span>
-                          <span className="col-span-2 text-slate-800 font-bold uppercase">{selectedCustomer.unit || '—'}</span>
+                            <span className="text-slate-500 font-semibold text-xs">Activity</span>
+                            <span className="col-span-2 text-slate-800 font-bold">{selectedCustomer.activity || '—'}</span>
 
-                          <span className="text-slate-500 font-semibold text-xs">Mortgage</span>
-                          <span className="col-span-2 text-slate-800 font-medium capitalize">{selectedCustomer.mortgage || '—'}</span>
+                            <span className="text-slate-500 font-semibold text-xs">Provider</span>
+                            <span className="col-span-2 text-slate-800 font-bold">{selectedCustomer.insurance_provider || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Quotation Used</span>
+                            <span className="col-span-2 text-slate-800 font-bold">{selectedCustomer.quotation_used || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Usage</span>
+                            <span className="col-span-2 text-slate-800 font-bold">{selectedCustomer.usage || '—'}</span>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Policy Status */}
-                      <div className="space-y-3">
-                        <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Policy Status</h4>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
-                          <span className="text-slate-500 font-semibold text-xs">Status</span>
-                          <span className="col-span-2">
-                            <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                              selectedCustomer.policy_status === 'ACTIVE' 
-                                ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' 
-                                : 'bg-slate-50 text-slate-600 ring-slate-500/20'
-                            }`}>
-                              {selectedCustomer.policy_status || 'INACTIVE'}
+                        {/* Assured Personal & Contact Info */}
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Assured Personal & Contact</h4>
+                          <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+                            <span className="text-slate-500 font-semibold text-xs">Assured Name</span>
+                            <span className="col-span-2 text-slate-800 font-bold uppercase">
+                              {[
+                                selectedCustomer.first_name,
+                                selectedCustomer.middle_name,
+                                selectedCustomer.last_name,
+                                selectedCustomer.suffix
+                              ].filter(Boolean).join(' ')}
                             </span>
-                          </span>
+                            
+                            <span className="text-slate-500 font-semibold text-xs">Contact No.#</span>
+                            <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.mobile || '—'}</span>
+                            
+                            <span className="text-slate-500 font-semibold text-xs">Back Up No.#</span>
+                            <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.backup_phone || '—'}</span>
+                            
+                            <span className="text-slate-500 font-semibold text-xs">Email Add</span>
+                            <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.email}</span>
 
-                          <span className="text-slate-500 font-semibold text-xs">Policy No</span>
-                          <span className="col-span-2 text-slate-800 font-mono font-medium">{selectedCustomer.policy_no || '—'}</span>
+                            <span className="text-slate-500 font-semibold text-xs">FB Link</span>
+                            <span className="col-span-2 text-slate-800 font-medium truncate">
+                              {selectedCustomer.fb_link ? (
+                                <a href={selectedCustomer.fb_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                  {selectedCustomer.fb_link}
+                                </a>
+                              ) : '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Assured Address */}
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Assured Address</h4>
+                          <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+                            <span className="text-slate-500 font-semibold text-xs">Address</span>
+                            <span className="col-span-2 text-slate-800 font-medium">
+                              {[
+                                selectedCustomer.address_line_1,
+                                selectedCustomer.address_line_2,
+                                selectedCustomer.city,
+                                selectedCustomer.province,
+                                selectedCustomer.zip_code
+                              ].filter(Boolean).join(', ') || '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Delivery Details */}
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Delivery Details</h4>
+                          <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+                            <span className="text-slate-500 font-semibold text-xs">Receiver's Name</span>
+                            <span className="col-span-2 text-slate-800 font-bold uppercase">{selectedCustomer.receiver_name || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Delivery Address</span>
+                            <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.delivery_address || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Landmark</span>
+                            <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.landmark || '—'}</span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Dates */}
-                      <div className="space-y-3">
-                        <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Dates</h4>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
-                          <span className="text-slate-500 font-semibold text-xs">Writing Date</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.writing_date)}</span>
+                      {/* Right Column */}
+                      <div className="space-y-6">
+                        {/* Vehicle Information */}
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Vehicle Information</h4>
+                          <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+                            <span className="text-slate-500 font-semibold text-xs">Year Model & Make</span>
+                            <span className="col-span-2 text-slate-800 font-bold uppercase">{selectedCustomer.unit || '—'}</span>
 
-                          <span className="text-slate-500 font-semibold text-xs">Date Issued</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.date_issued)}</span>
+                            <span className="text-slate-500 font-semibold text-xs">Chassis #</span>
+                            <span className="col-span-2 text-slate-800 font-mono font-semibold uppercase">{selectedCustomer.chassis_no || '—'}</span>
 
-                          <span className="text-slate-500 font-semibold text-xs">Inception Date</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.inception_date)}</span>
+                            <span className="text-slate-500 font-semibold text-xs">Engine #</span>
+                            <span className="col-span-2 text-slate-800 font-mono font-semibold uppercase">{selectedCustomer.engine_no || '—'}</span>
 
-                          <span className="text-slate-500 font-semibold text-xs">Expiry Date</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.expiry_date)}</span>
+                            <span className="text-slate-500 font-semibold text-xs">Color</span>
+                            <span className="col-span-2 text-slate-800 font-medium capitalize">{selectedCustomer.color || '—'}</span>
 
-                          <span className="text-slate-500 font-semibold text-xs">Delivery Date</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.delivery_date)}</span>
+                            <span className="text-slate-500 font-semibold text-xs">Plate Number</span>
+                            <span className="col-span-2 text-slate-800 font-mono font-bold uppercase">{selectedCustomer.plate_no || '—'}</span>
 
-                          <span className="text-slate-500 font-semibold text-xs">Date Delivered</span>
-                          <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.date_delivered)}</span>
+                            <span className="text-slate-500 font-semibold text-xs">Bank</span>
+                            <span className="col-span-2 text-slate-800 font-bold uppercase">{selectedCustomer.mortgage || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Ownership</span>
+                            <span className="col-span-2 text-slate-800 font-bold uppercase">{selectedCustomer.ownership || '—'}</span>
+                          </div>
+                        </div>
+
+                        {/* Policy & Coverages */}
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Policy & Coverages</h4>
+                          <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+                            <span className="text-slate-500 font-semibold text-xs">Policy No.#</span>
+                            <span className="col-span-2 text-slate-800 font-mono font-bold">{selectedCustomer.policy_no || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Inception Date</span>
+                            <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.inception_date)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Expiry Date</span>
+                            <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.expiry_date)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Own Damage</span>
+                            <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.own_damage_coverage)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Acts of Nature</span>
+                            <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.aog)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Bodily Injury</span>
+                            <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.bi_coverage)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Property Damage</span>
+                            <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.pd_coverage)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Personal Accident</span>
+                            <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.pa)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Total Premium</span>
+                            <span className="col-span-2 text-[#4A0E17] font-extrabold font-mono">{formatCurrency(selectedCustomer.policy_premium)}</span>
+                          </div>
+                        </div>
+
+                        {/* Terms, Rates & Markup */}
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Terms, Rates & Markup</h4>
+                          <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+                            <span className="text-slate-500 font-semibold text-xs">Payment Terms</span>
+                            <span className="col-span-2 text-slate-800 font-medium">
+                              {selectedCustomer.payment_terms ? `${selectedCustomer.payment_terms} Month(s)` : '—'}
+                            </span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Agent's Markup</span>
+                            <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.agent_markup)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Sub-Agent's Markup</span>
+                            <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.sub_agent_markup)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Sub-Agent's Name</span>
+                            <span className="col-span-2 text-slate-800 font-medium capitalize">{selectedCustomer.sub_agent_name || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Freebie</span>
+                            <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.freebie)}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Used Rate Type</span>
+                            <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.used_rate_type || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Used Rate</span>
+                            <span className="col-span-2 text-slate-800 font-mono font-medium">{selectedCustomer.used_rate || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">Remarks / Notes</span>
+                            <span className="col-span-2 text-slate-800 font-medium block whitespace-pre-wrap">{selectedCustomer.notes || '—'}</span>
+                          </div>
+                        </div>
+
+                        {/* Document Attachments */}
+                        <div className="space-y-3">
+                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Document Attachments</h4>
+                          <div className="space-y-2">
+                            {/* ORCR */}
+                            <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                              <div className="flex items-center gap-2">
+                                <Paperclip className="h-4 w-4 text-slate-400" />
+                                <span className="text-xs font-semibold text-slate-700">ORCR / NDOS / 4 SIDES</span>
+                              </div>
+                              {orcrAttachment ? (
+                                <a 
+                                  href={`/api/v1/attachments/${orcrAttachment.id}/download`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
+                                >
+                                  Download File
+                                </a>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
+                              )}
+                            </div>
+
+                            {/* Ella Langrio */}
+                            <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                              <div className="flex items-center gap-2">
+                                <Paperclip className="h-4 w-4 text-slate-400" />
+                                <span className="text-xs font-semibold text-slate-700">Ella Langrio Screenshot</span>
+                              </div>
+                              {ellaAttachment ? (
+                                <a 
+                                  href={`/api/v1/attachments/${ellaAttachment.id}/download`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
+                                >
+                                  Download File
+                                </a>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {activeModalTab === 'payment' && (
                 <div className="space-y-4">
@@ -835,11 +1111,11 @@ export default function CustomersPage() {
             </div>
 
             {/* Modal Form Body */}
-            <form onSubmit={handleSubmit(onFormSubmit)} className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
+            <form onSubmit={handleSubmit(onFormSubmit)} className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col bg-slate-50/50">
               {activeFormTab === 'info' && (
                 <div className="space-y-6 flex-1">
                   {/* Record No & Status Row */}
-                  <div className="grid grid-cols-2 gap-6 pb-6 border-b border-slate-200/60">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 border-b border-slate-200/60">
                     <div>
                       <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Record No.</span>
                       <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono font-bold text-[#4A0E17] text-sm shadow-sm">
@@ -863,14 +1139,102 @@ export default function CustomersPage() {
                         </div>
                       )}
                     </div>
+                    <div>
+                      <label className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Date Request *</label>
+                      <input
+                        type="date"
+                        {...register('writing_date', { required: 'Date request is required' })}
+                        className={inputClass(errors.writing_date)}
+                      />
+                      {errors.writing_date && <p className="text-xs text-red-500 mt-1">{errors.writing_date.message}</p>}
+                    </div>
                   </div>
 
-                  {/* Customer Information */}
-                  <div className="bg-slate-50/40 rounded-2xl border border-slate-200/50 p-4 space-y-4">
-                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Customer Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Section 1: Request & Activity Details */}
+                  <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
+                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Request & Activity Details</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                       <div>
-                        <label className={labelClass}>First Name *</label>
+                        <label className={labelClass}>Type *</label>
+                        <select {...register('request_type', { required: 'Request type is required' })} className={inputClass(errors.request_type)}>
+                          <option value="">Select Type</option>
+                          <option value="NEW ACCOUNT">NEW ACCOUNT</option>
+                          <option value="RENEWAL CLIENT">RENEWAL CLIENT</option>
+                        </select>
+                        {errors.request_type && <p className="text-xs text-red-500 mt-1">{errors.request_type.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Activity *</label>
+                        <select {...register('activity', { required: 'Activity is required' })} className={inputClass(errors.activity)}>
+                          <option value="">Select Activity</option>
+                          <option value="POSTING">POSTING</option>
+                          <option value="SNIPING">SNIPING</option>
+                          <option value="SUB-AGENT">SUB-AGENT</option>
+                          <option value="RENEWAL">RENEWAL</option>
+                          <option value="REFERRAL">REFERRAL</option>
+                          <option value="NETWORK / EXISTING CLIENT">NETWORK / EXISTING CLIENT</option>
+                          <option value="KKK">KKK</option>
+                          <option value="FLYERS">FLYERS</option>
+                          <option value="FIELD">FIELD</option>
+                          <option value="PARTNERS">PARTNERS</option>
+                          <option value="SUPREMO MAIN PAGE">SUPREMO MAIN PAGE</option>
+                          <option value="OTHER">OTHER</option>
+                        </select>
+                        {errors.activity && <p className="text-xs text-red-500 mt-1">{errors.activity.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Provider *</label>
+                        <select {...register('insurance_provider', { required: 'Provider is required' })} className={inputClass(errors.insurance_provider)}>
+                          <option value="">Select Provider</option>
+                          <option value="ALPHA">ALPHA</option>
+                          <option value="CBIC">CBIC</option>
+                          <option value="OTHER">OTHER</option>
+                        </select>
+                        {errors.insurance_provider && <p className="text-xs text-red-500 mt-1">{errors.insurance_provider.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Quotation Used *</label>
+                        <select {...register('quotation_used', { required: 'Quotation type is required' })} className={inputClass(errors.quotation_used)}>
+                          <option value="">Select Quotation</option>
+                          <option value="SUV">SUV</option>
+                          <option value="SEDAN">SEDAN</option>
+                          <option value="TNVS">TNVS</option>
+                          <option value="TRUCKS">TRUCKS</option>
+                          <option value="MOTOR">MOTOR</option>
+                          <option value="OLD CAR">OLD CAR</option>
+                          <option value="L300/H100">L300/H100</option>
+                          <option value="FOR HIRE">FOR HIRE</option>
+                          <option value="YELLOW PLATE">YELLOW PLATE</option>
+                          <option value="LALAMOVE">LALAMOVE</option>
+                          <option value="EV/HYBRID">EV/HYBRID</option>
+                          <option value="OTHER">OTHER</option>
+                        </select>
+                        {errors.quotation_used && <p className="text-xs text-red-500 mt-1">{errors.quotation_used.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Usage *</label>
+                        <select {...register('usage', { required: 'Usage is required' })} className={inputClass(errors.usage)}>
+                          <option value="">Select Usage</option>
+                          <option value="PRIVATE">PRIVATE</option>
+                          <option value="TNVS USE">TNVS USE</option>
+                          <option value="YELLOW PLATE">YELLOW PLATE</option>
+                          <option value="FOR HIRE">FOR HIRE</option>
+                          <option value="MOTORCYCLE PRIVATE">MOTORCYCLE PRIVATE</option>
+                          <option value="OTHER">OTHER</option>
+                        </select>
+                        {errors.usage && <p className="text-xs text-red-500 mt-1">{errors.usage.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Assured Personal & Contact Info */}
+                  <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
+                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Assured Personal & Contact Information</h4>
+                    
+                    {/* Names row */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className={labelClass}>Assured First Name *</label>
                         <input
                           {...register('first_name', { required: 'First name is required' })}
                           className={inputClass(errors.first_name)}
@@ -879,7 +1243,7 @@ export default function CustomersPage() {
                         {errors.first_name && <p className="text-xs text-red-500 mt-1">{errors.first_name.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Last Name *</label>
+                        <label className={labelClass}>Assured Last Name *</label>
                         <input
                           {...register('last_name', { required: 'Last name is required' })}
                           className={inputClass(errors.last_name)}
@@ -888,7 +1252,7 @@ export default function CustomersPage() {
                         {errors.last_name && <p className="text-xs text-red-500 mt-1">{errors.last_name.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Middle Name</label>
+                        <label className={labelClass}>Assured Middle Name</label>
                         <input
                           {...register('middle_name')}
                           className={inputClass()}
@@ -900,34 +1264,14 @@ export default function CustomersPage() {
                         <input
                           {...register('suffix')}
                           className={inputClass()}
-                          placeholder="Jr., Sr., III"
+                          placeholder="e.g. Jr., Sr., III"
                         />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Date of Birth</label>
-                        <input
-                          type="date"
-                          {...register('date_of_birth')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Gender</label>
-                        <select {...register('gender')} className={inputClass()}>
-                          <option value="">Select gender</option>
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                          <option value="other">Other</option>
-                        </select>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Contact Information */}
-                  <div className="bg-slate-50/40 rounded-2xl border border-slate-200/50 p-4 space-y-4">
-                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Contact Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="md:col-span-2">
+                    {/* Contacts row */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
                         <label className={labelClass}>Email Address *</label>
                         <input
                           type="email"
@@ -941,232 +1285,411 @@ export default function CustomersPage() {
                         {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Phone</label>
+                        <label className={labelClass}>Contact No.# *</label>
                         <input
-                          {...register('phone')}
-                          className={inputClass()}
-                          placeholder="Landline"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Mobile</label>
-                        <input
-                          {...register('mobile')}
-                          className={inputClass()}
+                          {...register('mobile', { required: 'Contact number is required' })}
+                          className={inputClass(errors.mobile)}
                           placeholder="Mobile number"
                         />
+                        {errors.mobile && <p className="text-xs text-red-500 mt-1">{errors.mobile.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Back Up No.#</label>
+                        <input
+                          {...register('backup_phone')}
+                          className={inputClass()}
+                          placeholder="Backup contact number"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>FB Link</label>
+                        <input
+                          {...register('fb_link')}
+                          className={inputClass()}
+                          placeholder="https://facebook.com/username"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Address row */}
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                      <div className="md:col-span-2">
+                        <label className={labelClass}>Address Line 1 *</label>
+                        <input
+                          {...register('address_line_1', { required: 'Address Line 1 is required' })}
+                          className={inputClass(errors.address_line_1)}
+                          placeholder="Street Address, P.O. Box, etc."
+                        />
+                        {errors.address_line_1 && <p className="text-xs text-red-500 mt-1">{errors.address_line_1.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>City *</label>
+                        <input
+                          {...register('city', { required: 'City is required' })}
+                          className={inputClass(errors.city)}
+                          placeholder="City"
+                        />
+                        {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Province *</label>
+                        <input
+                          {...register('province', { required: 'Province is required' })}
+                          className={inputClass(errors.province)}
+                          placeholder="Province"
+                        />
+                        {errors.province && <p className="text-xs text-red-500 mt-1">{errors.province.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Zip Code</label>
+                        <input
+                          {...register('zip_code')}
+                          className={inputClass()}
+                          placeholder="Zip code"
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* Vehicle Information */}
-                  <div className="bg-slate-50/40 rounded-2xl border border-slate-200/50 p-4 space-y-4">
-                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Vehicle Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Section 3: Vehicle Information */}
+                  <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
+                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Vehicle Information</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <label className={labelClass}>Plate No</label>
+                        <label className={labelClass}>Year Model & Make *</label>
                         <input
-                          {...register('plate_no')}
-                          className={inputClass()}
-                          placeholder="e.g. NCB8050"
+                          {...register('unit', { required: 'Year Model & Make is required' })}
+                          className={inputClass(errors.unit)}
+                          placeholder="e.g. 2024 TOYOTA FORTUNER"
                         />
+                        {errors.unit && <p className="text-xs text-red-500 mt-1">{errors.unit.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Unit</label>
+                        <label className={labelClass}>Chassis # *</label>
                         <input
-                          {...register('unit')}
-                          className={inputClass()}
-                          placeholder="e.g. TOYOTA VIOS"
+                          {...register('chassis_no', { required: 'Chassis number is required' })}
+                          className={inputClass(errors.chassis_no)}
+                          placeholder="Enter chassis number"
                         />
+                        {errors.chassis_no && <p className="text-xs text-red-500 mt-1">{errors.chassis_no.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Mortgage</label>
+                        <label className={labelClass}>Engine # *</label>
                         <input
-                          {...register('mortgage')}
-                          className={inputClass()}
-                          placeholder="e.g. BDO UNIBANK"
+                          {...register('engine_no', { required: 'Engine number is required' })}
+                          className={inputClass(errors.engine_no)}
+                          placeholder="Enter engine number"
                         />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Policy Information */}
-                  <div className="bg-slate-50/40 rounded-2xl border border-slate-200/50 p-4 space-y-4">
-                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Policy Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>Agent</label>
-                        <input
-                          {...register('agent')}
-                          className={inputClass()}
-                          placeholder="Agent name"
-                        />
+                        {errors.engine_no && <p className="text-xs text-red-500 mt-1">{errors.engine_no.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Insurance Provider</label>
+                        <label className={labelClass}>Color *</label>
                         <input
-                          {...register('insurance_provider')}
-                          className={inputClass()}
-                          placeholder="Insurance company"
+                          {...register('color', { required: 'Color is required' })}
+                          className={inputClass(errors.color)}
+                          placeholder="e.g. Red, Pearl White"
                         />
+                        {errors.color && <p className="text-xs text-red-500 mt-1">{errors.color.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Policy Status</label>
-                        <select {...register('policy_status')} className={inputClass()}>
-                          <option value="ACTIVE">ACTIVE</option>
-                          <option value="INACTIVE">INACTIVE</option>
+                        <label className={labelClass}>Plate Number *</label>
+                        <input
+                          {...register('plate_no', { required: 'Plate number is required' })}
+                          className={inputClass(errors.plate_no)}
+                          placeholder="e.g. ABC1234 or MV File No."
+                        />
+                        {errors.plate_no && <p className="text-xs text-red-500 mt-1">{errors.plate_no.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Bank *</label>
+                        <select {...register('mortgage', { required: 'Bank is required' })} className={inputClass(errors.mortgage)}>
+                          <option value="">Select Bank</option>
+                          <option value="TFSPH">TFSPH</option>
+                          <option value="EASTWEST">EASTWEST</option>
+                          <option value="MAYBANK">MAYBANK</option>
+                          <option value="BPI">BPI</option>
+                          <option value="BDO UNIBANK INC.">BDO UNIBANK INC.</option>
+                          <option value="PS BANK">PS BANK</option>
+                          <option value="SECURITY BANK">SECURITY BANK</option>
+                          <option value="MALAYAN SAVINGS BANK">MALAYAN SAVINGS BANK</option>
+                          <option value="METROBANK">METROBANK</option>
+                          <option value="UCPB SAVINGS">UCPB SAVINGS</option>
+                          <option value="LUZON DEVELOPMENT BANK">LUZON DEVELOPMENT BANK</option>
+                          <option value="PHILIPPINE BANK OF COMMUNICATION (PBCOM)">PHILIPPINE BANK OF COMMUNICATION (PBCOM)</option>
+                          <option value="RCBC">RCBC</option>
+                          <option value="PHILIPPINE BUSINESS BANK (PBB)">PHILIPPINE BUSINESS BANK (PBB)</option>
+                          <option value="SOUTH ASIALINK FINANCING CORP">SOUTH ASIALINK FINANCING CORP</option>
+                          <option value="N/A">N/A</option>
+                          <option value="ASIALINK">ASIALINK</option>
+                          <option value="CHINA BANK SAVINGS">CHINA BANK SAVINGS</option>
+                          <option value="CHINA BANK">CHINA BANK</option>
+                          <option value="GLOBAL DOMINION FINANCING INC">GLOBAL DOMINION FINANCING INC</option>
+                          <option value="LANDBANK">LANDBANK</option>
+                          <option value="ORICO AUTO FINANCE PHILIPPINES">ORICO AUTO FINANCE PHILIPPINES</option>
+                          <option value="BANK OF COMMERCE">BANK OF COMMERCE</option>
+                          <option value="OTHER">OTHER</option>
                         </select>
+                        {errors.mortgage && <p className="text-xs text-red-500 mt-1">{errors.mortgage.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Policy No</label>
-                        <input
-                          {...register('policy_no')}
-                          className={inputClass()}
-                          placeholder="e.g. MOP-123-1234-1202"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Financial Details */}
-                  <div className="bg-slate-50/40 rounded-2xl border border-slate-200/50 p-4 space-y-4">
-                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Financial Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className={labelClass}>Assured Value (₱)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register('assured_value')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Gross Premium (₱)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register('gross_premium')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Policy Premium (₱)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register('policy_premium')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Discount (₱)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register('discount')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>BI / PD (₱)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register('bi_pd')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>PA (₱)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register('pa')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>AOG (₱)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register('aog')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Policy Rate (%)</label>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          {...register('policy_rate')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Discount Rate (%)</label>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          {...register('discount_rate')}
-                          className={inputClass()}
-                        />
+                        <label className={labelClass}>Ownership *</label>
+                        <select {...register('ownership', { required: 'Ownership status is required' })} className={inputClass(errors.ownership)}>
+                          <option value="">Select Ownership</option>
+                          <option value="1ST OWNER">1ST OWNER</option>
+                          <option value="2ND OWNER">2ND OWNER</option>
+                          <option value="3RD OWNER">3RD OWNER</option>
+                          <option value="4TH OWNER">4TH OWNER</option>
+                        </select>
+                        {errors.ownership && <p className="text-xs text-red-500 mt-1">{errors.ownership.message}</p>}
                       </div>
                     </div>
                   </div>
 
-                  {/* Dates */}
-                  <div className="bg-slate-50/40 rounded-2xl border border-slate-200/50 p-4 space-y-4">
-                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Dates</h4>
+                  {/* Section 4: Policy & Coverages */}
+                  <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
+                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Policy & Coverage details</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className={labelClass}>Policy No.# *</label>
+                        <input
+                          {...register('policy_no', { required: 'Policy number is required' })}
+                          className={inputClass(errors.policy_no)}
+                          placeholder="e.g. MOP-123-1234-12"
+                        />
+                        {errors.policy_no && <p className="text-xs text-red-500 mt-1">{errors.policy_no.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Inception Date *</label>
+                        <input
+                          type="date"
+                          {...register('inception_date', { required: 'Inception date is required' })}
+                          className={inputClass(errors.inception_date)}
+                        />
+                        {errors.inception_date && <p className="text-xs text-red-500 mt-1">{errors.inception_date.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Expiry Date *</label>
+                        <input
+                          type="date"
+                          {...register('expiry_date', { required: 'Expiry date is required' })}
+                          className={inputClass(errors.expiry_date)}
+                        />
+                        {errors.expiry_date && <p className="text-xs text-red-500 mt-1">{errors.expiry_date.message}</p>}
+                      </div>
+                      
+                      <div>
+                        <label className={labelClass}>Own Damage Coverage (₱) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register('own_damage_coverage', { required: 'Own Damage Coverage is required' })}
+                          className={inputClass(errors.own_damage_coverage)}
+                        />
+                        {errors.own_damage_coverage && <p className="text-xs text-red-500 mt-1">{errors.own_damage_coverage.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Acts of Nature Coverage (₱) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register('aog', { required: 'Acts of Nature Coverage is required' })}
+                          className={inputClass(errors.aog)}
+                        />
+                        {errors.aog && <p className="text-xs text-red-500 mt-1">{errors.aog.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Bodily Injury (₱) *</label>
+                        <input
+                          type="number"
+                          step="0.01;;"
+                          {...register('bi_coverage', { required: 'Bodily Injury is required' })}
+                          className={inputClass(errors.bi_coverage)}
+                        />
+                        {errors.bi_coverage && <p className="text-xs text-red-500 mt-1">{errors.bi_coverage.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Property Damage (₱) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register('pd_coverage', { required: 'Property Damage is required' })}
+                          className={inputClass(errors.pd_coverage)}
+                        />
+                        {errors.pd_coverage && <p className="text-xs text-red-500 mt-1">{errors.pd_coverage.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Personal Accident (₱) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register('pa', { required: 'Personal Accident is required' })}
+                          className={inputClass(errors.pa)}
+                        />
+                        {errors.pa && <p className="text-xs text-red-500 mt-1">{errors.pa.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Total Premium (₱) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register('policy_premium', { required: 'Total Premium is required' })}
+                          className={inputClass(errors.policy_premium)}
+                        />
+                        {errors.policy_premium && <p className="text-xs text-red-500 mt-1">{errors.policy_premium.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 5: Terms, Rates & Markup */}
+                  <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
+                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Terms, Rates & Markup</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className={labelClass}>Payment Terms *</label>
+                        <select {...register('payment_terms', { required: 'Payment terms are required' })} className={inputClass(errors.payment_terms)}>
+                          <option value="">Select Terms</option>
+                          <option value="1">1 Month</option>
+                          <option value="3">3 Months</option>
+                          <option value="4">4 Months</option>
+                        </select>
+                        {errors.payment_terms && <p className="text-xs text-red-500 mt-1">{errors.payment_terms.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Agent's Mark Up / Comm (₱) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register('agent_markup', { required: 'Agent markup is required' })}
+                          className={inputClass(errors.agent_markup)}
+                        />
+                        {errors.agent_markup && <p className="text-xs text-red-500 mt-1">{errors.agent_markup.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Sub-Agent's Mark Up (₱) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register('sub_agent_markup', { required: 'Sub-agent markup is required' })}
+                          className={inputClass(errors.sub_agent_markup)}
+                        />
+                        {errors.sub_agent_markup && <p className="text-xs text-red-500 mt-1">{errors.sub_agent_markup.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Sub-Agent's Name</label>
+                        <input
+                          {...register('sub_agent_name')}
+                          className={inputClass()}
+                          placeholder="Sub-agent full name"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Freebie *</label>
+                        <select {...register('freebie', { required: 'Freebie field is required' })} className={inputClass(errors.freebie)}>
+                          <option value="0">₱ 0 (None)</option>
+                          <option value="1000">₱ 1,000</option>
+                        </select>
+                        {errors.freebie && <p className="text-xs text-red-500 mt-1">{errors.freebie.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>Used Rate Type *</label>
+                        <select {...register('used_rate_type', { required: 'Used rate type is required' })} className={inputClass(errors.used_rate_type)}>
+                          <option value="">Select Rate Type</option>
+                          <option value="PARTNER'S RATE">PARTNER'S RATE</option>
+                          <option value="OLD CAR">OLD CAR</option>
+                        </select>
+                        {errors.used_rate_type && <p className="text-xs text-red-500 mt-1">{errors.used_rate_type.message}</p>}
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
+                        <input
+                          {...register('used_rate', { required: 'Used rate representation is required' })}
+                          className={inputClass(errors.used_rate)}
+                          placeholder="e.g. 1.30% - .10%"
+                        />
+                        {errors.used_rate && <p className="text-xs text-red-500 mt-1">{errors.used_rate.message}</p>}
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Remarks / Notes</label>
+                      <textarea
+                        {...register('notes')}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 transition focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] h-20"
+                        placeholder="Any additional remarks..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Section 6: Delivery Details */}
+                  <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
+                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Delivery Details</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className={labelClass}>Writing Date</label>
+                        <label className={labelClass}>Receiver's Name *</label>
                         <input
-                          type="date"
-                          {...register('writing_date')}
-                          className={inputClass()}
+                          {...register('receiver_name', { required: 'Receiver name is required' })}
+                          className={inputClass(errors.receiver_name)}
+                          placeholder="Receiver full name"
                         />
+                        {errors.receiver_name && <p className="text-xs text-red-500 mt-1">{errors.receiver_name.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Date Issued</label>
+                        <label className={labelClass}>Delivery Address *</label>
                         <input
-                          type="date"
-                          {...register('date_issued')}
-                          className={inputClass()}
+                          {...register('delivery_address', { required: 'Delivery address is required' })}
+                          className={inputClass(errors.delivery_address)}
+                          placeholder="Complete delivery address"
                         />
+                        {errors.delivery_address && <p className="text-xs text-red-500 mt-1">{errors.delivery_address.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Inception Date</label>
+                        <label className={labelClass}>Landmark *</label>
                         <input
-                          type="date"
-                          {...register('inception_date')}
-                          className={inputClass()}
+                          {...register('landmark', { required: 'Landmark is required' })}
+                          className={inputClass(errors.landmark)}
+                          placeholder="Nearby landmark description"
                         />
+                        {errors.landmark && <p className="text-xs text-red-500 mt-1">{errors.landmark.message}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 7: File Uploads */}
+                  <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
+                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Document Attachments</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className={labelClass}>ORCR / NDOS / 4 SIDES (Upload) *</label>
+                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition p-4 text-center">
+                          <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
+                          <span className="text-xs text-slate-600 font-semibold truncate max-w-full">
+                            {orcrFile ? orcrFile.name : 'Upload ORCR / NDOS / 4 Sides'}
+                          </span>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) setOrcrFile(e.target.files[0]);
+                            }} 
+                            accept="image/*,application/pdf" 
+                          />
+                        </label>
                       </div>
                       <div>
-                        <label className={labelClass}>Expiry Date</label>
-                        <input
-                          type="date"
-                          {...register('expiry_date')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Delivery Date</label>
-                        <input
-                          type="date"
-                          {...register('delivery_date')}
-                          className={inputClass()}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Date Delivered</label>
-                        <input
-                          type="date"
-                          {...register('date_delivered')}
-                          className={inputClass()}
-                        />
+                        <label className={labelClass}>Ella Langrio Screenshot (Upload) *</label>
+                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition p-4 text-center">
+                          <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
+                          <span className="text-xs text-slate-600 font-semibold truncate max-w-full">
+                            {ellaScreenshotFile ? ellaScreenshotFile.name : 'Upload Ms. Ella Langrio Convo Screenshot'}
+                          </span>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) setEllaScreenshotFile(e.target.files[0]);
+                            }} 
+                            accept="image/*,application/pdf" 
+                          />
+                        </label>
                       </div>
                     </div>
                   </div>

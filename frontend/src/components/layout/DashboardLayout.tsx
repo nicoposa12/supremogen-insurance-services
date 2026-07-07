@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Users,
   FileText,
-  ShieldCheck,
   Receipt,
   RefreshCw,
   BarChart3,
@@ -26,6 +25,8 @@ import {
   XCircle,
   Sun,
   Moon,
+  ClipboardList,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationApi';
@@ -42,12 +43,13 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Customer Records', path: '/dashboard/customers', icon: Users },
-  { label: 'Sales', path: '/dashboard/quotations', icon: FileText },
-  { label: 'UnderWriter', path: '/dashboard/policies', icon: ShieldCheck },
+  { label: 'Policy Issuance Request', path: '/dashboard/quotations', icon: FileText },
+  { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
   { label: 'Accounting', path: '/dashboard/invoices', icon: Receipt },
   { label: 'Claims', path: '/dashboard/claims', icon: ShieldHalf },
   { label: 'Renewals', path: '/dashboard/renewals', icon: RefreshCw },
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
+  { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
 ];
 
 // ─── Sidebar Item ─────────────────────────────
@@ -55,40 +57,22 @@ const navItems: NavItem[] = [
 function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const { roles } = useAuth();
   const { showToast } = useToast();
-  const isAgent = roles.includes('Sales Agent');
+  const isAgent = roles.includes('Sales Agent') || roles.includes('Team Renewal');
   const isUnderwriter = roles.includes('Underwriter');
 
   let isForbidden = false;
   let forbiddenMessage = '';
 
   if (isAgent) {
-    isForbidden = !['Dashboard', 'Customer Records', 'Sales'].includes(item.label);
+    isForbidden = !['Customer Records', 'Policy Issuance Request'].includes(item.label);
     forbiddenMessage = `Access Denied: The ${item.label} module is restricted for Sales Agents.`;
   } else if (isUnderwriter) {
-    isForbidden = !['Dashboard', 'UnderWriter'].includes(item.label);
+    isForbidden = !['Dashboard', 'Insurance Requests', 'Customer Records', 'Summary', 'Reports'].includes(item.label);
     forbiddenMessage = `Access Denied: The ${item.label} module is restricted for Underwriters.`;
   }
 
   if (isForbidden) {
-    return (
-      <button
-        type="button"
-        onClick={() => showToast(forbiddenMessage, 'error')}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-500 opacity-40 cursor-not-allowed ${
-          collapsed ? 'justify-center' : ''
-        }`}
-      >
-        <item.icon className="h-5 w-5 shrink-0" />
-        {!collapsed && (
-          <div className="flex items-center justify-between flex-1 min-w-0">
-            <span className="truncate">{item.label}</span>
-            <span className="text-[9px] bg-red-950 text-red-400 border border-red-900/40 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider scale-90">
-              Restricted
-            </span>
-          </div>
-        )}
-      </button>
-    );
+    return null;
   }
 
   return (
@@ -97,12 +81,12 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
       end={item.path === '/dashboard'}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
-          ? 'bg-[#4A0E17] text-white shadow-lg shadow-[#4A0E17]/25'
-          : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+          ? 'bg-gradient-to-r from-[#8A1C2E] to-[#5C0612] text-white shadow-md shadow-[#8A1C2E]/20 active-nav-item'
+          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/40'
         } ${collapsed ? 'justify-center' : ''}`
       }
     >
-      <item.icon className="h-5 w-5 shrink-0" />
+      <item.icon className="h-5 w-5 shrink-0 text-zinc-400 group-hover:text-zinc-200 group-[.active-nav-item]:text-white transition-colors" />
       {!collapsed && <span className="truncate">{item.label}</span>}
     </NavLink>
   );
@@ -173,6 +157,13 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redirect Sales Agents away from /dashboard to Customer Records
+  useEffect(() => {
+    if (roles?.includes('Sales Agent') && location.pathname === '/dashboard') {
+      navigate('/dashboard/customers', { replace: true });
+    }
+  }, [roles, location.pathname, navigate]);
+
   const queryClient = useQueryClient();
 
   // Fetch notifications
@@ -229,12 +220,12 @@ export default function DashboardLayout() {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className={`flex items-center gap-3 px-4 py-4.5 border-b border-slate-800/60 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-        <img src={logoImg} alt="Supremogen Logo" className="h-8 w-8 object-cover rounded-lg shrink-0 border border-slate-700/50" />
+      <div className={`flex items-center gap-3.5 px-4 py-5 border-b border-[#8A1C2E]/20 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+        <img src={logoImg} alt="Supremogen Logo" className="h-14 w-14 object-cover rounded-2xl shrink-0 border border-zinc-700/50" />
         {!sidebarCollapsed && (
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-white truncate">SUPREMOGEN</h1>
-            <p className="text-[9px] text-slate-500 uppercase tracking-widest">Insurance Services</p>
+            <h1 className="text-lg font-black text-white tracking-wider truncate">SUPREMOGEN</h1>
+            <p className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Insurance Services</p>
           </div>
         )}
       </div>
@@ -247,10 +238,10 @@ export default function DashboardLayout() {
       </nav>
 
       {/* Collapse toggle (desktop only) */}
-      <div className="hidden lg:block px-3 py-3 border-t border-slate-800">
+      <div className="hidden lg:block px-3 py-3 border-t border-[#8A1C2E]/20">
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition cursor-pointer"
         >
           <ChevronLeft className={`h-4 w-4 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
           {!sidebarCollapsed && <span>Collapse</span>}
@@ -263,7 +254,7 @@ export default function DashboardLayout() {
     <div className="min-h-screen bg-slate-100/50 flex">
       {/* ─── Desktop Sidebar ───────────────── */}
       <aside
-        className={`hidden lg:flex flex-col bg-slate-900 border-r border-slate-800 transition-all duration-300 shrink-0 ${sidebarCollapsed ? 'w-[72px]' : 'w-64'
+        className={`hidden lg:flex flex-col bg-zinc-950 border-r border-zinc-900 transition-all duration-300 shrink-0 ${sidebarCollapsed ? 'w-[72px]' : 'w-64'
           }`}
         style={{ position: 'sticky', top: 0, height: '100vh' }}
       >
@@ -277,7 +268,7 @@ export default function DashboardLayout() {
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="relative w-72 bg-slate-900 flex flex-col animate-slide-in-left">
+          <aside className="relative w-72 bg-zinc-950 flex flex-col animate-slide-in-left">
             <button
               onClick={() => setMobileMenuOpen(false)}
               className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white"
@@ -311,7 +302,7 @@ export default function DashboardLayout() {
             <div className="flex items-center gap-2">
               {/* Real-time Date & Time */}
               <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-xl text-xs text-slate-600 dark:text-slate-300 font-medium select-none">
-                <Clock className="h-4 w-4 text-[#4A0E17] dark:text-[#f28b99]" />
+                <Clock className="h-4 w-4 text-[#8A1C2E] dark:text-[#a82c40]" />
                 <span className="tabular-nums">
                   {formattedDate} • {formattedTime}
                 </span>
@@ -419,7 +410,7 @@ export default function DashboardLayout() {
                           <p className="text-sm font-medium text-slate-800">{user?.name}</p>
                           <p className="text-xs text-slate-500">{user?.email}</p>
                         </div>
-                        {permissions.includes('settings.view') && (
+                        {(permissions.includes('settings.view') || roles.includes('Underwriter') || roles.includes('Administrator')) && (
                           <button
                             onClick={() => {
                               setUserMenuOpen(false);

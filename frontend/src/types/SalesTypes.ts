@@ -1,6 +1,4 @@
-/**
- * Sales & Underwriting TypeScript interfaces.
- */
+import type { Customer } from './CustomerTypes';
 
 // ─── Insurance Product ────────────────────────
 
@@ -30,6 +28,9 @@ export interface QuotationItem {
 export interface Quotation {
   id: number;
   quotation_number: string;
+  ir_number: string | null;
+  or_number: string | null;
+  trip_number: string | null;
   customer_id: number;
   prepared_by: number | { id: number; name: string; email?: string };
   reviewed_by: number | { id: number; name: string; email?: string } | null;
@@ -42,13 +43,7 @@ export interface Quotation {
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
-  customer?: {
-    id: number;
-    customer_code: string;
-    first_name: string;
-    last_name: string;
-    email?: string;
-  };
+  customer?: Customer;
   items?: QuotationItem[];
 }
 
@@ -81,13 +76,7 @@ export interface Policy {
   cancellation_reason: string | null;
   created_at: string;
   updated_at: string;
-  customer?: {
-    id: number;
-    customer_code: string;
-    first_name: string;
-    last_name: string;
-    email?: string;
-  };
+  customer?: Customer;
   quotation?: { id: number; quotation_number: string; status: string } | null;
   insurance_product?: InsuranceProduct;
   coverages?: PolicyCoverage[];
@@ -102,6 +91,8 @@ export interface QuotationListParams {
   status?: string;
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface PolicyListParams {

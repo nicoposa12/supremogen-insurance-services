@@ -97,7 +97,7 @@ export default function ContactPage() {
                     Office Address
                   </div>
                   <div className="text-sm text-slate-800 leading-relaxed">
-                    2nd Floor Unit F & H Village Mall, Commonwealth Avenue, East Fairview Park Subdivision, Barangay Fairview, Quezon City, Quezon City, Philippines, 1121
+                    VILL STATE CORP BUILDING, 2ND FLR UNIT F&H BRGY, COMMONWEALTH , QUEZON CITY, PHILIPPINES, 1121
                   </div>
                 </div>
               </div>
@@ -114,7 +114,7 @@ export default function ContactPage() {
                     Phone
                   </div>
                   <div className="text-sm text-slate-800 leading-normal space-y-0.5">
-                    <div>0994 364 2241</div>
+                    <div>0994-364-2241 / 027-091-5125</div>
                   </div>
                 </div>
               </div>

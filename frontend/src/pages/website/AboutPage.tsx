@@ -66,22 +66,43 @@ export default function AboutPage() {
     {
       icon: <CompassIconBlue />,
       title: 'Our Mission',
-      desc: 'To deliver reliable, accessible, and personalized non-life insurance solutions that protect Filipino families and businesses.'
+      desc: (
+        <ul className="list-disc pl-4 space-y-1.5 text-left text-slate-500">
+          <li>At Supremogen Insurance Services, our primary focus is to provide our clients with a problem-solving approach that frees them from worries in the frustrating world of insurance services. One of our key priorities is providing efficient claims services.</li>
+          <li>By continuously expanding our capacity, we ensure that we are well-equipped to handle the dynamics of the business environment.</li>
+        </ul>
+      )
     },
     {
       icon: <EyeIconBlue />,
       title: 'Our Vision',
-      desc: 'To be the most trusted insurance partner in the Philippines, known for service, integrity, and lasting client relationships.'
+      desc: (
+        <ul className="list-disc pl-4 space-y-1.5 text-left text-slate-500">
+          <li>We are committed to providing reliable insurance services, known for our exceptional service and unwavering commitment to our customers' needs.</li>
+          <li>We aim to be the go-to choice for clients seeking trusted and affordable insurance, delivering peace of mind and financial protection.</li>
+        </ul>
+      )
     },
     {
       icon: <UsersIconBlue />,
-      title: 'Our People',
-      desc: 'A team of licensed advisors and claims specialists committed to clear advice and prompt action.'
+      title: 'Goal',
+      desc: (
+        <ul className="list-disc pl-4 space-y-1.5 text-left text-slate-500">
+          <li>Our goal is to provide outstanding insurance services that meet the diverse needs of our clients. We aim to build lasting relationships through exceptional service, continuous innovation, and a genuine commitment to helping our clients safeguard what matters most.</li>
+        </ul>
+      )
     },
     {
       icon: <RibbonIconBlue />,
-      title: 'Our Standards',
-      desc: 'We comply with Insurance Commission regulations and uphold strict standards in advice and claims handling.'
+      title: 'Core Values',
+      desc: (
+        <div className="space-y-1 text-left text-slate-500 font-semibold text-xs pl-2">
+          <div><strong className="text-slate-800 font-extrabold text-sm">T</strong> &ndash; TRUST</div>
+          <div><strong className="text-slate-800 font-extrabold text-sm">I</strong> &ndash; INNOVATION &amp; GROWTH</div>
+          <div><strong className="text-slate-800 font-extrabold text-sm">P</strong> &ndash; PROTECTION &amp; PROFESSIONALISM</div>
+          <div><strong className="text-slate-800 font-extrabold text-sm">S</strong> &ndash; SERVICE EXCELLENCE</div>
+        </div>
+      )
     }
   ];
 
@@ -143,10 +164,10 @@ export default function AboutPage() {
               Insurance, simplified for Filipinos
             </h2>
             <p className="text-slate-500 text-sm sm:text-base leading-relaxed pt-2">
-              We partner with the country's most reputable non-life insurers to offer a complete range of products — from motorcar and fire insurance to surety bonds and engineering cover. Our advisors take the time to understand your situation and recommend cover that genuinely fits.
+              Supremogen Insurance Services is the new non-life insurance agency with a team of highly experienced individuals in the non-life insurance field, and a total experience exceeding 6 years in the business industry.
             </p>
             <p className="text-slate-500 text-sm sm:text-base leading-relaxed">
-              Whether you're a private motorist, a small business owner, or a large enterprise, our role is to translate complex policy language into clear, practical protection.
+              Our main area of expertise is in the field of Non-life Insurance. Offering different types of insurance coverage that provide financial security and protection during unforeseen events such as accidents, emergencies, and calamities and ensuring peace of mind of our clients.
             </p>
           </div>
           
@@ -161,7 +182,7 @@ export default function AboutPage() {
                   {card.icon}
                 </div>
                 <h3 className="font-bold text-slate-950 text-base">{card.title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{card.desc}</p>
+                <div className="text-xs text-slate-500 leading-relaxed">{card.desc}</div>
               </div>
             ))}
           </div>

@@ -17,6 +17,8 @@ import InquiryPage from './pages/website/InquiryPage';
 
 // Auth
 import LoginPage from './pages/auth/LoginPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Dashboard (Phase 2)
 import DashboardPage from './pages/dashboard/DashboardPage';
@@ -28,9 +30,11 @@ import QuotationFormPage from './pages/quotations/QuotationFormPage';
 import QuotationDetailPage from './pages/quotations/QuotationDetailPage';
 
 // Policies (Phase 2 — Sales & Underwriting)
-import PoliciesPage from './pages/policies/PoliciesPage';
 import PolicyDetailPage from './pages/policies/PolicyDetailPage';
 import IssuePolicyPage from './pages/policies/IssuePolicyPage';
+
+// Underwriter Insurance Requests
+import InsuranceRequestsPage from './pages/underwriter/InsuranceRequestsPage';
 
 // Invoices (Phase 2 — Accounting & Payments)
 import InvoicesPage from './pages/invoices/InvoicesPage';
@@ -52,6 +56,7 @@ import RenewalsPage from './pages/renewals/RenewalsPage';
 // Reports & Settings (Phase 2 — Reports, Notifications, Settings & Final Polish)
 import ReportsPage from './pages/reports/ReportsPage';
 import SettingsPage from './pages/settings/SettingsPage';
+import SummaryPage from './pages/summary/SummaryPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +87,8 @@ export default function App() {
 
             {/* Agent & Staff Portal - Login */}
             <Route path="agentportal" element={<LoginPage />} />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="reset-password" element={<ResetPasswordPage />} />
 
             {/* Authenticated Dashboard Routes */}
             <Route
@@ -95,7 +102,7 @@ export default function App() {
               <Route index element={<DashboardPage />} />
 
               {/* Customers */}
-              <Route path="customers" element={<ProtectedRoute forbiddenRoles={['Underwriter']}><CustomersPage /></ProtectedRoute>} />
+              <Route path="customers" element={<ProtectedRoute requiredPermission="customers.view"><CustomersPage /></ProtectedRoute>} />
 
               {/* Quotations */}
               <Route path="quotations" element={<ProtectedRoute forbiddenRoles={['Underwriter']}><QuotationsPage /></ProtectedRoute>} />
@@ -104,34 +111,39 @@ export default function App() {
               <Route path="quotations/:id/edit" element={<ProtectedRoute forbiddenRoles={['Underwriter']}><QuotationFormPage /></ProtectedRoute>} />
 
               {/* Policies */}
-              <Route path="policies" element={<ProtectedRoute forbiddenRoles={['Sales Agent']}><PoliciesPage /></ProtectedRoute>} />
-              <Route path="policies/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent']}><PolicyDetailPage /></ProtectedRoute>} />
-              <Route path="policies/issue/:quotationId" element={<ProtectedRoute forbiddenRoles={['Sales Agent']}><IssuePolicyPage /></ProtectedRoute>} />
+              <Route path="policies/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal']}><PolicyDetailPage /></ProtectedRoute>} />
+              <Route path="policies/issue/:quotationId" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal']}><IssuePolicyPage /></ProtectedRoute>} />
+
+              {/* Underwriter Insurance Requests */}
+              <Route path="insurance-requests" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal']}><InsuranceRequestsPage /></ProtectedRoute>} />
 
               {/* Invoices */}
-              <Route path="invoices" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><InvoicesPage /></ProtectedRoute>} />
-              <Route path="invoices/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><InvoiceFormPage /></ProtectedRoute>} />
-              <Route path="invoices/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><InvoiceDetailPage /></ProtectedRoute>} />
-              <Route path="invoices/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><InvoiceFormPage /></ProtectedRoute>} />
+              <Route path="invoices" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><InvoicesPage /></ProtectedRoute>} />
+              <Route path="invoices/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><InvoiceFormPage /></ProtectedRoute>} />
+              <Route path="invoices/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><InvoiceDetailPage /></ProtectedRoute>} />
+              <Route path="invoices/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><InvoiceFormPage /></ProtectedRoute>} />
 
               {/* Payments */}
-              <Route path="payments" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><PaymentsPage /></ProtectedRoute>} />
-              <Route path="payments/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><PaymentFormPage /></ProtectedRoute>} />
+              <Route path="payments" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><PaymentsPage /></ProtectedRoute>} />
+              <Route path="payments/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><PaymentFormPage /></ProtectedRoute>} />
 
               {/* Claims */}
-              <Route path="claims" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><ClaimsPage /></ProtectedRoute>} />
-              <Route path="claims/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><ClaimFormPage /></ProtectedRoute>} />
-              <Route path="claims/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><ClaimDetailPage /></ProtectedRoute>} />
-              <Route path="claims/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><ClaimFormPage /></ProtectedRoute>} />
+              <Route path="claims" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><ClaimsPage /></ProtectedRoute>} />
+              <Route path="claims/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><ClaimFormPage /></ProtectedRoute>} />
+              <Route path="claims/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><ClaimDetailPage /></ProtectedRoute>} />
+              <Route path="claims/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><ClaimFormPage /></ProtectedRoute>} />
 
               {/* Renewals */}
-              <Route path="renewals" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><RenewalsPage /></ProtectedRoute>} />
+              <Route path="renewals" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><RenewalsPage /></ProtectedRoute>} />
 
               {/* Reports */}
-              <Route path="reports" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter']}><ReportsPage /></ProtectedRoute>} />
+              <Route path="reports" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal']}><ReportsPage /></ProtectedRoute>} />
+
+              {/* Summary */}
+              <Route path="summary" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal']}><SummaryPage /></ProtectedRoute>} />
 
               {/* Settings */}
-              <Route path="settings" element={<ProtectedRoute requiredPermission="settings.view"><SettingsPage /></ProtectedRoute>} />
+              <Route path="settings" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Accounting Officer', 'Claims Officer', 'Team Renewal']}><SettingsPage /></ProtectedRoute>} />
             </Route>
 
             {/* Catch-all redirect to Home */}

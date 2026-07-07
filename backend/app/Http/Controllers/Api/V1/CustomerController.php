@@ -28,10 +28,44 @@ class CustomerController extends Controller
         }
         $sortDir = strtolower($sortDir) === 'asc' ? 'asc' : 'desc';
 
-        $query = Customer::query();
+        $query = Customer::with(['createdBy.roles'])->approved();
 
-        if ($request->user()->hasRole('Sales Agent')) {
+        if ($request->user()->isSalesOrRenewal()) {
             $query->where('created_by', $request->user()->id);
+        }
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->input('start_date'));
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->input('end_date'));
+        }
+
+        if ($request->boolean('no_paginate')) {
+            $items = $query
+                ->search($request->input('search'))
+                ->ofStatus($request->input('status'))
+                ->ofType($request->input('type'))
+                ->orderBy($sortBy, $sortDir)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'current_page' => 1,
+                    'data' => $items,
+                    'first_page_url' => '',
+                    'from' => 1,
+                    'last_page' => 1,
+                    'last_page_url' => '',
+                    'next_page_url' => null,
+                    'path' => $request->url(),
+                    'per_page' => $items->count(),
+                    'prev_page_url' => null,
+                    'to' => $items->count(),
+                    'total' => $items->count(),
+                ],
+            ]);
         }
 
         $customers = $query
@@ -53,10 +87,10 @@ class CustomerController extends Controller
      */
     public function store(Request $request)
     {
-        if ($request->user()->hasRole('Sales Agent')) {
+        if ($request->user()->cannot('customers.create')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Sales Agents are not authorized to create customer records.',
+                'message' => 'You are not authorized to create customer records.',
             ], 403);
         }
 
@@ -88,7 +122,7 @@ class CustomerController extends Controller
      */
     public function show(string $id)
     {
-        $customer = Customer::with(['documents', 'createdBy'])->find($id);
+        $customer = Customer::with(['documents', 'createdBy.roles'])->approved()->find($id);
 
         if (!$customer) {
             return response()->json([
@@ -97,7 +131,7 @@ class CustomerController extends Controller
             ], 404);
         }
 
-        if (request()->user()->hasRole('Sales Agent') && $customer->created_by !== request()->user()->id) {
+        if (request()->user()->isSalesOrRenewal() && $customer->created_by !== request()->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to this customer record.',
@@ -115,13 +149,6 @@ class CustomerController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        if ($request->user()->hasRole('Sales Agent')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Sales Agents are not authorized to edit customer records.',
-            ], 403);
-        }
-
         $customer = Customer::find($id);
 
         if (!$customer) {
@@ -131,7 +158,14 @@ class CustomerController extends Controller
             ], 404);
         }
 
-        if ($request->user()->hasRole('Sales Agent') && $customer->created_by !== $request->user()->id) {
+        if ($request->user()->cannot('customers.update')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to edit customer records.',
+            ], 403);
+        }
+
+        if ($request->user()->isSalesOrRenewal() && $customer->created_by !== $request->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to this customer record.',
@@ -162,10 +196,10 @@ class CustomerController extends Controller
      */
     public function destroy(string $id)
     {
-        if (request()->user()->hasRole('Sales Agent')) {
+        if (request()->user()->cannot('customers.delete')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Sales Agents are not authorized to delete customer records.',
+                'message' => 'You are not authorized to delete customer records.',
             ], 403);
         }
 
@@ -184,13 +218,6 @@ class CustomerController extends Controller
      */
     public function uploadDocument(Request $request, string $id)
     {
-        if ($request->user()->hasRole('Sales Agent')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Sales Agents are not authorized to upload documents.',
-            ], 403);
-        }
-
         $customer = Customer::find($id);
 
         if (!$customer) {
@@ -200,7 +227,14 @@ class CustomerController extends Controller
             ], 404);
         }
 
-        if ($request->user()->hasRole('Sales Agent') && $customer->created_by !== $request->user()->id) {
+        if ($request->user()->cannot('customers.update')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to upload documents.',
+            ], 403);
+        }
+
+        if ($request->user()->isSalesOrRenewal() && $customer->created_by !== $request->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access to this customer record.',
@@ -244,10 +278,18 @@ class CustomerController extends Controller
      */
     public function deleteDocument(string $customerId, string $documentId)
     {
-        if (request()->user()->hasRole('Sales Agent')) {
+        $customer = Customer::find($customerId);
+        if ($customer && request()->user()->isSalesOrRenewal() && $customer->created_by !== request()->user()->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Sales Agents are not authorized to delete documents.',
+                'message' => 'Unauthorized access to this customer record.',
+            ], 403);
+        }
+
+        if (request()->user()->cannot('customers.update')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to delete documents.',
             ], 403);
         }
 
@@ -275,13 +317,9 @@ class CustomerController extends Controller
 
     private function validationRules(?string $ignoreId = null): array
     {
-        $emailUnique = 'unique:customers,email';
         $recordNoUnique = 'unique:customers,record_no';
-        $plateNoUnique = 'unique:customers,plate_no';
         if ($ignoreId) {
-            $emailUnique .= ',' . $ignoreId;
             $recordNoUnique .= ',' . $ignoreId;
-            $plateNoUnique .= ',' . $ignoreId;
         }
 
         return [
@@ -291,7 +329,7 @@ class CustomerController extends Controller
             'suffix' => 'nullable|string|max:20',
             'date_of_birth' => 'nullable|date|before:today',
             'gender' => 'nullable|in:male,female,other',
-            'email' => "sometimes|required|email|max:150|{$emailUnique}",
+            'email' => 'sometimes|required|email|max:150',
             'phone' => 'nullable|string|max:30',
             'mobile' => 'nullable|string|max:30',
             'address_line_1' => 'nullable|string|max:255',
@@ -307,7 +345,7 @@ class CustomerController extends Controller
 
             // Transaction & Policy fields
             'record_no' => "nullable|string|max:30|{$recordNoUnique}",
-            'plate_no' => "nullable|string|max:30|{$plateNoUnique}",
+            'plate_no' => "nullable|string|max:30",
             'unit' => 'nullable|string|max:100',
             'mortgage' => 'nullable|string|max:100',
             'agent' => 'nullable|string|max:100',
@@ -333,6 +371,31 @@ class CustomerController extends Controller
             'expiry_date' => 'nullable|date',
             'delivery_date' => 'nullable|date',
             'date_delivered' => 'nullable|date',
+
+            // Revised fields
+            'request_type' => 'nullable|string|max:50',
+            'activity' => 'nullable|string|max:50',
+            'quotation_used' => 'nullable|string|max:50',
+            'usage' => 'nullable|string|max:50',
+            'chassis_no' => 'nullable|string|max:100',
+            'engine_no' => 'nullable|string|max:100',
+            'color' => 'nullable|string|max:50',
+            'ownership' => 'nullable|string|max:50',
+            'own_damage_coverage' => 'nullable|numeric|min:0',
+            'bi_coverage' => 'nullable|numeric|min:0',
+            'pd_coverage' => 'nullable|numeric|min:0',
+            'payment_terms' => 'nullable|string|max:20',
+            'agent_markup' => 'nullable|numeric|min:0',
+            'sub_agent_markup' => 'nullable|numeric|min:0',
+            'sub_agent_name' => 'nullable|string|max:100',
+            'freebie' => 'nullable|numeric|min:0',
+            'receiver_name' => 'nullable|string|max:150',
+            'delivery_address' => 'nullable|string|max:255',
+            'landmark' => 'nullable|string|max:255',
+            'backup_phone' => 'nullable|string|max:30',
+            'fb_link' => 'nullable|string|max:255',
+            'used_rate_type' => 'nullable|string|max:50',
+            'used_rate' => 'nullable|string|max:100',
         ];
     }
 }

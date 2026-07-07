@@ -131,6 +131,11 @@ class RoleAndPermissionSeeder extends Seeder
             'policies.view',
             'policies.create',
             'policies.update',
+            'settings.view',
+            'users.view',
+            'users.create',
+            'users.update',
+            'users.delete',
         ]);
 
         // 4. Accounting Officer
@@ -167,12 +172,35 @@ class RoleAndPermissionSeeder extends Seeder
             'dashboard.view',
         ]);
 
+        // 7. Team Renewal
+        $renewalRole = Role::findOrCreate('Team Renewal');
+        $renewalRole->givePermissionTo([
+            'dashboard.view',
+            'customers.view',
+            'customers.create',
+            'customers.update',
+            'quotations.view',
+            'quotations.create',
+            'quotations.update',
+            'quotations.submit',
+            'policies.view',
+            'invoices.view',
+            'renewals.view',
+            'renewals.create',
+            'reports.view',
+        ]);
+
         // Create default users for testing
         $defaultUsers = [
             [
                 'name' => 'System Admin',
                 'email' => 'admin@supremogen.com',
                 'role' => 'Administrator',
+            ],
+            [
+                'name' => 'nico mar oposa',
+                'email' => 'nico@supremogen.com',
+                'role' => 'Sales Agent',
             ],
             [
                 'name' => 'Alice Sales Agent',

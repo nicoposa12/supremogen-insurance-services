@@ -30,7 +30,7 @@ class PolicyController extends Controller
                 'issuedBy:id,name',
             ]);
 
-        if ($request->user()->hasRole('Sales Agent')) {
+        if ($request->user()->isSalesOrRenewal()) {
             $query->where(function ($q) use ($request) {
                 $q->where('issued_by', $request->user()->id)
                   ->orWhereHas('quotation', function ($q2) use ($request) {
@@ -142,7 +142,7 @@ class PolicyController extends Controller
             return response()->json(['success' => false, 'message' => 'Policy not found.'], 404);
         }
 
-        if (request()->user()->hasRole('Sales Agent')) {
+        if (request()->user()->isSalesOrRenewal()) {
             $isOwner = $policy->issued_by === request()->user()->id || 
                        ($policy->quotation && $policy->quotation->prepared_by === request()->user()->id);
             if (!$isOwner) {
@@ -170,7 +170,7 @@ class PolicyController extends Controller
             return response()->json(['success' => false, 'message' => 'Policy not found.'], 404);
         }
 
-        if ($request->user()->hasRole('Sales Agent')) {
+        if ($request->user()->isSalesOrRenewal()) {
             $isOwner = $policy->issued_by === $request->user()->id || 
                        ($policy->quotation && $policy->quotation->prepared_by === $request->user()->id);
             if (!$isOwner) {
@@ -220,7 +220,7 @@ class PolicyController extends Controller
             return response()->json(['success' => false, 'message' => 'Policy not found.'], 404);
         }
 
-        if ($request->user()->hasRole('Sales Agent')) {
+        if ($request->user()->isSalesOrRenewal()) {
             $isOwner = $policy->issued_by === $request->user()->id || 
                        ($policy->quotation && $policy->quotation->prepared_by === $request->user()->id);
             if (!$isOwner) {

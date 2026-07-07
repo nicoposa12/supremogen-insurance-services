@@ -23,6 +23,8 @@ Route::prefix('v1')->group(function () {
     // Public routes
     Route::post('/inquiries', [InquiryController::class, 'store']);
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
@@ -43,6 +45,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('/customers/{customer}/documents/{document}', [CustomerController::class, 'deleteDocument']);
 
         // Users / Agents
+        Route::get('/agents', [UserController::class, 'agents']);
         Route::apiResource('/users', UserController::class)->middleware('permission:users.view');
 
         // Insurance Products (dropdown data)
@@ -52,6 +55,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/quotations', QuotationController::class);
         Route::post('/quotations/{quotation}/submit', [QuotationController::class, 'submit']);
         Route::post('/quotations/{quotation}/review', [QuotationController::class, 'review']);
+        Route::post('/quotations/{quotation}/metadata', [QuotationController::class, 'updateMetadata']);
 
         // Policies
         Route::apiResource('/policies', PolicyController::class);

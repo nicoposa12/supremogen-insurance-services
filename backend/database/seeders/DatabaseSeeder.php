@@ -17,15 +17,15 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleAndPermissionSeeder::class,
-            CustomerSeeder::class,
+            // CustomerSeeder::class,
             InsuranceProductSeeder::class,
-            QuotationSeeder::class,
-            PolicySeeder::class,
-            InvoiceSeeder::class,
-            PaymentSeeder::class,
-            ClaimSeeder::class,
-            RenewalSeeder::class,
-            NotificationSeeder::class,
+            // QuotationSeeder::class,
+            // PolicySeeder::class,
+            // InvoiceSeeder::class,
+            // PaymentSeeder::class,
+            // ClaimSeeder::class,
+            // RenewalSeeder::class,
+            // NotificationSeeder::class,
         ]);
     }
 }

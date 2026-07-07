@@ -20,6 +20,9 @@ class UserController extends Controller
         $perPage = min((int) $request->input('per_page', 15), 100);
         
         $users = User::with('roles')
+            ->when($request->user()->hasRole('Underwriter'), function ($q) {
+                $q->whereNotIn('email', ['admin@supremogen.com', 'owner@supremogen.com']);
+            })
             ->when($request->input('search'), function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%");
@@ -58,6 +61,13 @@ class UserController extends Controller
             'role' => 'required|string|exists:roles,name',
         ]);
 
+        if ($request->user()->hasRole('Underwriter') && $request->input('role') === 'Administrator') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Underwriters cannot create or assign Administrator accounts.',
+            ], 403);
+        }
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
@@ -87,6 +97,13 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        if (request()->user()->hasRole('Underwriter') && in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access.',
+            ], 403);
+        }
+
         $user->role_name = $user->getRoleNames()->first() ?? 'None';
         return response()->json([
             'success' => true,
@@ -113,6 +130,13 @@ class UserController extends Controller
             ],
             'role' => 'required|string|exists:roles,name',
         ]);
+
+        if ($request->user()->hasRole('Underwriter') && (in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com']) || $request->input('role') === 'Administrator')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action.',
+            ], 403);
+        }
 
         if ($validator->fails()) {
             return response()->json([
@@ -153,6 +177,13 @@ class UserController extends Controller
             ], 422);
         }
 
+        if (request()->user()->hasRole('Underwriter') && in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action.',
+            ], 403);
+        }
+
         if ($user->email === 'admin@supremogen.com') {
             return response()->json([
                 'success' => false,
@@ -165,6 +196,22 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User account deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Get all sales agents.
+     */
+    public function agents()
+    {
+        $agents = User::role(['Sales Agent', 'Team Renewal'])->with('roles')->get();
+        $agents->transform(function ($user) {
+            $user->role_name = $user->getRoleNames()->first() ?? 'None';
+            return $user;
+        });
+        return response()->json([
+            'success' => true,
+            'data' => $agents,
         ]);
     }
 }

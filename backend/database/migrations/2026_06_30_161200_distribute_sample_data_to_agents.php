@@ -13,8 +13,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Get all users who have the Sales Agent role
-        $agents = User::role('Sales Agent')->get();
+        try {
+            // Get all users who have the Sales Agent role
+            $agents = User::role('Sales Agent')->get();
+        } catch (\Spatie\Permission\Exceptions\RoleDoesNotExist $e) {
+            return;
+        }
         
         if ($agents->isEmpty()) {
             return;

@@ -83,7 +83,7 @@ export default function PaymentFormPage({ invoiceId: propInvoiceId, balance: pro
     <div className="max-w-2xl mx-auto space-y-6">
       {!onClose && (
         <div className="flex items-center gap-4">
-          <button onClick={() => onClose ? onClose() : navigate(-1)} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+          <button onClick={() => navigate(-1)} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
