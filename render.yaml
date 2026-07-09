@@ -37,8 +37,9 @@ services:
           property: password
 
   # 2. Frontend Static Site (React Vite SPA)
-  - type: static_site
+  - type: web
     name: supremogen-frontend
+    runtime: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
