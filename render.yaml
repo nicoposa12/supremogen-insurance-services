@@ -1,0 +1,58 @@
+services:
+  # 1. Backend Web Service (Dockerized Laravel API)
+  - type: web
+    name: supremogen-backend
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        value: "placeholder-replace-with-your-key" # Override this in the Render dashboard with base64 key
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: supremogen-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: supremogen-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: supremogen-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: supremogen-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: supremogen-db
+          property: password
+
+  # 2. Frontend Static Site (React Vite SPA)
+  - type: web
+    name: supremogen-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    publishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: supremogen-backend
+          type: web
+          property: url
+
+databases:
+  # 3. Managed PostgreSQL Database
+  - name: supremogen-db
+    databaseName: supremogen_db
+    user: supremogen_user
+    plan: free

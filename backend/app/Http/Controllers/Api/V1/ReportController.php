@@ -30,7 +30,7 @@ class ReportController extends Controller
                 ->get();
         } else {
             // Fallback to customer active policies
-            $activeCustomers = \App\Models\Customer::whereRaw('UPPER(policy_status) = "ACTIVE"')->get();
+            $activeCustomers = \App\Models\Customer::whereRaw("UPPER(policy_status) = 'ACTIVE'")->get();
             $categorySums = [
                 'motor' => 0,
                 'fire' => 0,
@@ -84,7 +84,7 @@ class ReportController extends Controller
                 });
         } else {
             // Fallback to customer active policies
-            $activeCustomers = \App\Models\Customer::whereRaw('UPPER(policy_status) = "ACTIVE"')->get();
+            $activeCustomers = \App\Models\Customer::whereRaw("UPPER(policy_status) = 'ACTIVE'")->get();
             $categorySums = [
                 'motor' => ['premium' => 0, 'claims' => 0],
                 'fire' => ['premium' => 0, 'claims' => 0],
@@ -144,7 +144,7 @@ class ReportController extends Controller
             ];
         } else {
             // Fallback to active customer accounts
-            $activePremiumSum = (float) \App\Models\Customer::whereRaw('UPPER(policy_status) = "ACTIVE"')->sum('policy_premium');
+            $activePremiumSum = (float) \App\Models\Customer::whereRaw("UPPER(policy_status) = 'ACTIVE'")->sum('policy_premium');
             $totalInvoiced = $activePremiumSum;
             $totalCollected = round($activePremiumSum * 0.88, 2); // 88% collection rate
             $outstandingReceivable = round($activePremiumSum - $totalCollected, 2);
@@ -170,7 +170,7 @@ class ReportController extends Controller
                     ->sum('amount');
             } else {
                 // Fallback to active customer accounts
-                $monthlyActivePremium = (float) \App\Models\Customer::whereRaw('UPPER(policy_status) = "ACTIVE"')
+                $monthlyActivePremium = (float) \App\Models\Customer::whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereBetween('created_at', [$monthStart, $monthEnd])
                     ->sum('policy_premium');
                 $billings = $monthlyActivePremium;

@@ -120,11 +120,11 @@ class DashboardController extends Controller
             : ($yearlyCustomers > 0 ? 100 : 0);
 
         // ── Policy Stats ────────────────────
-        $activePolicies = (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')->count();
-        $policiesThisMonth = (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $activePolicies = (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")->count();
+        $policiesThisMonth = (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereMonth('created_at', $now->month)
             ->whereYear('created_at', $now->year)->count();
-        $policiesLastMonth = (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $policiesLastMonth = (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereMonth('created_at', $now->copy()->subMonth()->month)
             ->whereYear('created_at', $now->copy()->subMonth()->year)->count();
         $policiesTrend = $policiesLastMonth > 0
@@ -135,11 +135,11 @@ class DashboardController extends Controller
         $pendingQuotations = (clone $quotationQuery)->whereIn('status', ['submitted', 'under_review'])->count();
 
         // ── Revenue (sum of policy premiums this month) ──
-        $monthlyRevenue = (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $monthlyRevenue = (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereMonth('created_at', $now->month)
             ->whereYear('created_at', $now->year)
             ->sum('policy_premium');
-        $lastMonthRevenue = (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $lastMonthRevenue = (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereMonth('created_at', $now->copy()->subMonth()->month)
             ->whereYear('created_at', $now->copy()->subMonth()->year)
             ->sum('policy_premium');
@@ -154,10 +154,10 @@ class DashboardController extends Controller
             $dailyOverview[] = [
                 'short' => $day->format('D'),
                 'customers' => (clone $customerQuery)->whereDate('created_at', $day->toDateString())->count(),
-                'policies' => (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                'policies' => (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereDate('created_at', $day->toDateString())
                     ->count(),
-                'revenue' => (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                'revenue' => (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereDate('created_at', $day->toDateString())
                     ->sum('policy_premium'),
             ];
@@ -171,10 +171,10 @@ class DashboardController extends Controller
             $weeklyOverview[] = [
                 'short' => 'Wk ' . (6 - $i),
                 'customers' => (clone $customerQuery)->whereBetween('created_at', [$weekStart, $weekEnd])->count(),
-                'policies' => (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                'policies' => (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereBetween('created_at', [$weekStart, $weekEnd])
                     ->count(),
-                'revenue' => (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                'revenue' => (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereBetween('created_at', [$weekStart, $weekEnd])
                     ->sum('policy_premium'),
             ];
@@ -189,10 +189,10 @@ class DashboardController extends Controller
                 'short' => $month->format('M'),
                 'customers' => (clone $customerQuery)->whereMonth('created_at', $month->month)
                     ->whereYear('created_at', $month->year)->count(),
-                'policies' => (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                'policies' => (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereMonth('created_at', $month->month)
                     ->whereYear('created_at', $month->year)->count(),
-                'revenue' => (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                'revenue' => (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereMonth('created_at', $month->month)
                     ->whereYear('created_at', $month->year)
                     ->sum('policy_premium'),
@@ -206,10 +206,10 @@ class DashboardController extends Controller
             $yearlyOverview[] = [
                 'short' => (string) $year,
                 'customers' => (clone $customerQuery)->whereYear('created_at', $year)->count(),
-                'policies' => (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                'policies' => (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereYear('created_at', $year)
                     ->count(),
-                'revenue' => (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                'revenue' => (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                     ->whereYear('created_at', $year)
                     ->sum('policy_premium'),
             ];
@@ -279,31 +279,31 @@ class DashboardController extends Controller
         $pendingRenewals = (clone $renewalQuery)->where('status', 'pending')->count();
 
         // ── Premium Stats (Daily, Weekly, Monthly, Yearly) ──
-        $dailyPremium = (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $dailyPremium = (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereDate('created_at', Carbon::today())
             ->sum('policy_premium');
-        $yesterdayPremium = (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $yesterdayPremium = (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereDate('created_at', Carbon::yesterday())
             ->sum('policy_premium');
         $dailyPremiumTrend = $yesterdayPremium > 0
             ? round((($dailyPremium - $yesterdayPremium) / $yesterdayPremium) * 100, 1)
             : ($dailyPremium > 0 ? 100 : 0);
 
-        $weeklyPremium = (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $weeklyPremium = (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])
             ->sum('policy_premium');
-        $lastWeekPremium = (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $lastWeekPremium = (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereBetween('created_at', [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()])
             ->sum('policy_premium');
         $weeklyPremiumTrend = $lastWeekPremium > 0
             ? round((($weeklyPremium - $lastWeekPremium) / $lastWeekPremium) * 100, 1)
             : ($weeklyPremium > 0 ? 100 : 0);
 
-        $monthlyPremium = (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $monthlyPremium = (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('policy_premium');
-        $lastMonthPremium = (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $lastMonthPremium = (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereMonth('created_at', Carbon::now()->subMonth()->month)
             ->whereYear('created_at', Carbon::now()->subMonth()->year)
             ->sum('policy_premium');
@@ -311,10 +311,10 @@ class DashboardController extends Controller
             ? round((($monthlyPremium - $lastMonthPremium) / $lastMonthPremium) * 100, 1)
             : ($monthlyPremium > 0 ? 100 : 0);
 
-        $yearlyPremium = (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $yearlyPremium = (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereYear('created_at', Carbon::now()->year)
             ->sum('policy_premium');
-        $lastYearPremium = (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+        $lastYearPremium = (float) (clone $customerQuery)->whereRaw("UPPER(policy_status) = 'ACTIVE'")
             ->whereYear('created_at', Carbon::now()->subYear()->year)
             ->sum('policy_premium');
         $yearlyPremiumTrend = $lastYearPremium > 0
