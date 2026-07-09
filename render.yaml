@@ -1,5 +1,5 @@
 services:
-  # 1. Backend Web Service (Dockerized Laravel API)
+  # Backend Web Service (Dockerized Laravel API)
   - type: web
     name: supremogen-backend
     env: docker
@@ -36,21 +36,10 @@ services:
           name: supremogen-db
           property: password
 
-  # 2. Frontend Static Site (React Vite SPA)
-  - type: web
-    name: supremogen-frontend
-    runtime: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
-    envVars:
-      - key: NODE_VERSION
-        value: "22.20.0"
-      - key: VITE_API_URL
-        value: "https://supremogen-backend.onrender.com" # Update with your actual backend URL from the Render dashboard
-
 databases:
-  # 3. Managed PostgreSQL Database
+  # Managed PostgreSQL Database
   - name: supremogen-db
     databaseName: supremogen_db
     user: supremogen_user
     plan: free
+
