@@ -43,6 +43,8 @@ services:
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
+      - key: NODE_VERSION
+        value: "22.20.0"
       - key: VITE_API_URL
         value: "https://supremogen-backend.onrender.com" # Update with your actual backend URL from the Render dashboard
 
