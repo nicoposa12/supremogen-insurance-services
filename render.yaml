@@ -3,7 +3,7 @@ services:
   - type: web
     name: supremogen-backend
     env: docker
-    dockerfilePath: backend/Dockerfile
+    dockerfilePath: Dockerfile
     dockerContext: backend
     plan: free
     envVars:
