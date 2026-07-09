@@ -44,10 +44,7 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          name: supremogen-backend
-          type: web
-          property: url
+        value: "https://supremogen-backend.onrender.com" # Update with your actual backend URL from the Render dashboard
 
 databases:
   # 3. Managed PostgreSQL Database
