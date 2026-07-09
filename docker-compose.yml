@@ -1,0 +1,95 @@
+services:
+  # MySQL Database Container
+  db:
+    image: mysql:8.0
+    container_name: supremogen_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: supremogen_db
+      MYSQL_ROOT_PASSWORD: passroot
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - supremogen-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassroot" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # phpMyAdmin - Database Management UI
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: supremogen_phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: passroot
+    ports:
+      - "8080:80"
+    networks:
+      - supremogen-network
+
+  # Laravel API Backend Container
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: supremogen_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/var/www/html
+      # Don't bind-mount container's composer cache
+      - /var/www/html/vendor
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=supremogen_db
+      - DB_USERNAME=root
+      - DB_PASSWORD=passroot
+    networks:
+      - supremogen-network
+
+  # React SPA Frontend Container
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: supremogen_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      # Cache inside container to prevent OS package mismatches
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - supremogen-network
+
+networks:
+  supremogen-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+

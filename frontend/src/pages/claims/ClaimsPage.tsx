@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Eye, Pencil, Trash2, Filter, ShieldAlert, Loader2, Save, X } from 'lucide-react';
 
@@ -22,13 +22,22 @@ export default function ClaimsPage() {
   const { roles } = useAuth();
   const isAdmin = roles.includes('Administrator');
   const isClaimsOfficer = roles.includes('Claims Officer');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const querySearch = searchParams.get('search') || '';
 
   const [params, setParams] = useState<ClaimListParams>({
-    page: 1, per_page: 15, search: '', status: 'all',
+    page: 1, per_page: 15, search: querySearch, status: 'all',
     sort_by: 'created_at', sort_dir: 'desc',
   });
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState(querySearch);
   const [deleteTarget, setDeleteTarget] = useState<Claim | null>(null);
+
+  useEffect(() => {
+    if (querySearch) {
+      setSearchInput(querySearch);
+      setParams((p) => ({ ...p, search: querySearch, page: 1 }));
+    }
+  }, [querySearch]);
 
   // Modal Form States
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -237,7 +246,19 @@ export default function ClaimsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input type="text" placeholder="Search claim no., customer, policy..."
             value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition" />
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition" />
+          {searchInput && (
+            <button 
+              onClick={() => {
+                setSearchInput('');
+                setSearchParams({});
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer flex items-center justify-center"
+              title="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Filter className="h-4 w-4 text-slate-400" />

@@ -22,7 +22,7 @@ class CustomerController extends Controller
         $sortDir = $request->input('sort_dir', 'desc');
 
         // Whitelist sortable columns
-        $allowedSorts = ['customer_code', 'first_name', 'last_name', 'email', 'customer_type', 'status', 'created_at'];
+        $allowedSorts = ['customer_code', 'first_name', 'last_name', 'email', 'customer_type', 'status', 'policy_status', 'created_at'];
         if (!in_array($sortBy, $allowedSorts)) {
             $sortBy = 'created_at';
         }
@@ -122,7 +122,7 @@ class CustomerController extends Controller
      */
     public function show(string $id)
     {
-        $customer = Customer::with(['documents', 'createdBy.roles'])->approved()->find($id);
+        $customer = Customer::with(['documents', 'createdBy.roles'])->find($id);
 
         if (!$customer) {
             return response()->json([

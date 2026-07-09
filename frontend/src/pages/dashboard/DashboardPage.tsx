@@ -10,6 +10,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -31,6 +32,7 @@ import StatCard from '../../components/ui/StatCard';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getDashboardData } from '../../services/dashboardApi';
 import type { DashboardData } from '../../types/CustomerTypes';
+import { useAuth } from '../../context/AuthContext';
 
 // Chart colors
 const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981'];
@@ -38,6 +40,8 @@ const STATUS_COLORS = ['#10b981', '#f59e0b', '#ef4444'];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { roles } = useAuth();
+  const showRevenue = roles.includes('Administrator') || roles.includes('Accounting Officer');
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -252,14 +256,25 @@ export default function DashboardPage() {
             <span className="text-slate-400">vs last {premiumTimeframe === 'daily' ? 'day' : premiumTimeframe === 'weekly' ? 'week' : premiumTimeframe === 'monthly' ? 'month' : 'year'}</span>
           </div>
         </div>
-        <StatCard
-          label="Monthly Revenue"
-          value={`₱${dashboard.stats.monthly_revenue.toLocaleString()}`}
-          icon={DollarSign}
-          trend={dashboard.stats.revenue_trend}
-          iconColor="text-violet-600"
-          iconBg="bg-violet-50"
-        />
+        {showRevenue ? (
+          <StatCard
+            label="Monthly Revenue"
+            value={`₱${dashboard.stats.monthly_revenue.toLocaleString()}`}
+            icon={DollarSign}
+            trend={dashboard.stats.revenue_trend}
+            iconColor="text-violet-600"
+            iconBg="bg-violet-50"
+          />
+        ) : (
+          <StatCard
+            label="Pending Claims"
+            value={dashboard.stats.pending_claims}
+            icon={ShieldAlert}
+            trend={0}
+            iconColor="text-rose-650"
+            iconBg="bg-rose-50"
+          />
+        )}
       </div>
 
       {/* ─── Charts Row ────────────────────── */}
@@ -316,12 +331,16 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Monthly Revenue Chart */}
+        {/* Monthly Revenue / Active Policies Chart */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-semibold text-slate-800">Monthly Revenue</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Revenue over time</p>
+              <h3 className="text-base font-semibold text-slate-800">
+                {showRevenue ? 'Monthly Revenue' : 'Active Policies'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {showRevenue ? 'Revenue over time' : 'Policies issued over time'}
+              </p>
             </div>
             <select
               value={revenueTimeframe}
@@ -335,17 +354,20 @@ export default function DashboardPage() {
             </select>
           </div>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={getRevenueData()} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+            <BarChart data={getRevenueData()} margin={{ top: 5, right: 5, left: showRevenue ? -20 : -30, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
               <XAxis dataKey="short" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis 
                 tick={{ fontSize: 10, fill: '#94a3b8' }} 
                 axisLine={false} 
                 tickLine={false}
-                tickFormatter={(value) => `₱${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => showRevenue ? `₱${(value / 1000).toFixed(0)}k` : value}
               />
               <Tooltip
-                formatter={(value: any) => [`₱${Number(value).toLocaleString()}`, 'Revenue']}
+                formatter={(value: any) => [
+                  showRevenue ? `₱${Number(value).toLocaleString()}` : Number(value),
+                  showRevenue ? 'Revenue' : 'Policies'
+                ]}
                 contentStyle={{
                   backgroundColor: '#1e293b',
                   border: 'none',
@@ -355,7 +377,7 @@ export default function DashboardPage() {
                 }}
                 labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
               />
-              <Bar dataKey="revenue" fill="#c92a3e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={showRevenue ? 'revenue' : 'policies'} fill="#c92a3e" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

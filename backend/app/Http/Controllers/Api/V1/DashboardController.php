@@ -154,6 +154,9 @@ class DashboardController extends Controller
             $dailyOverview[] = [
                 'short' => $day->format('D'),
                 'customers' => (clone $customerQuery)->whereDate('created_at', $day->toDateString())->count(),
+                'policies' => (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                    ->whereDate('created_at', $day->toDateString())
+                    ->count(),
                 'revenue' => (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
                     ->whereDate('created_at', $day->toDateString())
                     ->sum('policy_premium'),
@@ -168,6 +171,9 @@ class DashboardController extends Controller
             $weeklyOverview[] = [
                 'short' => 'Wk ' . (6 - $i),
                 'customers' => (clone $customerQuery)->whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+                'policies' => (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                    ->whereBetween('created_at', [$weekStart, $weekEnd])
+                    ->count(),
                 'revenue' => (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
                     ->whereBetween('created_at', [$weekStart, $weekEnd])
                     ->sum('policy_premium'),
@@ -200,6 +206,9 @@ class DashboardController extends Controller
             $yearlyOverview[] = [
                 'short' => (string) $year,
                 'customers' => (clone $customerQuery)->whereYear('created_at', $year)->count(),
+                'policies' => (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
+                    ->whereYear('created_at', $year)
+                    ->count(),
                 'revenue' => (float) (clone $customerQuery)->whereRaw('UPPER(policy_status) = "ACTIVE"')
                     ->whereYear('created_at', $year)
                     ->sum('policy_premium'),

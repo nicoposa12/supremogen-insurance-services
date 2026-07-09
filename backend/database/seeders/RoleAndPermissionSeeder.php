@@ -190,42 +190,13 @@ class RoleAndPermissionSeeder extends Seeder
             'reports.view',
         ]);
 
-        // Create default users for testing
+        // Create the default administrator account only.
+        // All other user accounts should be created through the application's Settings panel.
         $defaultUsers = [
             [
                 'name' => 'System Admin',
                 'email' => 'admin@supremogen.com',
                 'role' => 'Administrator',
-            ],
-            [
-                'name' => 'nico mar oposa',
-                'email' => 'nico@supremogen.com',
-                'role' => 'Sales Agent',
-            ],
-            [
-                'name' => 'Alice Sales Agent',
-                'email' => 'agent@supremogen.com',
-                'role' => 'Sales Agent',
-            ],
-            [
-                'name' => 'Bob Underwriter',
-                'email' => 'underwriter@supremogen.com',
-                'role' => 'Underwriter',
-            ],
-            [
-                'name' => 'Charlie Accountant',
-                'email' => 'accounting@supremogen.com',
-                'role' => 'Accounting Officer',
-            ],
-            [
-                'name' => 'Diane Claims Officer',
-                'email' => 'claims@supremogen.com',
-                'role' => 'Claims Officer',
-            ],
-            [
-                'name' => 'John Customer',
-                'email' => 'customer@supremogen.com',
-                'role' => 'Customer',
             ],
         ];
 

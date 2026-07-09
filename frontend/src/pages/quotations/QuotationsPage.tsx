@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Eye, Pencil, Trash2, Filter, FileText, X, Calendar } from 'lucide-react';
+import { Search, Plus, Eye, Pencil, Trash2, Filter, FileText, X, Calendar, Loader2, Download } from 'lucide-react';
+import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
 
 import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
@@ -20,14 +22,33 @@ export default function QuotationsPage() {
   const { showToast } = useToast();
   const { roles } = useAuth();
   const canEdit = roles.includes('Sales Agent') || roles.includes('Team Renewal');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const querySearch = searchParams.get('search') || '';
+  const queryRole = searchParams.get('role') || '';
 
   const [params, setParams] = useState<QuotationListParams>({
-    page: 1, per_page: 15, search: '', status: 'all',
+    page: 1, per_page: 15, search: querySearch, status: 'all',
     sort_by: 'created_at', sort_dir: 'desc',
     start_date: undefined, end_date: undefined,
+    creator_role: queryRole || undefined,
   });
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState(querySearch);
   const [deleteTarget, setDeleteTarget] = useState<Quotation | null>(null);
+
+  useEffect(() => {
+    if (querySearch) {
+      setSearchInput(querySearch);
+      setParams((p) => ({ ...p, search: querySearch, page: 1 }));
+    }
+  }, [querySearch]);
+
+  useEffect(() => {
+    setParams((p) => ({
+      ...p,
+      creator_role: queryRole || undefined,
+      page: 1,
+    }));
+  }, [queryRole]);
 
   // Modal Form States
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -35,6 +56,37 @@ export default function QuotationsPage() {
 
   // Modal View States
   const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(null);
+
+  // Modal Preview States
+  const [previewAttachment, setPreviewAttachment] = useState<{ id: number; file_name: string; mime_type: string } | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+  const handleViewAttachment = async (att: any) => {
+    setIsPreviewLoading(true);
+    setPreviewAttachment(att);
+    setPreviewUrl(null);
+    try {
+      const { data } = await axios.get(`/api/v1/attachments/${att.id}/download`, {
+        responseType: 'blob',
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([data], { type: att.mime_type }));
+      setPreviewUrl(blobUrl);
+    } catch (err) {
+      showToast('Failed to load document preview.', 'error');
+      setPreviewAttachment(null);
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewAttachment(null);
+  };
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['quotations', params],
@@ -90,6 +142,14 @@ export default function QuotationsPage() {
       ),
     },
     {
+      key: 'agent', label: 'Agent',
+      render: (r: Quotation) => (
+        <span className="text-xs font-semibold text-slate-700">
+          {r.prepared_by && typeof r.prepared_by === 'object' ? r.prepared_by.name : '—'}
+        </span>
+      ),
+    },
+    {
       key: 'plate_no', label: 'Plate No.',
       render: (r: Quotation) => (
         <span className="font-mono text-xs font-semibold text-slate-700">{r.customer?.plate_no || '—'}</span>
@@ -110,6 +170,25 @@ export default function QuotationsPage() {
     {
       key: 'status', label: 'Status', sortable: true,
       render: (r: Quotation) => <StatusBadge status={r.status} />,
+    },
+    {
+      key: 'bank_attachment', label: 'Bank',
+      render: (r: Quotation) => {
+        const bankDoc = r.customer?.attachments?.find((d: any) => d.document_type === 'bank');
+        if (!bankDoc) return <span className="text-slate-350">—</span>;
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewAttachment(bankDoc);
+            }}
+            className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 border border-emerald-100 hover:border-emerald-200/80 transition-all cursor-pointer inline-flex items-center"
+            title={`View ${bankDoc.file_name}`}
+          >
+            <FileText className="h-4 w-4" />
+          </button>
+        );
+      }
     },
 
     {
@@ -165,7 +244,19 @@ export default function QuotationsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input type="text" placeholder="Search policy request number, customer..."
             value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition" />
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition" />
+          {searchInput && (
+            <button 
+              onClick={() => {
+                setSearchInput('');
+                setSearchParams({});
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer flex items-center justify-center"
+              title="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
         
         {/* Filters Group (Dates & Status) */}
@@ -302,6 +393,80 @@ export default function QuotationsPage() {
                 setIsFormOpen(true);
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ─── Document Preview Modal ───────────── */}
+      {previewAttachment !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={handleClosePreview}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-amber-400" />
+                <h3 className="font-bold text-sm tracking-tight truncate max-w-[60vw]">
+                  Preview: {previewAttachment.file_name}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {previewUrl && (
+                  <a 
+                    href={previewUrl} 
+                    download={previewAttachment.file_name}
+                    className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition flex items-center justify-center"
+                    title="Download File"
+                  >
+                    <Download className="h-5 w-5" />
+                  </a>
+                )}
+                <button 
+                  onClick={handleClosePreview}
+                  className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50 flex items-center justify-center min-h-[50vh]">
+              {isPreviewLoading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-10 w-10 animate-spin text-[#4A0E17]" />
+                  <p className="text-sm font-semibold text-slate-500">Loading document preview...</p>
+                </div>
+              ) : previewUrl ? (
+                previewAttachment.mime_type.startsWith('image/') ? (
+                  <img 
+                    src={previewUrl} 
+                    alt={previewAttachment.file_name} 
+                    className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-sm border border-slate-200" 
+                  />
+                ) : previewAttachment.mime_type === 'application/pdf' ? (
+                  <iframe 
+                    src={previewUrl} 
+                    className="w-full h-[70vh] rounded-2xl border border-slate-250 bg-white" 
+                    title={previewAttachment.file_name}
+                  />
+                ) : (
+                  <div className="text-center py-10 space-y-4">
+                    <FileText className="h-16 w-16 text-slate-400 mx-auto" />
+                    <p className="text-sm font-bold text-slate-600">This file format cannot be previewed in the browser.</p>
+                    <a 
+                      href={previewUrl} 
+                      download={previewAttachment.file_name}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-bold rounded-xl transition shadow-sm"
+                    >
+                      Download File
+                    </a>
+                  </div>
+                )
+              ) : (
+                <div className="text-sm font-bold text-rose-500">Error loading file content.</div>
+              )}
+            </div>
           </div>
         </div>
       )}

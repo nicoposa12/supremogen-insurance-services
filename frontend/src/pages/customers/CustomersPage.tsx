@@ -29,6 +29,46 @@ import { uploadAttachment, getAttachments } from '../../services/attachmentApi';
 import type { Customer, CustomerListParams, CustomerFormData } from '../../types/CustomerTypes';
 import AttachmentPanel from '../../components/ui/AttachmentPanel';
 
+export function parseFullName(fullName: string) {
+  const name = (fullName || '').trim();
+  const parts = name.split(/\s+/);
+  
+  let firstName = '';
+  let middleName = '';
+  let lastName = '';
+  let suffix = '';
+
+  if (parts.length === 0 || name === '') {
+    return { firstName, middleName, lastName, suffix };
+  }
+
+  const suffixes = ['jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv', 'v', 'esq', 'esq.'];
+  const workingParts = [...parts];
+  
+  const lastPartLower = workingParts[workingParts.length - 1].toLowerCase();
+  if (workingParts.length > 1 && suffixes.includes(lastPartLower)) {
+    suffix = workingParts.pop() || '';
+  }
+
+  if (workingParts.length === 1) {
+    firstName = workingParts[0];
+    lastName = '';
+  } else if (workingParts.length === 2) {
+    firstName = workingParts[0];
+    lastName = workingParts[1];
+  } else if (workingParts.length === 3) {
+    firstName = workingParts[0];
+    middleName = workingParts[1];
+    lastName = workingParts[2];
+  } else {
+    lastName = workingParts.pop() || '';
+    middleName = workingParts.pop() || '';
+    firstName = workingParts.join(' ');
+  }
+
+  return { firstName, middleName, lastName, suffix };
+}
+
 export default function CustomersPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -67,6 +107,7 @@ export default function CustomersPage() {
   // File Upload states for modal form
   const [orcrFile, setOrcrFile] = useState<File | null>(null);
   const [ellaScreenshotFile, setEllaScreenshotFile] = useState<File | null>(null);
+  const [deedOfSaleFile, setDeedOfSaleFile] = useState<File | null>(null);
 
   // Fetch attachments for selected customer details view
   const { data: selectedAttachmentsRes } = useQuery({
@@ -81,9 +122,11 @@ export default function CustomersPage() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<CustomerFormData>({
     defaultValues: {
+      full_name: '',
       customer_type: 'individual',
       status: 'active',
       policy_status: 'ACTIVE',
@@ -129,8 +172,11 @@ export default function CustomersPage() {
       setActiveFormTab('info');
       setOrcrFile(null);
       setEllaScreenshotFile(null);
+      setDeedOfSaleFile(null);
       if (formEditTarget) {
+        const nameParts = [formEditTarget.first_name, formEditTarget.middle_name, formEditTarget.last_name, formEditTarget.suffix].filter(Boolean).join(' ');
         reset({
+          full_name: nameParts,
           customer_type: formEditTarget.customer_type ?? 'individual',
           first_name: formEditTarget.first_name,
           last_name: formEditTarget.last_name,
@@ -190,6 +236,7 @@ export default function CustomersPage() {
         });
       } else {
         reset({
+          full_name: '',
           customer_type: 'individual',
           status: 'active',
           policy_status: 'ACTIVE',
@@ -267,19 +314,30 @@ export default function CustomersPage() {
     if (orcrFile) {
       try {
         await uploadAttachment('customer', customerId, orcrFile, 'orcr_ndos_4sides');
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to upload ORCR attachment', e);
+        showToast('Failed to upload ORCR file: ' + (e.response?.data?.message ?? e.message), 'error');
       }
     }
     if (ellaScreenshotFile) {
       try {
         await uploadAttachment('customer', customerId, ellaScreenshotFile, 'ella_langrio_screenshot');
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to upload Ella Langrio screenshot', e);
+        showToast('Failed to upload Ella Langrio screenshot: ' + (e.response?.data?.message ?? e.message), 'error');
+      }
+    }
+    if (deedOfSaleFile) {
+      try {
+        await uploadAttachment('customer', customerId, deedOfSaleFile, 'deed_of_sale_ndos');
+      } catch (e: any) {
+        console.error('Failed to upload Deed of Sale attachment', e);
+        showToast('Failed to upload Deed of Sale: ' + (e.response?.data?.message ?? e.message), 'error');
       }
     }
     setOrcrFile(null);
     setEllaScreenshotFile(null);
+    setDeedOfSaleFile(null);
   };
 
   // ─── Mutations ──────────────────────
@@ -355,6 +413,24 @@ export default function CustomersPage() {
   };
 
   const onFormSubmit = (data: CustomerFormData) => {
+    const parsed = parseFullName(data.full_name || '');
+    data.first_name = parsed.firstName;
+    data.middle_name = parsed.middleName;
+    data.last_name = parsed.lastName;
+    data.suffix = parsed.suffix;
+
+    if (!formEditTarget && (!orcrFile || !ellaScreenshotFile)) {
+      showToast('Please upload all required attachments (ORCR and Ella Langrio Screenshot).', 'error');
+      return;
+    }
+
+    const ownershipValue = watch('ownership');
+    const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownershipValue);
+    if (needsDeedOfSale && !deedOfSaleFile && !formEditTarget) {
+      showToast('Please upload Deed of Sale / NDOS for 2nd-4th owners.', 'error');
+      return;
+    }
+
     if (formEditTarget) {
       updateMutation.mutate(data);
     } else {
@@ -362,24 +438,31 @@ export default function CustomersPage() {
     }
   };
 
-  const getRecordStatusBadge = (status: string) => {
+  const getPolicyStatusBadge = (policyStatus: string | null | undefined) => {
+    const status = (policyStatus || '').toUpperCase().trim();
     switch (status) {
-      case 'active':
+      case 'ACTIVE':
         return (
           <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 uppercase">
-            INSURED
+            ACTIVE
           </span>
         );
-      case 'blacklisted':
+      case 'INACTIVE':
         return (
           <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20 uppercase">
-            INSURED WITH BALANCE
+            INACTIVE
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 ring-1 ring-inset ring-rose-600/20 uppercase">
+            CANCELLED
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 ring-1 ring-inset ring-slate-500/20 uppercase">
-            DRAFT
+            {status || 'DRAFT'}
           </span>
         );
     }
@@ -387,11 +470,11 @@ export default function CustomersPage() {
 
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'numeric',
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'long',
       day: 'numeric',
-    });
+      year: 'numeric',
+    }).toUpperCase();
   };
 
   const formatCurrency = (amount: number | string | null | undefined) => {
@@ -478,10 +561,10 @@ export default function CustomersPage() {
       ),
     },
     {
-      key: 'status',
-      label: 'Record Status',
+      key: 'policy_status',
+      label: 'Policy Status',
       sortable: true,
-      render: (row: Customer) => getRecordStatusBadge(row.status),
+      render: (row: Customer) => getPolicyStatusBadge(row.policy_status),
     },
     {
       key: 'actions',
@@ -562,8 +645,17 @@ export default function CustomersPage() {
             placeholder="Search by client name, record number, plate number..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
           />
+          {searchInput && (
+            <button 
+              onClick={() => setSearchInput('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer flex items-center justify-center"
+              title="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Filters Group (Dates & Status) */}
@@ -600,9 +692,9 @@ export default function CustomersPage() {
               className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer font-medium"
             >
               <option value="all">All Statuses</option>
-              <option value="active">Insured</option>
+              <option value="active">Active</option>
               <option value="inactive">Inactive</option>
-              <option value="blacklisted">Insured with Balance</option>
+              <option value="blacklisted">Active with Balance</option>
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <ChevronDown className="h-4 w-4" />
@@ -735,6 +827,7 @@ export default function CustomersPage() {
               {activeModalTab === 'info' && (() => {
                 const orcrAttachment = selectedAttachments.find(a => a.document_type === 'orcr_ndos_4sides');
                 const ellaAttachment = selectedAttachments.find(a => a.document_type === 'ella_langrio_screenshot');
+                const deedOfSaleAttachment = selectedAttachments.find(a => a.document_type === 'deed_of_sale_ndos');
 
                 return (
                   <div className="space-y-6">
@@ -749,7 +842,7 @@ export default function CustomersPage() {
                       <div>
                         <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Status</span>
                         <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-bold text-[#4A0E17] text-sm shadow-sm uppercase">
-                          {selectedCustomer.status === 'inactive' ? 'DRAFT' : selectedCustomer.status === 'blacklisted' ? 'INSURED WITH BALANCE' : 'INSURED'}
+                          {selectedCustomer.status === 'inactive' ? 'DRAFT' : selectedCustomer.status === 'blacklisted' ? 'ACTIVE WITH BALANCE' : 'ACTIVE'}
                         </div>
                       </div>
                       <div>
@@ -988,6 +1081,28 @@ export default function CustomersPage() {
                                 <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
                               )}
                             </div>
+
+                            {/* Deed of Sale / NDOS */}
+                            {(['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(selectedCustomer.ownership || '') || deedOfSaleAttachment) && (
+                              <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                                <div className="flex items-center gap-2">
+                                  <Paperclip className="h-4 w-4 text-slate-400" />
+                                  <span className="text-xs font-semibold text-slate-700">Deed of Sale / NDOS</span>
+                                </div>
+                                {deedOfSaleAttachment ? (
+                                  <a 
+                                    href={`/api/v1/attachments/${deedOfSaleAttachment.id}/download`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
+                                  >
+                                    Download File
+                                  </a>
+                                ) : (
+                                  <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1130,8 +1245,8 @@ export default function CustomersPage() {
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-bold text-[#4A0E17] text-sm shadow-sm uppercase focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
                         >
                           <option value="inactive">DRAFT</option>
-                          <option value="active">INSURED</option>
-                          <option value="blacklisted">INSURED WITH BALANCE</option>
+                          <option value="active">ACTIVE</option>
+                          <option value="blacklisted">ACTIVE WITH BALANCE</option>
                         </select>
                       ) : (
                         <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-bold text-[#4A0E17] text-sm shadow-sm uppercase">
@@ -1231,46 +1346,17 @@ export default function CustomersPage() {
                   <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
                     <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Assured Personal & Contact Information</h4>
                     
-                    {/* Names row */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div>
-                        <label className={labelClass}>Assured First Name *</label>
+                    {/* Balanced Name & Contact Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2">
+                        <label className={labelClass}>Assured Full Name *</label>
                         <input
-                          {...register('first_name', { required: 'First name is required' })}
-                          className={inputClass(errors.first_name)}
-                          placeholder="First name"
+                          {...register('full_name', { required: 'Full name is required' })}
+                          className={inputClass(errors.full_name)}
+                          placeholder="Enter full name (First Middle Last Suffix)"
                         />
-                        {errors.first_name && <p className="text-xs text-red-500 mt-1">{errors.first_name.message}</p>}
+                        {errors.full_name && <p className="text-xs text-red-500 mt-1">{errors.full_name.message}</p>}
                       </div>
-                      <div>
-                        <label className={labelClass}>Assured Last Name *</label>
-                        <input
-                          {...register('last_name', { required: 'Last name is required' })}
-                          className={inputClass(errors.last_name)}
-                          placeholder="Last name"
-                        />
-                        {errors.last_name && <p className="text-xs text-red-500 mt-1">{errors.last_name.message}</p>}
-                      </div>
-                      <div>
-                        <label className={labelClass}>Assured Middle Name</label>
-                        <input
-                          {...register('middle_name')}
-                          className={inputClass()}
-                          placeholder="Middle name"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Suffix</label>
-                        <input
-                          {...register('suffix')}
-                          className={inputClass()}
-                          placeholder="e.g. Jr., Sr., III"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Contacts row */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div>
                         <label className={labelClass}>Email Address *</label>
                         <input
@@ -1284,6 +1370,7 @@ export default function CustomersPage() {
                         />
                         {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
                       </div>
+
                       <div>
                         <label className={labelClass}>Contact No.# *</label>
                         <input
@@ -1656,41 +1743,179 @@ export default function CustomersPage() {
                   {/* Section 7: File Uploads */}
                   <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm space-y-4">
                     <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Document Attachments</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
-                        <label className={labelClass}>ORCR / NDOS / 4 SIDES (Upload) *</label>
-                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition p-4 text-center">
-                          <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
-                          <span className="text-xs text-slate-600 font-semibold truncate max-w-full">
-                            {orcrFile ? orcrFile.name : 'Upload ORCR / NDOS / 4 Sides'}
-                          </span>
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files.length > 0) setOrcrFile(e.target.files[0]);
-                            }} 
-                            accept="image/*,application/pdf" 
-                          />
+                        <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
+                          ORCR / NDOS / 4 SIDES (Upload) <span className="text-rose-500 font-bold">*</span>
                         </label>
+                        <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
+                          orcrFile 
+                            ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
+                            : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
+                        }`}>
+                          {orcrFile ? (
+                            <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
+                              <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={orcrFile.name}>
+                                {orcrFile.name}
+                              </span>
+                              <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
+                                {(orcrFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                              </span>
+                              <button 
+                                type="button" 
+                                onClick={() => setOrcrFile(null)} 
+                                className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
+                                title="Remove file"
+                              >
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                              <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
+                                <UploadCloud className="h-5 w-5" />
+                              </div>
+                              <span className="text-xs text-slate-700 font-bold">
+                                Click to select file
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                Upload ORCR / NDOS / 4 Sides (max 10MB)
+                              </span>
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files.length > 0) setOrcrFile(e.target.files[0]);
+                                }} 
+                                accept="image/*,application/pdf" 
+                              />
+                            </label>
+                          )}
+                        </div>
                       </div>
+
                       <div>
-                        <label className={labelClass}>Ella Langrio Screenshot (Upload) *</label>
-                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition p-4 text-center">
-                          <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
-                          <span className="text-xs text-slate-600 font-semibold truncate max-w-full">
-                            {ellaScreenshotFile ? ellaScreenshotFile.name : 'Upload Ms. Ella Langrio Convo Screenshot'}
-                          </span>
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files.length > 0) setEllaScreenshotFile(e.target.files[0]);
-                            }} 
-                            accept="image/*,application/pdf" 
-                          />
+                        <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
+                          Ella Langrio Convo Screenshot (Upload) <span className="text-rose-500 font-bold">*</span>
                         </label>
+                        <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
+                          ellaScreenshotFile 
+                            ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
+                            : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
+                        }`}>
+                          {ellaScreenshotFile ? (
+                            <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
+                              <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={ellaScreenshotFile.name}>
+                                {ellaScreenshotFile.name}
+                              </span>
+                              <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
+                                {(ellaScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                              </span>
+                              <button 
+                                type="button" 
+                                onClick={() => setEllaScreenshotFile(null)} 
+                                className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
+                                title="Remove file"
+                              >
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                              <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
+                                <UploadCloud className="h-5 w-5" />
+                              </div>
+                              <span className="text-xs text-slate-700 font-bold">
+                                Click to select file
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                Upload Convo Screenshot (max 10MB)
+                              </span>
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files.length > 0) setEllaScreenshotFile(e.target.files[0]);
+                                }} 
+                                accept="image/*,application/pdf" 
+                              />
+                            </label>
+                          )}
+                        </div>
                       </div>
+
+                      {['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(watch('ownership')) && (
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
+                            Deed of Sale / NDOS (Upload) <span className="text-rose-500 font-bold">*</span>
+                          </label>
+                          <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
+                            deedOfSaleFile 
+                              ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
+                              : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
+                          }`}>
+                            {deedOfSaleFile ? (
+                              <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
+                                <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                                <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={deedOfSaleFile.name}>
+                                  {deedOfSaleFile.name}
+                                </span>
+                                <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
+                                  {(deedOfSaleFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                                </span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setDeedOfSaleFile(null)} 
+                                  className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
+                                  title="Remove file"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                                <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
+                                  <UploadCloud className="h-5 w-5" />
+                                </div>
+                                <span className="text-xs text-slate-700 font-bold">
+                                  Click to select file
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  Upload Deed of Sale / NDOS (max 10MB)
+                                </span>
+                                <input 
+                                  type="file" 
+                                  className="hidden" 
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) setDeedOfSaleFile(e.target.files[0]);
+                                  }} 
+                                  accept="image/*,application/pdf" 
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

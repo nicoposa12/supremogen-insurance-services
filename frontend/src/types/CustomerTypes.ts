@@ -2,6 +2,8 @@
  * Customer-related TypeScript interfaces and Zod schemas.
  */
 
+import type { Attachment } from '../services/attachmentApi';
+
 // ─── API Interfaces ───────────────────────────
 
 export interface Customer {
@@ -31,6 +33,7 @@ export interface Customer {
   updated_at: string;
   full_name?: string;
   documents?: CustomerDocument[];
+  attachments?: Attachment[];
   created_by_user?: { id: number; name: string; email: string };
 
   // Transaction fields
@@ -208,6 +211,7 @@ export interface CustomerListParams {
 }
 
 export interface CustomerFormData {
+  full_name?: string;
   first_name: string;
   last_name: string;
   middle_name?: string;

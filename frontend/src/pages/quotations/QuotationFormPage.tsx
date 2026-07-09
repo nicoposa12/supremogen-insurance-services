@@ -9,6 +9,8 @@ import { getCustomer, updateCustomer, createCustomer } from '../../services/cust
 import { uploadAttachment } from '../../services/attachmentApi';
 import { getInsuranceProducts } from '../../services/productApi';
 import type { QuotationFormData, InsuranceProduct } from '../../types/SalesTypes';
+import { parseFullName } from '../customers/CustomersPage';
+import { useAuth } from '../../context/AuthContext';
 
 const formatRawInput = (val: string | number): string => {
   if (val === undefined || val === null) return '';
@@ -125,6 +127,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   // Form states
   const [customerId, setCustomerId] = useState<number>(0);
@@ -151,10 +154,21 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [usedRate, setUsedRate] = useState('');
 
   // For editable personal/contact fields
+  const [fullName, setFullName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [suffix, setSuffix] = useState('');
+  const [deedOfSaleFile, setDeedOfSaleFile] = useState<File | null>(null);
+
+  const handleFullNameChange = (val: string) => {
+    setFullName(val);
+    const parsed = parseFullName(val);
+    setFirstName(parsed.firstName);
+    setLastName(parsed.lastName);
+    setMiddleName(parsed.middleName);
+    setSuffix(parsed.suffix);
+  };
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
@@ -287,10 +301,33 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     }
   }, [existing]);
 
+  // Populate agent name from authenticated user account on create
+  useEffect(() => {
+    if (!isEdit && user?.name) {
+      setAgent((prev) => prev || user.name);
+    }
+  }, [isEdit, user]);
+
+  // Automatically update usedRate when selling rates change
+  useEffect(() => {
+    const formatRatePercent = (rate: number): string => {
+      const formatted = rate.toFixed(2);
+      if (formatted.startsWith('0.')) {
+        return formatted.slice(1) + '%';
+      }
+      return formatted + '%';
+    };
+    if (sellingRateOD !== undefined && sellingRateAON !== undefined) {
+      setUsedRate(`${formatRatePercent(sellingRateOD)} - ${formatRatePercent(sellingRateAON)}`);
+    }
+  }, [sellingRateOD, sellingRateAON]);
+
   // Populate customer fields on selection
   useEffect(() => {
     if (selectedCustomer) {
       const c = selectedCustomer;
+      const nameParts = [c.first_name, c.middle_name, c.last_name, c.suffix].filter(Boolean).join(' ');
+      setFullName(nameParts);
       setFirstName(c.first_name || '');
       setLastName(c.last_name || '');
       setMiddleName(c.middle_name || '');
@@ -494,19 +531,30 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     if (orcrFile) {
       try {
         await uploadAttachment('customer', targetCustomerId, orcrFile, 'orcr_ndos_4sides');
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to upload ORCR', e);
+        showToast('Failed to upload ORCR file: ' + (e.response?.data?.message ?? e.message), 'error');
       }
     }
     if (ellaScreenshotFile) {
       try {
         await uploadAttachment('customer', targetCustomerId, ellaScreenshotFile, 'ella_langrio_screenshot');
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to upload Ella Langrio convo screenshot', e);
+        showToast('Failed to upload Ella Langrio screenshot: ' + (e.response?.data?.message ?? e.message), 'error');
+      }
+    }
+    if (deedOfSaleFile) {
+      try {
+        await uploadAttachment('customer', targetCustomerId, deedOfSaleFile, 'deed_of_sale_ndos');
+      } catch (e: any) {
+        console.error('Failed to upload Deed of Sale attachment', e);
+        showToast('Failed to upload Deed of Sale: ' + (e.response?.data?.message ?? e.message), 'error');
       }
     }
     setOrcrFile(null);
     setEllaScreenshotFile(null);
+    setDeedOfSaleFile(null);
   };
 
   // Save/Update Customer details
@@ -677,8 +725,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       { value: insuranceProvider, name: 'Provider' },
       { value: quotationUsed, name: 'Quotation Used' },
       { value: usage, name: 'Usage' },
-      { value: firstName, name: 'Assured First Name' },
-      { value: lastName, name: 'Assured Last Name' },
+      { value: fullName, name: 'Assured Full Name' },
       { value: email, name: 'Email Address' },
       { value: mobile, name: 'Contact No.#' },
       { value: addressLine1, name: 'Address Line 1' },
@@ -700,8 +747,9 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       { value: landmark, name: 'Landmark' },
     ];
 
+    const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownership);
     const hasMissingFields = requiredFields.some(f => !f.value || !f.value.toString().trim()) ||
-                             (!isEdit && (!orcrFile || !ellaScreenshotFile));
+                             (!isEdit && (!orcrFile || !ellaScreenshotFile || (needsDeedOfSale && !deedOfSaleFile)));
 
     if (hasMissingFields) {
       showToast('Please fill in all required fields.', 'error');
@@ -862,29 +910,17 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         {/* Card 2: Assured Personal & Contact Info */}
         <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Assured Personal & Contact Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className={labelClass}>Assured First Name *</label>
-              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={getInputClass(firstName)} placeholder="First name" />
+          {/* Balanced Name & Contact Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className={labelClass}>Assured Full Name *</label>
+              <input type="text" value={fullName} onChange={(e) => handleFullNameChange(e.target.value)} className={getInputClass(fullName)} placeholder="Enter full name (First Middle Last Suffix)" />
             </div>
-            <div>
-              <label className={labelClass}>Assured Last Name *</label>
-              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={getInputClass(lastName)} placeholder="Last name" />
-            </div>
-            <div>
-              <label className={labelClass}>Assured Middle Name</label>
-              <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className={getInputClass(middleName, false)} placeholder="Middle name" />
-            </div>
-            <div>
-              <label className={labelClass}>Suffix</label>
-              <input type="text" value={suffix} onChange={(e) => setSuffix(e.target.value)} className={getInputClass(suffix, false)} placeholder="e.g. Jr., Sr." />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className={labelClass}>Email Address *</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={getInputClass(email)} placeholder="email@example.com" />
             </div>
+
             <div>
               <label className={labelClass}>Contact No.# *</label>
               <input type="text" value={mobile} onChange={(e) => setMobile(e.target.value)} className={getInputClass(mobile)} placeholder="Mobile number" />
@@ -1048,31 +1084,179 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         {/* Card 7: Document Attachments */}
         <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Document Attachments</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className={labelClass}>ORCR / NDOS / 4 SIDES (Upload) *</label>
-              <label className={getFileLabelClass(orcrFile)}>
-                <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
-                <span className="text-xs text-slate-600 font-semibold truncate max-w-full">
-                  {orcrFile ? orcrFile.name : 'Upload ORCR / NDOS / 4 Sides'}
-                </span>
-                <input type="file" className="hidden" onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) setOrcrFile(e.target.files[0]);
-                }} accept="image/*,application/pdf" />
+              <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
+                ORCR / NDOS / 4 SIDES (Upload) <span className="text-rose-500 font-bold">*</span>
               </label>
+              <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
+                orcrFile 
+                  ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
+                  : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
+              }`}>
+                {orcrFile ? (
+                  <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
+                    <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={orcrFile.name}>
+                      {orcrFile.name}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
+                      {(orcrFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => setOrcrFile(null)} 
+                      className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
+                      title="Remove file"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                    <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
+                      <UploadCloud className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs text-slate-700 font-bold">
+                      Click to select file
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      Upload ORCR / NDOS / 4 Sides (max 10MB)
+                    </span>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) setOrcrFile(e.target.files[0]);
+                      }} 
+                      accept="image/*,application/pdf" 
+                    />
+                  </label>
+                )}
+              </div>
             </div>
+
             <div>
-              <label className={labelClass}>Ella Langrio Screenshot (Upload) *</label>
-              <label className={getFileLabelClass(ellaScreenshotFile)}>
-                <UploadCloud className="h-6 w-6 text-slate-400 mb-1" />
-                <span className="text-xs text-slate-600 font-semibold truncate max-w-full">
-                  {ellaScreenshotFile ? ellaScreenshotFile.name : 'Upload Ms. Ella Langrio Convo Screenshot'}
-                </span>
-                <input type="file" className="hidden" onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) setEllaScreenshotFile(e.target.files[0]);
-                }} accept="image/*,application/pdf" />
+              <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
+                Ella Langrio Convo Screenshot (Upload) <span className="text-rose-500 font-bold">*</span>
               </label>
+              <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
+                ellaScreenshotFile 
+                  ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
+                  : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
+              }`}>
+                {ellaScreenshotFile ? (
+                  <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
+                    <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={ellaScreenshotFile.name}>
+                      {ellaScreenshotFile.name}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
+                      {(ellaScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => setEllaScreenshotFile(null)} 
+                      className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
+                      title="Remove file"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                    <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
+                      <UploadCloud className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs text-slate-700 font-bold">
+                      Click to select file
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      Upload Convo Screenshot (max 10MB)
+                    </span>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) setEllaScreenshotFile(e.target.files[0]);
+                      }} 
+                      accept="image/*,application/pdf" 
+                    />
+                  </label>
+                )}
+              </div>
             </div>
+
+            {['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownership) && (
+              <div>
+                <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
+                  Deed of Sale / NDOS (Upload) <span className="text-rose-500 font-bold">*</span>
+                </label>
+                <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
+                  deedOfSaleFile 
+                    ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
+                    : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
+                }`}>
+                  {deedOfSaleFile ? (
+                    <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
+                      <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={deedOfSaleFile.name}>
+                        {deedOfSaleFile.name}
+                      </span>
+                      <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
+                        {(deedOfSaleFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={() => setDeedOfSaleFile(null)} 
+                        className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
+                        title="Remove file"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                      <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
+                        <UploadCloud className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs text-slate-700 font-bold">
+                        Click to select file
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                        Upload Deed of Sale / NDOS (max 10MB)
+                      </span>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) setDeedOfSaleFile(e.target.files[0]);
+                        }} 
+                        accept="image/*,application/pdf" 
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1111,7 +1295,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                 <div className="grid grid-cols-2 gap-6 items-center">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">OWN DAMAGE COVERAGE</label>
-                    <input type="text" value={covOwnDamage} onChange={(e) => setCovOwnDamage(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />
+                    <input type="text" value={covOwnDamage} onChange={(e) => {
+                      const val = formatRawInput(e.target.value);
+                      setCovOwnDamage(val);
+                      setCovAON(val);
+                    }} className={inputClass} placeholder="0.00" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">OD Premium</label>
@@ -1123,7 +1311,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                 <div className="grid grid-cols-2 gap-6 items-center">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">ACTS OF NATURE COVERAGE</label>
-                    <input type="text" value={covAON} onChange={(e) => setCovAON(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />
+                    <input type="text" value={covAON} onChange={(e) => {
+                      const val = formatRawInput(e.target.value);
+                      setCovAON(val);
+                      setCovOwnDamage(val);
+                    }} className={inputClass} placeholder="0.00" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">AON Premium</label>
@@ -1142,10 +1334,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                           if (e.target.value === 'custom') {
                             setCustomBI(true);
                             setCovBI('');
+                            setCustomPD(true);
+                            setCovPD('');
                           } else {
                             const valNum = Number(e.target.value);
                             const formatted = valNum ? valNum.toLocaleString('en-US') : '';
                             setCovBI(formatted);
+                            setCovPD(formatted);
+                            setCustomPD(false);
                           }
                         }}
                         className={inputClass}
@@ -1162,7 +1358,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                             <option value="300000">300,000</option>
                             <option value="400000">400,000</option>
                             <option value="500000">500,000</option>
-                            <option value="750000">750,000</option>
+                            <option value="750000">75,0000</option>
                             <option value="1000000">1,000,000</option>
                           </>
                         )}
@@ -1176,7 +1372,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                         <input
                           type="text"
                           value={covBI}
-                          onChange={(e) => setCovBI(formatRawInput(e.target.value))}
+                          onChange={(e) => {
+                            const val = formatRawInput(e.target.value);
+                            setCovBI(val);
+                            setCovPD(val);
+                          }}
                           className={inputClass}
                           placeholder="0.00"
                           autoFocus
@@ -1186,6 +1386,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                           onClick={() => {
                             setCustomBI(false);
                             setCovBI('');
+                            setCustomPD(false);
+                            setCovPD('');
                           }}
                           className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition"
                         >
@@ -1218,10 +1420,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                           if (e.target.value === 'custom') {
                             setCustomPD(true);
                             setCovPD('');
+                            setCustomBI(true);
+                            setCovBI('');
                           } else {
                             const valNum = Number(e.target.value);
                             const formatted = valNum ? valNum.toLocaleString('en-US') : '';
                             setCovPD(formatted);
+                            setCovBI(formatted);
+                            setCustomBI(false);
                           }
                         }}
                         className={inputClass}
@@ -1252,7 +1458,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                         <input
                           type="text"
                           value={covPD}
-                          onChange={(e) => setCovPD(formatRawInput(e.target.value))}
+                          onChange={(e) => {
+                            const val = formatRawInput(e.target.value);
+                            setCovPD(val);
+                            setCovBI(val);
+                          }}
                           className={inputClass}
                           placeholder="0.00"
                           autoFocus
@@ -1262,6 +1472,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                           onClick={() => {
                             setCustomPD(false);
                             setCovPD('');
+                            setCustomBI(false);
+                            setCovBI('');
                           }}
                           className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition"
                         >

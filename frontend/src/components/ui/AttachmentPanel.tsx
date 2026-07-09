@@ -29,6 +29,7 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
   const isWritable = !readOnly && !isAdmin;
 
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadDocType, setUploadDocType] = useState<string>('');
 
   // Fetch attachments
   const { data: response, isLoading } = useQuery({
@@ -39,13 +40,21 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
 
   const attachments = response?.data ?? [];
 
+  // Group attachments
+  const orcrAttachments = attachments.filter(a => a.document_type === 'orcr_ndos_4sides');
+  const ellaAttachments = attachments.filter(a => a.document_type === 'ella_langrio_screenshot');
+  const deedOfSaleAttachments = attachments.filter(a => a.document_type === 'deed_of_sale_ndos');
+  const otherAttachments = attachments.filter(a => !['orcr_ndos_4sides', 'ella_langrio_screenshot', 'deed_of_sale_ndos'].includes(a.document_type || ''));
+
   // Upload mutation
   const uploadMut = useMutation({
-    mutationFn: (file: File) => uploadAttachment(type, id, file),
+    // Wait, type is passed from props
+    mutationFn: (file: File) => uploadAttachment(type, id, file, uploadDocType || undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attachments', type, id] });
       showToast('File uploaded successfully.');
       setIsUploading(false);
+      setUploadDocType('');
     },
     onError: (err: any) => {
       showToast(err.response?.data?.message ?? 'Failed to upload file.', 'error');
@@ -55,6 +64,7 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
 
   // Delete mutation
   const deleteMut = useMutation({
+    // Wait, type is passed from props
     mutationFn: (attachmentId: number) => deleteAttachment(attachmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attachments', type, id] });
@@ -114,6 +124,57 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
     return <File className="h-6 w-6 text-blue-500" />;
   };
 
+  const renderAttachmentItem = (att: Attachment) => (
+    <div 
+      key={att.id} 
+      className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/75 hover:border-slate-200 transition"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        {getFileIcon(att.mime_type)}
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-700 truncate" title={att.file_name}>
+            {att.file_name}
+          </p>
+          <p className="text-[11px] text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+            <span>{formatBytes(att.file_size)}</span>
+            <span>•</span>
+            <span>By {att.uploaded_by_relation?.name ?? 'System'}</span>
+            <span>•</span>
+            <span>{new Date(att.created_at).toLocaleDateString()}</span>
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-1.5 ml-3">
+        <button 
+          onClick={() => handleDownload(att)}
+          className="p-2 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-[#4A0E17]/5 transition cursor-pointer"
+          title="Download"
+        >
+          <Download className="h-4 w-4" />
+        </button>
+        {isWritable && (
+          <button 
+            onClick={() => {
+              if (confirm('Are you sure you want to delete this attachment?')) {
+                deleteMut.mutate(att.id);
+              }
+            }}
+            disabled={deleteMut.isPending}
+            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+            title="Delete"
+          >
+            {deleteMut.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-5 shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -133,7 +194,7 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* File List */}
-        <div className="lg:col-span-2 space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+        <div className="lg:col-span-2 space-y-4 max-h-[420px] overflow-y-auto pr-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" />
@@ -145,89 +206,96 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
               <p className="text-xs text-slate-400 mt-0.5">Upload images, PDFs, or documents for this record</p>
             </div>
           ) : (
-            attachments.map((att) => (
-              <div 
-                key={att.id} 
-                className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/75 hover:border-slate-200 transition"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  {getFileIcon(att.mime_type)}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-700 truncate" title={att.file_name}>
-                      {att.file_name}
-                    </p>
-                    <p className="text-[11px] text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                      <span>{formatBytes(att.file_size)}</span>
-                      <span>•</span>
-                      <span>By {att.uploaded_by_relation?.name ?? 'System'}</span>
-                      <span>•</span>
-                      <span>{new Date(att.created_at).toLocaleDateString()}</span>
-                    </p>
+            <div className="space-y-5">
+              {/* ORCR Group */}
+              {orcrAttachments.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">ORCR / NDOS / 4 Sides</h4>
+                  <div className="space-y-2">
+                    {orcrAttachments.map(renderAttachmentItem)}
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-1.5 ml-3">
-                  <button 
-                    onClick={() => handleDownload(att)}
-                    className="p-2 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-[#4A0E17]/5 transition cursor-pointer"
-                    title="Download"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
-                  {isWritable && (
-                    <button 
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this attachment?')) {
-                          deleteMut.mutate(att.id);
-                        }
-                      }}
-                      disabled={deleteMut.isPending}
-                      className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-                      title="Delete"
-                    >
-                      {deleteMut.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </button>
-                  )}
+              )}
+
+              {/* Ella Screenshot Group */}
+              {ellaAttachments.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Ms. Ella Langrio Convo Screenshot</h4>
+                  <div className="space-y-2">
+                    {ellaAttachments.map(renderAttachmentItem)}
+                  </div>
                 </div>
-              </div>
-            ))
+              )}
+
+              {/* Deed of Sale Group */}
+              {deedOfSaleAttachments.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Deed of Sale / NDOS</h4>
+                  <div className="space-y-2">
+                    {deedOfSaleAttachments.map(renderAttachmentItem)}
+                  </div>
+                </div>
+              )}
+
+              {/* Others Group */}
+              {otherAttachments.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">General / Other Documents</h4>
+                  <div className="space-y-2">
+                    {otherAttachments.map(renderAttachmentItem)}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
         {/* Upload Area */}
-        <div className="flex flex-col justify-center">
+        <div className="flex flex-col justify-start space-y-4">
           {isWritable ? (
-            <label className={`flex flex-col items-center justify-center p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:bg-[#4A0E17]/5 hover:border-[#4A0E17]/30 transition group text-center relative ${
-              isUploading ? 'pointer-events-none opacity-60' : ''
-            }`}>
-              <input 
-                type="file" 
-                className="hidden" 
-                onChange={handleFileChange} 
-                disabled={isUploading} 
-              />
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-8 w-8 animate-spin text-[#4A0E17] mb-2.5" />
-                  <p className="text-xs font-semibold text-slate-600">Uploading file...</p>
-                  <p className="text-[10px] text-slate-400 mt-1">Please wait</p>
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="h-8 w-8 text-slate-400 group-hover:text-[#4A0E17] transition mb-2.5" />
-                  <p className="text-xs font-semibold text-slate-700 group-hover:text-[#4A0E17] transition">
-                    Upload a File
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1 max-w-[150px] mx-auto leading-normal">
-                    Images, PDFs, or documents up to 10MB
-                  </p>
-                </>
-              )}
-            </label>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Document Type to Upload</label>
+                <select
+                  value={uploadDocType}
+                  onChange={(e) => setUploadDocType(e.target.value)}
+                  className="w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer font-medium"
+                >
+                  <option value="">General / Other Document</option>
+                  <option value="orcr_ndos_4sides">ORCR / NDOS / 4 Sides</option>
+                  <option value="ella_langrio_screenshot">Ms. Ella Langrio Convo Screenshot</option>
+                  <option value="deed_of_sale_ndos">Deed of Sale / NDOS</option>
+                </select>
+              </div>
+
+              <label className={`flex flex-col items-center justify-center p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:bg-[#4A0E17]/5 hover:border-[#4A0E17]/30 transition group text-center relative ${
+                isUploading ? 'pointer-events-none opacity-60' : ''
+              }`}>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  onChange={handleFileChange} 
+                  disabled={isUploading} 
+                />
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-8 w-8 animate-spin text-[#4A0E17] mb-2.5" />
+                    <p className="text-xs font-semibold text-slate-600">Uploading file...</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Please wait</p>
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="h-8 w-8 text-slate-400 group-hover:text-[#4A0E17] transition mb-2.5" />
+                    <p className="text-xs font-semibold text-slate-700 group-hover:text-[#4A0E17] transition">
+                      Upload a File
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1 max-w-[150px] mx-auto leading-normal">
+                      Images, PDFs, or documents up to 10MB
+                    </p>
+                  </>
+                )}
+              </label>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center p-6 bg-slate-50 border border-slate-100 rounded-2xl text-center">
               <Paperclip className="h-8 w-8 text-slate-300 mb-2" />

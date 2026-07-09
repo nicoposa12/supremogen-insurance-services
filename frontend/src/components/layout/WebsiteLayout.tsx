@@ -194,6 +194,17 @@ export default function WebsiteLayout() {
                   <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
                 </svg>
               </a>
+              <a
+                href="https://www.tiktok.com/@supremogeninsurancesrvcs"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="TikTok"
+                className="grid h-9 w-9 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.63 4.16 1.02 1.15 2.45 1.89 3.93 2.14v3.83c-1.89-.04-3.72-.81-5.12-2.11-.1.29-.16.61-.17.92v9.3c.02 1.76-.56 3.49-1.66 4.82-1.25 1.48-3.15 2.37-5.13 2.38-1.92.02-3.8-.76-5.14-2.1-1.42-1.4-2.22-3.37-2.15-5.38C.72 13.91 2.3 11.23 4.8 10.3c1.55-.58 3.26-.61 4.83-.1v3.9c-1-.41-2.13-.39-3.11.1-.96.48-1.63 1.43-1.8 2.49-.24 1.54.58 3.07 1.95 3.75 1.15.57 2.54.51 3.63-.16.73-.45 1.18-1.24 1.2-2.1V0h.025z" />
+                </svg>
+              </a>
             </div>
           </div>
 

@@ -93,6 +93,7 @@ export interface QuotationListParams {
   sort_dir?: 'asc' | 'desc';
   start_date?: string;
   end_date?: string;
+  creator_role?: string;
 }
 
 export interface PolicyListParams {

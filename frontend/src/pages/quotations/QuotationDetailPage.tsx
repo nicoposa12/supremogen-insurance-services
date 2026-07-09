@@ -94,7 +94,11 @@ export default function QuotationDetailPage({
 
   const formatDate = (val: any) => {
     if (!val) return '—';
-    return new Date(val).toLocaleDateString();
+    return new Date(val).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    }).toUpperCase();
   };
 
   const formatCurrency = (val: any) => {
@@ -214,7 +218,7 @@ export default function QuotationDetailPage({
               <div>
                 <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Status</span>
                 <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-bold text-[#4A0E17] text-sm shadow-sm uppercase">
-                  {quotation.status === 'draft' ? 'DRAFT' : quotation.status === 'approved' ? 'INSURED' : quotation.status}
+                  {quotation.status === 'draft' ? 'DRAFT' : quotation.status === 'approved' ? 'ACTIVE' : quotation.status}
                 </div>
               </div>
               <div>

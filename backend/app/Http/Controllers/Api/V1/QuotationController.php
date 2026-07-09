@@ -23,13 +23,22 @@ class QuotationController extends Controller
         $allowed = ['quotation_number', 'total_premium', 'status', 'valid_until', 'created_at'];
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
-        $query = Quotation::with(['customer:id,customer_code,first_name,last_name,plate_no,unit', 'preparedBy:id,name']);
+        $query = Quotation::with(['customer:id,customer_code,first_name,last_name,plate_no,unit', 'customer.attachments', 'preparedBy:id,name']);
 
         if ($request->user()->isSalesOrRenewal()) {
             $query->where('prepared_by', $request->user()->id);
         } elseif ($request->user()->hasRole('Underwriter')) {
             // Underwriters only see submitted / under_review / approved / rejected
             $query->whereIn('status', ['submitted', 'under_review', 'approved', 'rejected']);
+        }
+
+        if ($request->filled('creator_role')) {
+            $roleName = $request->input('creator_role');
+            $query->whereHas('preparedBy', function ($q) use ($roleName) {
+                $q->whereHas('roles', function ($r) use ($roleName) {
+                    $r->where('name', $roleName);
+                });
+            });
         }
 
         $quotations = $query
@@ -343,6 +352,21 @@ class QuotationController extends Controller
             'or_number' => $request->input('or_number', $quotation->or_number),
             'trip_number' => $request->input('trip_number', $quotation->trip_number),
         ]);
+
+        // Notify the creator of the quotation (Sales Agent or Team Renewal)
+        try {
+            if ($quotation->prepared_by) {
+                \App\Models\Notification::create([
+                    'user_id' => $quotation->prepared_by,
+                    'title' => $action === 'approve' ? 'Quotation Approved' : 'Quotation Rejected',
+                    'message' => "Quotation {$quotation->quotation_number} has been " . ($action === 'approve' ? 'approved' : 'rejected') . " by " . $request->user()->name . ".",
+                    'type' => $action === 'approve' ? 'success' : 'error',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send quotation review notification: ' . $e->getMessage());
+        }
 
         $message = $action === 'approve' ? 'Quotation approved.' : 'Quotation rejected.';
 

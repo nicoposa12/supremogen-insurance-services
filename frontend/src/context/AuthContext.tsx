@@ -17,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
   updateUser: (userData: User) => void;
+  impersonateUser: (data: any) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -135,6 +136,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('supremogen_user', JSON.stringify(userData));
   };
 
+  const impersonateUser = (data: any) => {
+    const { access_token, user: userData, roles: userRoles, permissions: userPermissions } = data;
+    setToken(access_token);
+    setUser(userData);
+    setRoles(userRoles);
+    setPermissions(userPermissions);
+    localStorage.setItem('supremogen_token', access_token);
+    localStorage.setItem('supremogen_user', JSON.stringify(userData));
+    localStorage.setItem('supremogen_roles', JSON.stringify(userRoles));
+    localStorage.setItem('supremogen_permissions', JSON.stringify(userPermissions));
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -147,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         updateUser,
+        impersonateUser,
       }}
     >
       {children}

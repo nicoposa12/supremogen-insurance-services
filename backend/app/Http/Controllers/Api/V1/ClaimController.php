@@ -67,6 +67,22 @@ class ClaimController extends Controller
             'claim_amount' => $request->input('claim_amount'),
         ]);
 
+        // Notify all Claims Officers
+        try {
+            $officers = \App\Models\User::role('Claims Officer')->get();
+            foreach ($officers as $officer) {
+                \App\Models\Notification::create([
+                    'user_id' => $officer->id,
+                    'title' => 'Claim Filed',
+                    'message' => "A new claim {$claim->claim_number} has been filed and is awaiting assignment.",
+                    'type' => 'warning',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send claim notification: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Claim filed successfully.',
@@ -149,6 +165,36 @@ class ClaimController extends Controller
             'status' => 'under_investigation',
         ]);
 
+        // Notify the assigned Claims Officer
+        try {
+            if ($claim->assigned_to) {
+                \App\Models\Notification::create([
+                    'user_id' => $claim->assigned_to,
+                    'title' => 'Claim Assigned to You',
+                    'message' => "Claim {$claim->claim_number} has been assigned to you for investigation.",
+                    'type' => 'info',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify assigned officer: ' . $e->getMessage());
+        }
+
+        // Notify the creator of the claim
+        try {
+            if ($claim->filed_by) {
+                \App\Models\Notification::create([
+                    'user_id' => $claim->filed_by,
+                    'title' => 'Claim Status Updated',
+                    'message' => "Claim {$claim->claim_number} has been moved to Under Investigation.",
+                    'type' => 'warning',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify claim creator on assignment: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true, 'message' => 'Claim assigned for investigation.',
             'data' => $claim->fresh(['customer', 'policy', 'assignedTo']),
@@ -183,6 +229,21 @@ class ClaimController extends Controller
             'approved_amount' => $action === 'approve' ? $request->input('approved_amount') : null,
             'adjuster_remarks' => $request->input('adjuster_remarks'),
         ]);
+
+        // Notify the creator of the claim
+        try {
+            if ($claim->filed_by) {
+                \App\Models\Notification::create([
+                    'user_id' => $claim->filed_by,
+                    'title' => $action === 'approve' ? 'Claim Approved' : 'Claim Denied',
+                    'message' => "Claim {$claim->claim_number} has been " . ($action === 'approve' ? 'approved' : 'denied') . ".",
+                    'type' => $action === 'approve' ? 'success' : 'error',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify claim creator on review: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,
@@ -219,6 +280,21 @@ class ClaimController extends Controller
             'settlement_date' => $request->input('settlement_date'),
             'adjuster_remarks' => $request->input('adjuster_remarks') ?? $claim->adjuster_remarks,
         ]);
+
+        // Notify the creator of the claim
+        try {
+            if ($claim->filed_by) {
+                \App\Models\Notification::create([
+                    'user_id' => $claim->filed_by,
+                    'title' => 'Claim Settled',
+                    'message' => "Claim {$claim->claim_number} has been settled.",
+                    'type' => 'success',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify claim creator on settlement: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true, 'message' => 'Claim settled.',

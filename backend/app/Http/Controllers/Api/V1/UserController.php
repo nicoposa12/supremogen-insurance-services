@@ -46,6 +46,9 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Automatically assign a default password for new accounts
+        $request->merge(['password' => 'Password123!']);
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -214,4 +217,42 @@ class UserController extends Controller
             'data' => $agents,
         ]);
     }
+
+    /**
+     * Impersonate a user account.
+     */
+    public function impersonate(Request $request, User $user)
+    {
+        // Don't allow Underwriter to impersonate Admin
+        if ($request->user()->hasRole('Underwriter') && in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action.',
+            ], 403);
+        }
+
+        // Get roles and permissions
+        $roles = $user->getRoleNames();
+        $permissions = $user->getAllPermissions()->pluck('name');
+
+        // Create API token
+        $token = $user->createToken('auth_token_impersonate')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Impersonating user successfully.',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ],
+                'roles' => $roles,
+                'permissions' => $permissions,
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ]
+        ]);
+    }
 }
+

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { User as UserIcon, Shield, Bell, Save, Loader2, Settings, Key, Users, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { User as UserIcon, Shield, Bell, Save, Loader2, Settings, Key, Users, Plus, Pencil, Trash2, X, LogIn, Search, Filter, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
@@ -17,9 +18,10 @@ interface UserAccount {
 }
 
 export default function SettingsPage() {
-  const { user, updateUser, permissions, roles } = useAuth();
+  const { user, updateUser, impersonateUser, permissions, roles } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const isAdmin = permissions.includes('users.view') || roles.includes('Underwriter') || roles.includes('Administrator');
 
@@ -34,7 +36,6 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isNewPasswordFocused, setIsNewPasswordFocused] = useState(false);
-  const [isUserFormPasswordFocused, setIsUserFormPasswordFocused] = useState(false);
 
   // Password strength requirements check
   const hasMinLength = newPassword.length >= 8;
@@ -90,15 +91,22 @@ export default function SettingsPage() {
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
   const [userFormName, setUserFormName] = useState('');
   const [userFormEmail, setUserFormEmail] = useState('');
-  const [userFormPassword, setUserFormPassword] = useState('');
   const [userFormRole, setUserFormRole] = useState('Sales Agent');
   const [deleteTarget, setDeleteTarget] = useState<UserAccount | null>(null);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<UserAccount | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [isResetPasswordFocused, setIsResetPasswordFocused] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
-  const modalHasMinLength = userFormPassword.length >= 8;
-  const modalHasUppercase = /[A-Z]/.test(userFormPassword);
-  const modalHasLowercase = /[a-z]/.test(userFormPassword);
-  const modalHasNumber = /[0-9]/.test(userFormPassword);
-  const modalHasSpecialChar = /[^A-Za-z0-9]/.test(userFormPassword);
+  const resetHasMinLength = resetPasswordValue.length >= 8;
+  const resetHasUppercase = /[A-Z]/.test(resetPasswordValue);
+  const resetHasLowercase = /[a-z]/.test(resetPasswordValue);
+  const resetHasNumber = /[0-9]/.test(resetPasswordValue);
+  const resetHasSpecialChar = /[^A-Za-z0-9]/.test(resetPasswordValue);
+  
+  // Search & Filter States
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('All');
 
   // Load profile and local system settings
   useEffect(() => {
@@ -132,6 +140,20 @@ export default function SettingsPage() {
     return true;
   });
 
+  const filteredUserAccounts = useMemo(() => {
+    return userAccounts.filter((u) => {
+      const matchesSearch = 
+        u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(userSearchQuery.toLowerCase());
+      
+      const matchesRole = 
+        userRoleFilter === 'All' || 
+        u.role_name === userRoleFilter;
+      
+      return matchesSearch && matchesRole;
+    });
+  }, [userAccounts, userSearchQuery, userRoleFilter]);
+
   // Mutations
   const updateProfileMut = useMutation({
     mutationFn: async (data: any) => {
@@ -164,7 +186,13 @@ export default function SettingsPage() {
       resetUserForm();
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message ?? 'Failed to create user.', 'error');
+      const backendErrors = err.response?.data?.errors;
+      if (backendErrors) {
+        const messages = Object.values(backendErrors).flat().join(' ');
+        showToast(messages, 'error');
+      } else {
+        showToast(err.response?.data?.message ?? 'Failed to create user.', 'error');
+      }
     },
   });
 
@@ -180,7 +208,36 @@ export default function SettingsPage() {
       resetUserForm();
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message ?? 'Failed to update user.', 'error');
+      const backendErrors = err.response?.data?.errors;
+      if (backendErrors) {
+        const messages = Object.values(backendErrors).flat().join(' ');
+        showToast(messages, 'error');
+      } else {
+        showToast(err.response?.data?.message ?? 'Failed to update user.', 'error');
+      }
+    },
+  });
+
+  const resetUserPasswordMut = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await axios.put(`/api/v1/users/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      showToast('Password reset successfully.');
+      setResetPasswordTarget(null);
+      setResetPasswordValue('');
+      setShowResetPassword(false);
+    },
+    onError: (err: any) => {
+      const backendErrors = err.response?.data?.errors;
+      if (backendErrors) {
+        const messages = Object.values(backendErrors).flat().join(' ');
+        showToast(messages, 'error');
+      } else {
+        showToast(err.response?.data?.message ?? 'Failed to reset password.', 'error');
+      }
     },
   });
 
@@ -199,11 +256,27 @@ export default function SettingsPage() {
     },
   });
 
+  const impersonateUserMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await axios.post(`/api/v1/users/${id}/impersonate`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        impersonateUser(data.data);
+        showToast(`Logged in as ${data.data.user.name}.`);
+        navigate('/dashboard');
+      }
+    },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message ?? 'Failed to access user account.', 'error');
+    },
+  });
+
   const resetUserForm = () => {
     setSelectedUser(null);
     setUserFormName('');
     setUserFormEmail('');
-    setUserFormPassword('');
     setUserFormRole('Sales Agent');
   };
 
@@ -211,15 +284,20 @@ export default function SettingsPage() {
     setSelectedUser(u);
     setUserFormName(u.name);
     setUserFormEmail(u.email);
-    setUserFormPassword('');
     setUserFormRole(u.role_name);
     setIsUserModalOpen(true);
   };
 
   const handleSaveUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userFormName.trim()) { showToast('Name is required.', 'error'); return; }
-    if (!userFormEmail.trim()) { showToast('Email is required.', 'error'); return; }
+    if (!userFormName.trim()) {
+      showToast('Name is required.', 'error');
+      return;
+    }
+    if (!userFormEmail.trim()) {
+      showToast('Email is required.', 'error');
+      return;
+    }
     
     const payload: any = {
       name: userFormName,
@@ -227,24 +305,9 @@ export default function SettingsPage() {
       role: userFormRole,
     };
 
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-
     if (selectedUser) {
-      if (userFormPassword) {
-        if (!strongPasswordRegex.test(userFormPassword)) {
-          showToast('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.', 'error');
-          return;
-        }
-        payload.password = userFormPassword;
-      }
       updateUserMut.mutate({ id: selectedUser.id, data: payload });
     } else {
-      if (!userFormPassword) { showToast('Password is required for new users.', 'error'); return; }
-      if (!strongPasswordRegex.test(userFormPassword)) {
-        showToast('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.', 'error');
-        return;
-      }
-      payload.password = userFormPassword;
       createUserMut.mutate(payload);
     }
   };
@@ -483,8 +546,48 @@ export default function SettingsPage() {
                   <Plus className="h-3.5 w-3.5" /> Create Account
                 </button>
               </div>
+ 
+              {/* Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-slate-50/50 p-3 rounded-2xl border border-slate-200/55">
+                <div className="relative flex-1 w-full">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Search className="h-4 w-4 text-slate-400" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all"
+                  />
+                  {userSearchQuery && (
+                    <button
+                      onClick={() => setUserSearchQuery('')}
+                      className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-450 hover:text-slate-600 transition cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                
+                <div className="relative w-full sm:w-48">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Filter className="h-3.5 w-3.5 text-slate-400" />
+                  </span>
+                  <select
+                    value={userRoleFilter}
+                    onChange={(e) => setUserRoleFilter(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="All">All Roles</option>
+                    {Object.entries(roleLabels).map(([val, label]) => (
+                      <option key={val} value={val}>{val}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-              <div className="overflow-hidden border border-slate-100 rounded-2xl">
+              <div className="overflow-hidden border border-slate-100 rounded-2xl bg-white">
                 {loadingUsers ? (
                   <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" /></div>
                 ) : (
@@ -498,33 +601,44 @@ export default function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {userAccounts.map((u) => (
-                        <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
-                          <td className="px-4 py-3 font-semibold text-slate-800">{u.name}</td>
-                          <td className="px-4 py-3 text-slate-600 font-mono text-xs">{u.email}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
-                              u.role_name === 'Administrator' ? 'bg-red-50 text-red-700' :
-                              u.role_name === 'Underwriter' ? 'bg-blue-50 text-blue-700' :
-                              u.role_name === 'Accounting Officer' ? 'bg-emerald-50 text-emerald-700' :
-                              u.role_name === 'Claims Officer' ? 'bg-purple-50 text-purple-700' :
-                              'bg-slate-100 text-slate-700'
-                            }`}>
-                              {u.role_name}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button onClick={() => handleOpenEditUser(u)} className="p-1 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-50 transition" title="Edit">
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button onClick={() => setDeleteTarget(u)} className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Delete">
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
+                      {filteredUserAccounts.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-8 text-center text-slate-400 text-xs bg-white">
+                            No agent accounts found matching your search or filters.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredUserAccounts.map((u) => (
+                          <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
+                            <td className="px-4 py-3 font-semibold text-slate-800 bg-white">{u.name}</td>
+                            <td className="px-4 py-3 text-slate-600 font-mono text-xs bg-white">{u.email}</td>
+                            <td className="px-4 py-3 bg-white">
+                              <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
+                                u.role_name === 'Administrator' ? 'bg-red-50 text-red-700' :
+                                u.role_name === 'Underwriter' ? 'bg-blue-50 text-blue-700' :
+                                u.role_name === 'Accounting Officer' ? 'bg-emerald-50 text-emerald-700' :
+                                u.role_name === 'Claims Officer' ? 'bg-purple-50 text-purple-700' :
+                                'bg-slate-100 text-slate-700'
+                              }`}>
+                                {u.role_name}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right bg-white">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button onClick={() => handleOpenEditUser(u)} className="p-1 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-50 transition" title="Edit">
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => { setResetPasswordTarget(u); setResetPasswordValue(''); }} className="p-1 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition" title="Reset Password">
+                                  <Key className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => setDeleteTarget(u)} className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Delete">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 )}
@@ -603,88 +717,48 @@ export default function SettingsPage() {
             </div>
 
             {/* Modal Form Body */}
-            <form onSubmit={handleSaveUser} className="flex-1 overflow-y-auto p-6 space-y-4" autoComplete="off">
-              <div>
-                <label className={labelClass}>Full Name *</label>
-                <input 
-                  type="text" 
-                  value={userFormName} 
-                  onChange={(e) => setUserFormName(e.target.value)} 
-                  className={inputClass}
-                  placeholder="Enter full name..."
-                  autoComplete="new-user-name"
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Email Address *</label>
-                <input 
-                  type="email" 
-                  value={userFormEmail} 
-                  onChange={(e) => setUserFormEmail(e.target.value)} 
-                  className={inputClass}
-                  placeholder="e.g. agent.name@supremogen.com"
-                  autoComplete="new-user-email"
-                />
-              </div>
-              <div>
-                <label className={labelClass}>
-                  {selectedUser ? 'Password (Leave blank to keep current)' : 'Temporary Password *'}
-                </label>
-                <input 
-                  type="password" 
-                  value={userFormPassword} 
-                  onChange={(e) => setUserFormPassword(e.target.value)} 
-                  onFocus={() => setIsUserFormPasswordFocused(true)}
-                  onBlur={() => setIsUserFormPasswordFocused(false)}
-                  className={inputClass}
-                  placeholder="e.g. P@ssword123!"
-                  autoComplete="new-password"
-                />
-                {isUserFormPasswordFocused && (
-                  <div className="mt-2.5 space-y-1.5 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 animate-scale-in">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Password Requirements</p>
-                    <div className="grid grid-cols-1 gap-1 text-[11px]">
-                      <div className={`flex items-center gap-2 transition-all duration-200 ${modalHasMinLength ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${modalHasMinLength ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
-                        <span>At least 8 characters</span>
-                      </div>
-                      <div className={`flex items-center gap-2 transition-all duration-200 ${modalHasUppercase ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${modalHasUppercase ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
-                        <span>One uppercase letter (A-Z)</span>
-                      </div>
-                      <div className={`flex items-center gap-2 transition-all duration-200 ${modalHasLowercase ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${modalHasLowercase ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
-                        <span>One lowercase letter (a-z)</span>
-                      </div>
-                      <div className={`flex items-center gap-2 transition-all duration-200 ${modalHasNumber ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${modalHasNumber ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
-                        <span>One number (0-9)</span>
-                      </div>
-                      <div className={`flex items-center gap-2 transition-all duration-200 ${modalHasSpecialChar ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${modalHasSpecialChar ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
-                        <span>One special character (e.g. !@#$)</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className={labelClass}>Role / Department *</label>
-                <select 
-                  value={userFormRole} 
-                  onChange={(e) => setUserFormRole(e.target.value)} 
-                  className={inputClass}
-                >
-                  {Object.entries(roleLabels)
-                    .filter(([val]) => !(roles?.includes('Underwriter') && val === 'Administrator'))
-                    .map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                </select>
+            <form onSubmit={handleSaveUser} className="flex-1 overflow-y-auto p-6 space-y-6" autoComplete="off">
+              <div className="space-y-4 animate-scale-in">
+                <div>
+                  <label className={labelClass}>Full Name *</label>
+                  <input 
+                    type="text" 
+                    value={userFormName} 
+                    onChange={(e) => setUserFormName(e.target.value)} 
+                    className={inputClass}
+                    placeholder="Enter full name..."
+                    autoComplete="new-user-name"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Email Address *</label>
+                  <input 
+                    type="email" 
+                    value={userFormEmail} 
+                    onChange={(e) => setUserFormEmail(e.target.value)} 
+                    className={inputClass}
+                    placeholder="e.g. agent.name@supremogen.com"
+                    autoComplete="new-user-email"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Role / Department *</label>
+                  <select 
+                    value={userFormRole} 
+                    onChange={(e) => setUserFormRole(e.target.value)} 
+                    className={inputClass}
+                  >
+                    {Object.entries(roleLabels)
+                      .filter(([val]) => !(roles?.includes('Underwriter') && val === 'Administrator'))
+                      .map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                      ))}
+                  </select>
+                </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-4 border-t border-slate-200/60 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsUserModalOpen(false)}
@@ -717,6 +791,137 @@ export default function SettingsPage() {
         onConfirm={() => deleteTarget && deleteUserMut.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)} 
       />
+
+      {/* Reset Password Modal */}
+      {resetPasswordTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setResetPasswordTarget(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Key className="h-5 w-5" />
+                <h3 className="font-bold text-base tracking-tight">Reset Password</h3>
+              </div>
+              <button 
+                onClick={() => { setResetPasswordTarget(null); setShowResetPassword(false); }}
+                className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+                if (!strongPasswordRegex.test(resetPasswordValue)) {
+                  showToast('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.', 'error');
+                  return;
+                }
+                resetUserPasswordMut.mutate({
+                  id: resetPasswordTarget.id,
+                  data: {
+                    name: resetPasswordTarget.name,
+                    email: resetPasswordTarget.email,
+                    role: resetPasswordTarget.role_name,
+                    password: resetPasswordValue
+                  }
+                });
+              }} 
+              className="flex-1 overflow-y-auto p-6 space-y-4" 
+              autoComplete="off"
+            >
+              <div className="text-slate-600 text-sm">
+                Set a new password for <span className="font-bold text-slate-800">{resetPasswordTarget.name}</span>.
+              </div>
+
+              <div>
+                <label className={labelClass}>New Password *</label>
+                <div className="relative">
+                  <input 
+                    type={showResetPassword ? 'text' : 'password'} 
+                    value={resetPasswordValue} 
+                    onChange={(e) => setResetPasswordValue(e.target.value)} 
+                    onFocus={() => setIsResetPasswordFocused(true)}
+                    onBlur={() => setIsResetPasswordFocused(false)}
+                    className={inputClass}
+                    style={{ paddingRight: '2.5rem' }}
+                    placeholder="e.g. P@ssword123!"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showResetPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                
+                {isResetPasswordFocused && (
+                  <div className="mt-2.5 space-y-1.5 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 animate-scale-in">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Password Requirements</p>
+                    <div className="grid grid-cols-1 gap-1 text-[11px]">
+                      <div className={`flex items-center gap-2 transition-all duration-200 ${resetHasMinLength ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${resetHasMinLength ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
+                        <span>At least 8 characters</span>
+                      </div>
+                      <div className={`flex items-center gap-2 transition-all duration-200 ${resetHasUppercase ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${resetHasUppercase ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
+                        <span>One uppercase letter (A-Z)</span>
+                      </div>
+                      <div className={`flex items-center gap-2 transition-all duration-200 ${resetHasLowercase ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${resetHasLowercase ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
+                        <span>One lowercase letter (a-z)</span>
+                      </div>
+                      <div className={`flex items-center gap-2 transition-all duration-200 ${resetHasNumber ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${resetHasNumber ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
+                        <span>One number (0-9)</span>
+                      </div>
+                      <div className={`flex items-center gap-2 transition-all duration-200 ${resetHasSpecialChar ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full transition-all duration-200 ${resetHasSpecialChar ? 'bg-emerald-500 scale-125' : 'bg-slate-300'}`} />
+                        <span>One special character (e.g. !@#$)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setResetPasswordValue('Password123!')}
+                  className="text-xs font-bold text-[#4A0E17] hover:text-[#3D0B12] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  ⚡ Set to Default (Password123!)
+                </button>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-4 border-t border-slate-200/60 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => { setResetPasswordTarget(null); setShowResetPassword(false); }}
+                  className="px-5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetUserPasswordMut.isPending}
+                  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-[#4A0E17] rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 transition cursor-pointer shadow-sm shadow-[#4A0E17]/20"
+                >
+                  {resetUserPasswordMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
