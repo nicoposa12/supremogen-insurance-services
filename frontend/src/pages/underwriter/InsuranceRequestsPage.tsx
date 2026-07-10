@@ -10,8 +10,10 @@ import EmptyState from '../../components/ui/EmptyState';
 import { getQuotations } from '../../services/quotationApi';
 import type { Quotation, QuotationListParams } from '../../types/SalesTypes';
 import InsuranceRequestDetailPage from './InsuranceRequestDetailPage.tsx';
+import { useAuth } from '../../context/AuthContext';
 
 export default function InsuranceRequestsPage() {
+  const { roles = [] } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const querySearch = searchParams.get('search') || '';
 
@@ -37,6 +39,23 @@ export default function InsuranceRequestsPage() {
 
   const pagination = response?.data;
   const requests = pagination?.data ?? [];
+
+  // Count plate numbers in the current list to identify duplicates client-side
+  const plateCounts = requests.reduce((acc: Record<string, number>, r) => {
+    const plate = r.customer?.plate_no?.trim().toUpperCase();
+    if (
+      plate &&
+      plate !== '—' &&
+      plate !== 'PENDING' &&
+      plate !== 'TBA' &&
+      plate !== 'TEMP' &&
+      plate !== 'TEMPORARY' &&
+      plate.length > 2
+    ) {
+      acc[plate] = (acc[plate] || 0) + 1;
+    }
+    return acc;
+  }, {});
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -76,9 +95,22 @@ export default function InsuranceRequestsPage() {
     },
     {
       key: 'plate_no', label: 'Plate No.',
-      render: (r: Quotation) => (
-        <span className="font-mono text-xs font-semibold text-slate-700">{r.customer?.plate_no || '—'}</span>
-      ),
+      render: (r: Quotation) => {
+        const plate = r.customer?.plate_no?.trim().toUpperCase();
+        const isDuplicate = plate && plateCounts[plate] > 1;
+        const isUnderwriterOrAdmin = roles.includes('Underwriter') || roles.includes('Administrator');
+
+        return (
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="font-mono text-xs font-semibold text-slate-700">{r.customer?.plate_no || '—'}</span>
+            {isUnderwriterOrAdmin && isDuplicate && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-extrabold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 uppercase tracking-wider animate-pulse">
+                ⚠️ DUPLICATE
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'vehicle', label: 'Vehicle',

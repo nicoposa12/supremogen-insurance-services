@@ -226,22 +226,29 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
           <h3 className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Client Information</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-y-3.5 gap-x-6 text-xs mt-3 bg-slate-50 p-4.5 rounded-2xl border border-slate-200/50">
-          <div className="md:col-span-3 flex items-baseline">
-            <span className="text-slate-400 font-bold uppercase tracking-wider w-28 shrink-0">Assured Client</span>
-            <span className="text-slate-850 font-extrabold uppercase text-sm">{assuredClient || '—'}</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs mt-3 bg-slate-50 p-5 rounded-2xl border border-slate-200/50">
+          {/* Column 1 & 2: Client Info */}
+          <div className="md:col-span-2 space-y-3.5">
+            <div className="flex justify-between items-baseline border-b border-slate-100 pb-2.5">
+              <span className="text-slate-450 font-bold uppercase tracking-wider text-[10px]">Assured Client</span>
+              <span className="text-slate-850 font-extrabold uppercase text-right">{assuredClient || '—'}</span>
+            </div>
+            <div className="flex justify-between items-baseline border-b border-slate-100 pb-2.5">
+              <span className="text-slate-450 font-bold uppercase tracking-wider text-[10px]">Address</span>
+              <span className="text-slate-800 font-bold text-right pl-4">{[addressLine1, city, province, zipCode].filter(Boolean).join(', ') || '—'}</span>
+            </div>
           </div>
-          <div className="md:col-span-3 flex items-baseline border-t border-slate-100 pt-3">
-            <span className="text-slate-400 font-bold uppercase tracking-wider w-28 shrink-0">Address</span>
-            <span className="text-slate-800 font-bold">{[addressLine1, city, province, zipCode].filter(Boolean).join(', ') || '—'}</span>
-          </div>
-          <div className="flex items-baseline border-t border-slate-100 pt-3 md:col-span-1">
-            <span className="text-slate-400 font-bold uppercase tracking-wider w-28 shrink-0">Contact</span>
-            <span className="text-slate-800 font-bold font-mono">{contact || '—'}</span>
-          </div>
-          <div className="flex items-baseline border-t border-slate-100 pt-3 md:col-span-2">
-            <span className="text-slate-400 font-bold uppercase tracking-wider w-28 shrink-0">Email</span>
-            <span className="text-slate-800 font-bold">{email || '—'}</span>
+
+          {/* Column 3: Contact & Email */}
+          <div className="space-y-3.5">
+            <div className="flex justify-between items-baseline border-b border-slate-100 pb-2.5">
+              <span className="text-slate-450 font-bold uppercase tracking-wider text-[10px]">Contact</span>
+              <span className="text-slate-800 font-bold font-mono text-right">{contact || '—'}</span>
+            </div>
+            <div className="flex justify-between items-baseline border-b border-slate-100 pb-2.5">
+              <span className="text-slate-450 font-bold uppercase tracking-wider text-[10px]">Email</span>
+              <span className="text-slate-800 font-bold text-right break-all">{email || '—'}</span>
+            </div>
           </div>
         </div>
       </div>
