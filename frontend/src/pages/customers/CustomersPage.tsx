@@ -619,20 +619,7 @@ export default function CustomersPage() {
             Manage insurance transaction records and client portfolios
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {canCreate && (
-            <button
-              onClick={() => {
-                setFormEditTarget(null);
-                setIsFormOpen(true);
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-medium rounded-xl shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
-            >
-              <UserPlus className="h-4 w-4" />
-              Create New Record
-            </button>
-          )}
-        </div>
+
       </div>
 
       {/* Filters & Search */}
@@ -709,21 +696,7 @@ export default function CustomersPage() {
           <EmptyState
             icon={<Users className="h-10 w-10 text-slate-400" />}
             title="No records found"
-            description="Try adjusting your search or filters, or create a new record."
-            action={
-              canCreate ? (
-                <button
-                  onClick={() => {
-                    setFormEditTarget(null);
-                    setIsFormOpen(true);
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] text-white text-sm font-medium rounded-xl hover:bg-[#3D0B12] transition"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Create New Record
-                </button>
-              ) : undefined
-            }
+            description="Try adjusting your search or filters."
           />
         ) : (
           <>
