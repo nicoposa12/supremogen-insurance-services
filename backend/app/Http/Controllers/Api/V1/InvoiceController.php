@@ -88,6 +88,21 @@ class InvoiceController extends Controller
             return $invoice;
         });
 
+        // Notify the agent who owns this customer about the invoice
+        try {
+            if ($invoice->customer && $invoice->customer->created_by) {
+                \App\Models\Notification::create([
+                    'user_id' => $invoice->customer->created_by,
+                    'title' => 'Invoice Issued',
+                    'message' => "A new invoice {$invoice->invoice_number} has been generated for " . ($invoice->customer ? ($invoice->customer->first_name . ' ' . $invoice->customer->last_name) : 'Customer') . " with balance ₱" . number_format($invoice->balance, 2) . ".",
+                    'type' => 'info',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send invoice creation notification: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Invoice created successfully.',

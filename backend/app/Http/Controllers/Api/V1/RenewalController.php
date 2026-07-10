@@ -119,6 +119,21 @@ class RenewalController extends Controller
             'notes' => $request->input('notes'),
         ]);
 
+        // Notify the agent who owns this customer about the renewal
+        try {
+            if ($renewal->customer && $renewal->customer->created_by) {
+                \App\Models\Notification::create([
+                    'user_id' => $renewal->customer->created_by,
+                    'title' => 'Policy Renewed',
+                    'message' => "Policy {$oldPolicy->policy_number} has been renewed as {$newPolicy->policy_number}.",
+                    'type' => 'success',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send renewal notification: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Policy renewed successfully.',

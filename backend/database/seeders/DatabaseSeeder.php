@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
             // PaymentSeeder::class,
             // ClaimSeeder::class,
             // RenewalSeeder::class,
-            NotificationSeeder::class,
+            // NotificationSeeder::class,
         ]);
     }
 }

@@ -127,7 +127,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { user } = useAuth();
+  const { user, roles = [] } = useAuth();
 
   // Form states
   const [customerId, setCustomerId] = useState<number>(0);
@@ -307,6 +307,17 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setAgent((prev) => prev || user.name);
     }
   }, [isEdit, user]);
+
+  // Populate request type based on user role on create
+  useEffect(() => {
+    if (!isEdit && roles) {
+      if (roles.includes('Sales Agent')) {
+        setRequestType('NEW ACCOUNT');
+      } else if (roles.includes('Team Renewal')) {
+        setRequestType('RENEWAL CLIENT');
+      }
+    }
+  }, [isEdit, roles]);
 
   // Automatically update usedRate when selling rates change
   useEffect(() => {
@@ -841,11 +852,24 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
             </div>
             <div>
               <label className={labelClass}>Type *</label>
-              <select value={requestType} onChange={(e) => setRequestType(e.target.value)} className={getInputClass(requestType)}>
-                <option value="">Select Type</option>
-                <option value="NEW ACCOUNT">NEW ACCOUNT</option>
-                <option value="RENEWAL CLIENT">RENEWAL CLIENT</option>
-              </select>
+              {(roles.includes('Sales Agent') || roles.includes('Team Renewal')) ? (
+                <input 
+                  type="text" 
+                  value={requestType} 
+                  readOnly 
+                  className={`${getInputClass(requestType)} bg-slate-50 opacity-90`}
+                />
+              ) : (
+                <select 
+                  value={requestType} 
+                  onChange={(e) => setRequestType(e.target.value)} 
+                  className={getInputClass(requestType)}
+                >
+                  <option value="">Select Type</option>
+                  <option value="NEW ACCOUNT">NEW ACCOUNT</option>
+                  <option value="RENEWAL CLIENT">RENEWAL CLIENT</option>
+                </select>
+              )}
             </div>
             <div>
               <label className={labelClass}>Activity *</label>

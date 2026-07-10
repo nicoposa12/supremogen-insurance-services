@@ -6,12 +6,13 @@ RUN apk add --no-cache \
     curl \
     libpng-dev \
     libxml2-dev \
+    libpq-dev \
     zip \
     unzip \
     git \
     oniguruma-dev
 
-RUN docker-php-ext-install pdo_mysql bcmath xml mbstring
+RUN docker-php-ext-install pdo_mysql pdo_pgsql bcmath xml mbstring
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

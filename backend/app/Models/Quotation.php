@@ -45,6 +45,18 @@ class Quotation extends Model
         ];
     }
 
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function ($quotation) {
+            if ($quotation->status !== 'draft' && empty($quotation->ir_number)) {
+                $quotation->ir_number = static::generateIRNumber();
+            }
+        });
+    }
+
     // ── Relationships ─────────────────────
 
     public function customer(): BelongsTo

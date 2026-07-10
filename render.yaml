@@ -12,34 +12,25 @@ services:
       - key: APP_DEBUG
         value: "false"
       - key: APP_KEY
-        value: "placeholder-replace-with-your-key" # Override this in the Render dashboard with base64 key
+        value: "placeholder-replace-with-your-key"
+      - key: APP_URL
+        value: "https://supremogen-backend.onrender.com"
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
-        fromDatabase:
-          name: supremogen-db
-          property: host
+        value: ep-crimson-sunset-atkit30f-pooler.c-9.us-east-1.aws.neon.tech
       - key: DB_PORT
-        fromDatabase:
-          name: supremogen-db
-          property: port
+        value: "5432"
       - key: DB_DATABASE
-        fromDatabase:
-          name: supremogen-db
-          property: database
+        value: neondb
       - key: DB_USERNAME
-        fromDatabase:
-          name: supremogen-db
-          property: user
+        value: neondb_owner
       - key: DB_PASSWORD
-        fromDatabase:
-          name: supremogen-db
-          property: password
-
-databases:
-  # Managed PostgreSQL Database
-  - name: supremogen-db
-    databaseName: supremogen_db
-    user: supremogen_user
-    plan: free
+        sync: false  # Set manually in Render dashboard for security
+      - key: DB_SSLMODE
+        value: require
+      - key: FRONTEND_URL
+        value: "https://your-app.vercel.app"
+      - key: SESSION_DRIVER
+        value: cookie
 

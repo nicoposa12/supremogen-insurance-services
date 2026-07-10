@@ -82,6 +82,21 @@ class PaymentController extends Controller
         // Recalculate invoice totals & status
         $invoice->recalculate();
 
+        // Notify the agent who owns this customer about the payment
+        try {
+            if ($invoice->customer && $invoice->customer->created_by) {
+                \App\Models\Notification::create([
+                    'user_id' => $invoice->customer->created_by,
+                    'title' => 'Payment Received',
+                    'message' => "A payment of " . number_format($payment->amount, 2) . " has been successfully recorded for Invoice {$invoice->invoice_number}.",
+                    'type' => 'success',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send payment notification: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Payment recorded successfully.',

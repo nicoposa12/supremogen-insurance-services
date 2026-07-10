@@ -12,12 +12,29 @@ export default defineConfig(({ mode }) => {
       host: true, // Allow external access in Docker
       proxy: {
         '/api': {
-          target: env.VITE_API_PROXY_URL || 'http://127.0.0.1:8000',
+          target: env.VITE_API_PROXY_URL || process.env.VITE_API_PROXY_URL || 'http://127.0.0.1:8000',
           changeOrigin: true,
         },
         '/storage': {
-          target: env.VITE_API_PROXY_URL || 'http://127.0.0.1:8000',
+          target: env.VITE_API_PROXY_URL || process.env.VITE_API_PROXY_URL || 'http://127.0.0.1:8000',
           changeOrigin: true,
+        },
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('recharts') || id.includes('d3')) {
+                return 'charts';
+              }
+              if (id.includes('lucide-react')) {
+                return 'icons';
+              }
+              return 'vendor';
+            }
+          },
         },
       },
     },

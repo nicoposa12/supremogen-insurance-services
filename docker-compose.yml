@@ -1,38 +1,36 @@
 services:
-  # MySQL Database Container
+  # PostgreSQL Database Container (matches Neon production)
   db:
-    image: mysql:8.0
+    image: postgres:16-alpine
     container_name: supremogen_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: supremogen_db
-      MYSQL_ROOT_PASSWORD: passroot
-      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+      POSTGRES_DB: supremogen_db
+      POSTGRES_USER: supremogen_user
+      POSTGRES_PASSWORD: passroot
     ports:
-      - "3307:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - supremogen-network
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassroot" ]
+      test: [ "CMD-SHELL", "pg_isready -U supremogen_user -d supremogen_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # phpMyAdmin - Database Management UI
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: supremogen_phpmyadmin
+  # pgAdmin - Database Management UI (replaces phpMyAdmin)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: supremogen_pgadmin
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      PMA_HOST: db
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: passroot
+      PGADMIN_DEFAULT_EMAIL: admin@supremogen.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
     ports:
       - "8080:80"
     networks:
@@ -45,9 +43,6 @@ services:
       dockerfile: Dockerfile.dev
     container_name: supremogen_backend
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     volumes:
       - ./backend:/var/www/html
       # Don't bind-mount container's composer cache
@@ -57,12 +52,14 @@ services:
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
-      - DB_CONNECTION=mysql
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_DATABASE=supremogen_db
-      - DB_USERNAME=root
-      - DB_PASSWORD=passroot
+      - DB_CONNECTION=pgsql
+      - DB_HOST=ep-falling-resonance-ao0x4p8k-pooler.c-2.ap-southeast-1.aws.neon.tech
+      - DB_PORT=5432
+      - DB_DATABASE=neondb
+      - DB_USERNAME=neondb_owner
+      - DB_PASSWORD=npg_9tuwGAHs7XRe
+      - DB_SSLMODE=require
+      - DB_NEON_ENDPOINT=ep-falling-resonance-ao0x4p8k-pooler
     networks:
       - supremogen-network
 
@@ -83,6 +80,7 @@ services:
       - "5173:5173"
     environment:
       - NODE_ENV=development
+      - VITE_API_PROXY_URL=http://backend:8000
     networks:
       - supremogen-network
 
@@ -91,5 +89,5 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
+  postgres_data:
 

@@ -34,6 +34,7 @@ class QuotationSeeder extends Seeder
 
             $quotation = Quotation::create([
                 'quotation_number' => Quotation::generateNumber(),
+                'ir_number' => in_array($status, ['draft']) ? null : Quotation::generateIRNumber(),
                 'customer_id' => $customer->id,
                 'prepared_by' => $agent->id,
                 'reviewed_by' => $isReviewed ? $underwriter->id : null,

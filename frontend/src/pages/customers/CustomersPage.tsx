@@ -425,7 +425,7 @@ export default function CustomersPage() {
     }
 
     const ownershipValue = watch('ownership');
-    const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownershipValue);
+    const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownershipValue || '');
     if (needsDeedOfSale && !deedOfSaleFile && !formEditTarget) {
       showToast('Please upload Deed of Sale / NDOS for 2nd-4th owners.', 'error');
       return;
@@ -1858,7 +1858,7 @@ export default function CustomersPage() {
                         </div>
                       </div>
 
-                      {['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(watch('ownership')) && (
+                      {['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(watch('ownership') || '') && (
                         <div>
                           <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
                             Deed of Sale / NDOS (Upload) <span className="text-rose-500 font-bold">*</span>

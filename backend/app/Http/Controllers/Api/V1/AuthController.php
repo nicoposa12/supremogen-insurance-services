@@ -32,8 +32,8 @@ class AuthController extends Controller
         }
 
         $loginInput = $request->input('email');
-        $user = User::where('email', $loginInput)
-            ->orWhere('name', $loginInput)
+        $user = User::whereRaw('LOWER(email) = ?', [strtolower($loginInput)])
+            ->orWhereRaw('LOWER(name) = ?', [strtolower($loginInput)])
             ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {

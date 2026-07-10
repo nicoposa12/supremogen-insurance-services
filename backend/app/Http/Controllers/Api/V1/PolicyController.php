@@ -118,6 +118,35 @@ class PolicyController extends Controller
             return $policy;
         });
 
+        // Notify the agent who prepared the quotation or who owns the customer
+        try {
+            $notifyUserId = null;
+            if ($policy->quotation_id) {
+                $quotation = Quotation::find($policy->quotation_id);
+                if ($quotation) {
+                    $notifyUserId = $quotation->prepared_by;
+                }
+            }
+            if (!$notifyUserId && $policy->customer_id) {
+                $customer = \App\Models\Customer::find($policy->customer_id);
+                if ($customer) {
+                    $notifyUserId = $customer->created_by;
+                }
+            }
+
+            if ($notifyUserId) {
+                \App\Models\Notification::create([
+                    'user_id' => $notifyUserId,
+                    'title' => 'Policy Issued',
+                    'message' => "Policy {$policy->policy_number} has been successfully issued for " . ($policy->customer ? ($policy->customer->first_name . ' ' . $policy->customer->last_name) : 'Customer') . ".",
+                    'type' => 'success',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send policy issuance notification: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Policy issued successfully.',

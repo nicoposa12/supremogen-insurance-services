@@ -9,6 +9,7 @@ import { getCustomer, createCustomer, updateCustomer } from '../../services/cust
 import { uploadAttachment } from '../../services/attachmentApi';
 import type { CustomerFormData } from '../../types/CustomerTypes';
 import { parseFullName } from './CustomersPage';
+import { useAuth } from '../../context/AuthContext';
 
 export default function CustomerFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,7 @@ export default function CustomerFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { user, roles = [] } = useAuth();
 
   // File Upload states
   const [orcrFile, setOrcrFile] = useState<File | null>(null);
@@ -27,6 +29,7 @@ export default function CustomerFormPage() {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CustomerFormData>({
     defaultValues: {
@@ -76,6 +79,17 @@ export default function CustomerFormPage() {
     queryFn: () => getCustomer(Number(id)),
     enabled: isEdit,
   });
+
+  // Set default request type based on user role when creating
+  useEffect(() => {
+    if (!isEdit && roles) {
+      if (roles.includes('Sales Agent')) {
+        setValue('request_type', 'NEW ACCOUNT');
+      } else if (roles.includes('Team Renewal')) {
+        setValue('request_type', 'RENEWAL CLIENT');
+      }
+    }
+  }, [isEdit, roles, setValue]);
 
   // Populate form when editing
   useEffect(() => {
@@ -241,7 +255,7 @@ export default function CustomerFormPage() {
     }
 
     const ownershipValue = watch('ownership');
-    const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownershipValue);
+    const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownershipValue || '');
     if (needsDeedOfSale && !deedOfSaleFile && !isEdit) {
       showToast('Please upload Deed of Sale / NDOS for 2nd-4th owners.', 'error');
       return;
@@ -309,11 +323,23 @@ export default function CustomerFormPage() {
             </div>
             <div>
               <label className={labelClass}>Type *</label>
-              <select {...register('request_type', { required: 'Request type is required' })} className={inputClass(errors.request_type)}>
-                <option value="">Select Type</option>
-                <option value="NEW ACCOUNT">NEW ACCOUNT</option>
-                <option value="RENEWAL CLIENT">RENEWAL CLIENT</option>
-              </select>
+              {(roles.includes('Sales Agent') || roles.includes('Team Renewal')) ? (
+                <input 
+                  type="text" 
+                  {...register('request_type', { required: 'Request type is required' })} 
+                  readOnly 
+                  className={`${inputClass(errors.request_type)} bg-slate-50 opacity-90`}
+                />
+              ) : (
+                <select 
+                  {...register('request_type', { required: 'Request type is required' })} 
+                  className={inputClass(errors.request_type)}
+                >
+                  <option value="">Select Type</option>
+                  <option value="NEW ACCOUNT">NEW ACCOUNT</option>
+                  <option value="RENEWAL CLIENT">RENEWAL CLIENT</option>
+                </select>
+              )}
               {errors.request_type && <p className="text-xs text-red-500 mt-1">{errors.request_type.message}</p>}
             </div>
             <div>
@@ -899,7 +925,7 @@ export default function CustomerFormPage() {
               </div>
             </div>
 
-            {['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(watch('ownership')) && (
+            {['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(watch('ownership') || '') && (
               <div>
                 <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
                   Deed of Sale / NDOS (Upload) <span className="text-rose-500 font-bold">*</span>
