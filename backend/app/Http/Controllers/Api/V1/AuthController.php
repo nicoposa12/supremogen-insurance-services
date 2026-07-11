@@ -272,6 +272,9 @@ class AuthController extends Controller
         $user = $request->user();
 
         $disk = config('filesystems.default');
+        if ($disk === 'local') {
+            $disk = 'public';
+        }
 
         // Delete old profile photo if exists
         if ($user->profile_photo_path) {
@@ -306,6 +309,9 @@ class AuthController extends Controller
 
         if ($user->profile_photo_path) {
             $disk = config('filesystems.default');
+            if ($disk === 'local') {
+                $disk = 'public';
+            }
             if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($user->profile_photo_path)) {
                 \Illuminate\Support\Facades\Storage::disk($disk)->delete($user->profile_photo_path);
             }

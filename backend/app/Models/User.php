@@ -87,7 +87,11 @@ class User extends Authenticatable
         }
 
         $disk = config('filesystems.default');
-        if ($disk === 'local' || $disk === 'public') {
+        if ($disk === 'local') {
+            $disk = 'public';
+        }
+
+        if ($disk === 'public') {
             return '/storage/' . $this->profile_photo_path;
         }
 
