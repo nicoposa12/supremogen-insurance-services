@@ -79,7 +79,9 @@ class NotificationController extends Controller
                 ->get();
 
             echo "data: " . json_encode($notifications) . "\n\n";
-            ob_flush();
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
             flush();
 
             $lastHash = md5(json_encode($notifications));
@@ -98,7 +100,9 @@ class NotificationController extends Controller
                 if ($currentHash !== $lastHash) {
                     $lastHash = $currentHash;
                     echo "data: " . json_encode($currentNotifications) . "\n\n";
-                    ob_flush();
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
                     flush();
                 }
 
@@ -106,7 +110,9 @@ class NotificationController extends Controller
 
                 // Send heartbeat to detect connection abortion
                 echo ": heartbeat\n\n";
-                ob_flush();
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
                 flush();
             }
         });

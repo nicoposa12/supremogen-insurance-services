@@ -186,6 +186,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [ellaScreenshotFile, setEllaScreenshotFile] = useState<File | null>(null);
 
   // Policy Information
+  const [policyNo, setPolicyNo] = useState('');
   const [agent, setAgent] = useState('');
   const [insuranceProvider, setInsuranceProvider] = useState('STANDARD INSURANCE');
   const [seater, setSeater] = useState<number>(5);
@@ -369,6 +370,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setFbLink(c.fb_link || '');
       setUsedRateType(c.used_rate_type || '');
       setUsedRate(c.used_rate || '');
+      setPolicyNo(c.policy_no || '');
 
       setPlateNo(c.plate_no || '');
       setUnit(c.unit || '');
@@ -607,6 +609,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       fb_link: fbLink,
       used_rate_type: usedRateType,
       used_rate: usedRate,
+      policy_no: policyNo,
 
       plate_no: plateNo,
       unit: unit,
@@ -1291,7 +1294,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
             {/* Policy Information */}
             <div>
               <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Policy Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className={labelClass}>Policy No.#</label>
+                  <input type="text" value={policyNo} onChange={(e) => setPolicyNo(e.target.value)} className={inputClass} placeholder="Enter policy number..." />
+                </div>
                 <div>
                   <label className={labelClass}>Agent</label>
                   <input type="text" value={agent} onChange={(e) => setAgent(e.target.value)} className={inputClass} placeholder="Enter agent name..." />

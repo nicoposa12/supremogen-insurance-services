@@ -58,6 +58,7 @@ class PolicyController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'policy_number' => 'nullable|string|max:100|unique:policies,policy_number',
             'quotation_id' => 'nullable|exists:quotations,id',
             'customer_id' => 'required|exists:customers,id',
             'insurance_product_id' => 'required|exists:insurance_products,id',
@@ -95,7 +96,7 @@ class PolicyController extends Controller
 
         $policy = DB::transaction(function () use ($request) {
             $policy = Policy::create([
-                'policy_number' => Policy::generateNumber(),
+                'policy_number' => $request->input('policy_number') ?: Policy::generateNumber(),
                 'quotation_id' => $request->input('quotation_id'),
                 'customer_id' => $request->input('customer_id'),
                 'insurance_product_id' => $request->input('insurance_product_id'),

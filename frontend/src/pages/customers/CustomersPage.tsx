@@ -956,9 +956,6 @@ export default function CustomersPage() {
                             <span className="text-slate-500 font-semibold text-xs">Inception Date</span>
                             <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.inception_date)}</span>
 
-                            <span className="text-slate-500 font-semibold text-xs">Expiry Date</span>
-                            <span className="col-span-2 text-slate-800 font-medium">{formatDate(selectedCustomer.expiry_date)}</span>
-
                             <span className="text-slate-500 font-semibold text-xs">Own Damage</span>
                             <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(selectedCustomer.own_damage_coverage)}</span>
 

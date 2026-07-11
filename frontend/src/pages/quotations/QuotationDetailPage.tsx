@@ -360,9 +360,6 @@ export default function QuotationDetailPage({
                     <span className="text-slate-500 font-semibold text-xs">Inception Date</span>
                     <span className="col-span-2 text-slate-800 font-medium">{formatDate(quotation.customer?.inception_date)}</span>
 
-                    <span className="text-slate-500 font-semibold text-xs">Expiry Date</span>
-                    <span className="col-span-2 text-slate-800 font-medium">{formatDate(quotation.customer?.expiry_date)}</span>
-
                     <span className="text-slate-500 font-semibold text-xs">Own Damage</span>
                     <span className="col-span-2 text-slate-800 font-semibold font-mono">
                       {details ? formatCurrency(details.premiums?.od) : formatCurrency(quotation.customer?.own_damage_coverage)}

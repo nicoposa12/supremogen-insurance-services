@@ -113,6 +113,7 @@ export interface QuotationFormData {
 }
 
 export interface PolicyFormData {
+  policy_number?: string;
   quotation_id?: number;
   customer_id: number;
   insurance_product_id: number;

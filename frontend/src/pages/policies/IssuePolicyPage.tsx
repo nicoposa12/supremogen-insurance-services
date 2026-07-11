@@ -14,6 +14,7 @@ export default function IssuePolicyPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
+  const [policyNumber, setPolicyNumber] = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [terms, setTerms] = useState('Standard terms and conditions apply. Subject to policy wordings and endorsements.');
@@ -91,6 +92,7 @@ export default function IssuePolicyPage() {
     }
 
     const data: PolicyFormData = {
+      policy_number: policyNumber.trim() || undefined,
       quotation_id: quotation.id,
       customer_id: quotation.customer_id,
       insurance_product_id: primaryProductId,
@@ -153,7 +155,11 @@ export default function IssuePolicyPage() {
       {/* Policy Details */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-4">
         <h3 className="text-sm font-semibold text-slate-800">Policy Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Policy Number (Optional)</label>
+            <input type="text" value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} placeholder="Auto-generated if blank" className={inputClass} />
+          </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Effective Date *</label>
             <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className={inputClass} />
@@ -162,7 +168,7 @@ export default function IssuePolicyPage() {
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Expiry Date *</label>
             <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className={inputClass} />
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Terms & Conditions</label>
             <textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows={3} className={inputClass} />
           </div>

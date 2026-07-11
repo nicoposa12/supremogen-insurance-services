@@ -844,7 +844,7 @@ export default function SummaryPage() {
                       </tr>
                     ) : (
                       newAccounts.map((row) => {
-                        const agentName = row.created_by && typeof row.created_by === 'object' ? (row.created_by as any).name : '—';
+                        const agentName = (row.created_by && typeof row.created_by === 'object' ? (row.created_by as any).name : '—').toUpperCase();
                         const assuredName = [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ').toUpperCase();
                         return (
                           <tr key={row.id} className="border border-slate-800 hover:bg-slate-50 transition-colors">
@@ -898,7 +898,7 @@ export default function SummaryPage() {
                       </tr>
                     ) : (
                       renewalAccounts.map((row) => {
-                        const agentName = row.created_by && typeof row.created_by === 'object' ? (row.created_by as any).name : '—';
+                        const agentName = (row.created_by && typeof row.created_by === 'object' ? (row.created_by as any).name : '—').toUpperCase();
                         const assuredName = [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ').toUpperCase();
                         return (
                           <tr key={row.id} className="border border-slate-800 hover:bg-slate-50 transition-colors">
@@ -952,7 +952,7 @@ export default function SummaryPage() {
                     </tr>
                     {dynamicTeams['NEW ACCOUNT'].map((agent: string) => (
                       <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{agentNamesMap[agent] || agent}</td>
+                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
                       </tr>
                     ))}
@@ -964,7 +964,7 @@ export default function SummaryPage() {
                     </tr>
                     {dynamicTeams['TEAM RENEWAL'].map((agent: string) => (
                       <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{agentNamesMap[agent] || agent}</td>
+                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
                       </tr>
                     ))}
@@ -976,7 +976,7 @@ export default function SummaryPage() {
                     </tr>
                     {dynamicTeams['PARTNERS'].map(agent => (
                       <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{agentNamesMap[agent] || agent}</td>
+                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
                       </tr>
                     ))}
@@ -988,7 +988,7 @@ export default function SummaryPage() {
                     </tr>
                     {dynamicTeams['TEAM SUPPORT'].map(agent => (
                       <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{agentNamesMap[agent] || agent}</td>
+                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
                       </tr>
                     ))}
@@ -1072,7 +1072,7 @@ export default function SummaryPage() {
                     </tr>
                     {dynamicTeams['NEW ACCOUNT'].map((agent: string) => (
                       <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{agentNamesMap[agent] || agent}</td>
+                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
@@ -1086,7 +1086,7 @@ export default function SummaryPage() {
                     </tr>
                     {dynamicTeams['TEAM RENEWAL'].map((agent: string) => (
                       <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{agentNamesMap[agent] || agent}</td>
+                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
@@ -1100,7 +1100,7 @@ export default function SummaryPage() {
                     </tr>
                     {dynamicTeams['PARTNERS'].map(agent => (
                       <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{agentNamesMap[agent] || agent}</td>
+                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
@@ -1114,7 +1114,7 @@ export default function SummaryPage() {
                     </tr>
                     {dynamicTeams['TEAM SUPPORT'].map(agent => (
                       <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{agentNamesMap[agent] || agent}</td>
+                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
                         <td className="border border-slate-800 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
