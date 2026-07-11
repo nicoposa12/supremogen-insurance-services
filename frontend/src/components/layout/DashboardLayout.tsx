@@ -731,9 +731,17 @@ export default function DashboardLayout() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition"
                 >
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
-                    {user?.name?.charAt(0) ?? 'U'}
-                  </div>
+                  {user?.profile_photo_url ? (
+                    <img
+                      src={user.profile_photo_url}
+                      alt={user.name}
+                      className="h-8 w-8 rounded-full object-cover border border-slate-200"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+                      {user?.name?.charAt(0) ?? 'U'}
+                    </div>
+                  )}
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-slate-700 truncate max-w-[120px]">
                       {user?.name ?? 'User'}
@@ -751,18 +759,16 @@ export default function DashboardLayout() {
                           <p className="text-sm font-medium text-slate-800">{user?.name}</p>
                           <p className="text-xs text-slate-500">{user?.email}</p>
                         </div>
-                        {(permissions.includes('settings.view') || roles.includes('Underwriter') || roles.includes('Administrator')) && (
-                          <button
-                            onClick={() => {
-                              setUserMenuOpen(false);
-                              navigate('/dashboard/settings');
-                            }}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
-                          >
-                            <Settings className="h-4 w-4" />
-                            Settings
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            navigate('/dashboard/settings');
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                        >
+                          <Settings className="h-4 w-4" />
+                          Settings
+                        </button>
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-slate-50 transition"

@@ -15,6 +15,7 @@ interface UserAccount {
   email: string;
   role_name: string;
   created_at: string;
+  profile_photo_url?: string | null;
 }
 
 export default function SettingsPage() {
@@ -171,6 +172,28 @@ export default function SettingsPage() {
     },
     onError: (err: any) => {
       showToast(err.response?.data?.message ?? 'Failed to update profile.', 'error');
+    },
+  });
+
+  const uploadPhotoMut = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('photo', file);
+      const res = await axios.post('/api/v1/auth/profile/photo', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return res.data;
+    },
+    onSuccess: (res) => {
+      showToast('Profile photo updated successfully.');
+      if (res.data) {
+        updateUser(res.data);
+      }
+    },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message ?? 'Failed to upload photo.', 'error');
     },
   });
 
@@ -385,9 +408,11 @@ export default function SettingsPage() {
           <button onClick={() => setActiveTab('security')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'security' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
             <Shield className="h-4 w-4" /> Security & Password
           </button>
-          <button onClick={() => setActiveTab('system')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'system' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
-            <Settings className="h-4 w-4" /> System Configuration
-          </button>
+          {isAdmin && (
+            <button onClick={() => setActiveTab('system')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'system' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
+              <Settings className="h-4 w-4" /> System Configuration
+            </button>
+          )}
           
           {isAdmin && (
             <button onClick={() => setActiveTab('accounts')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'accounts' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
@@ -395,9 +420,11 @@ export default function SettingsPage() {
             </button>
           )}
 
-          <button onClick={() => setActiveTab('preferences')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'preferences' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
-            <Bell className="h-4 w-4" /> Preferences
-          </button>
+          {isAdmin && (
+            <button onClick={() => setActiveTab('preferences')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'preferences' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
+              <Bell className="h-4 w-4" /> Preferences
+            </button>
+          )}
         </div>
 
         {/* Tab Panel */}
@@ -405,27 +432,97 @@ export default function SettingsPage() {
           
           {/* Profile Tab */}
           {activeTab === 'profile' && (
-            <form onSubmit={handleSaveProfile} className="space-y-6">
+            <div className="space-y-6">
               <div>
-                <h3 className="text-base font-bold text-slate-800 mb-1">Edit Profile Details</h3>
-                <p className="text-xs text-slate-400">Update your personal account credentials.</p>
+                <h3 className="text-base font-bold text-slate-800 mb-1">Profile Photo</h3>
+                <p className="text-xs text-slate-400 font-medium">Update your profile avatar picture.</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Full Name *</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+
+              <div className="flex items-center gap-6 pb-4 border-b border-slate-100">
+                <div className="relative group cursor-pointer shrink-0">
+                  {user?.profile_photo_url ? (
+                    <img
+                      src={user.profile_photo_url}
+                      alt={user.name}
+                      className="h-24 w-24 rounded-2xl object-cover border-2 border-slate-100 shadow-sm"
+                    />
+                  ) : (
+                    <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold border-2 border-slate-100 shadow-sm">
+                      {user?.name?.charAt(0) ?? 'U'}
+                    </div>
+                  )}
+
+                  {/* Hover Overlay */}
+                  <label className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-white text-xs font-semibold cursor-pointer">
+                    <Plus className="h-5 w-5 mb-1 animate-pulse" />
+                    <span>Upload</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          uploadPhotoMut.mutate(file);
+                        }
+                      }}
+                      className="hidden"
+                      disabled={uploadPhotoMut.isPending}
+                    />
+                  </label>
+
+                  {/* Loading overlay */}
+                  {uploadPhotoMut.isPending && (
+                    <div className="absolute inset-0 bg-white/75 rounded-2xl flex items-center justify-center z-10">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" />
+                    </div>
+                  )}
                 </div>
+
                 <div>
-                  <label className={labelClass}>Email Address *</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+                  <h4 className="text-sm font-bold text-slate-700">{user?.name}</h4>
+                  <p className="text-xs text-slate-400 capitalize mt-0.5">{roles[0] ?? 'Staff'}</p>
+                  <div className="flex gap-2.5 mt-3">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] text-white text-[11px] font-bold rounded-lg hover:bg-[#3D0B12] transition cursor-pointer select-none">
+                      <Pencil className="h-3 w-3" /> Change Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            uploadPhotoMut.mutate(file);
+                          }
+                        }}
+                        className="hidden"
+                        disabled={uploadPhotoMut.isPending}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
-              <div className="pt-2 flex justify-end">
-                <button type="submit" disabled={updateProfileMut.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] text-white text-sm font-semibold rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 transition cursor-pointer">
-                  {updateProfileMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Changes
-                </button>
-              </div>
-            </form>
+
+              <form onSubmit={handleSaveProfile} className="space-y-6">
+                <div>
+                  <h3 className="text-base font-bold text-slate-800 mb-1">Edit Profile Details</h3>
+                  <p className="text-xs text-slate-400">Update your personal account credentials.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Full Name *</label>
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Email Address *</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+                  </div>
+                </div>
+                <div className="pt-2 flex justify-end">
+                  <button type="submit" disabled={updateProfileMut.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] text-white text-sm font-semibold rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 transition cursor-pointer">
+                    {updateProfileMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
 
           {/* Security Tab */}
@@ -495,7 +592,7 @@ export default function SettingsPage() {
           )}
 
           {/* System Settings Tab */}
-          {activeTab === 'system' && (
+          {activeTab === 'system' && isAdmin && (
             <form onSubmit={handleSaveSystemSettings} className="space-y-6">
               <div>
                 <h3 className="text-base font-bold text-slate-800 mb-1">System Configuration</h3>
@@ -610,7 +707,22 @@ export default function SettingsPage() {
                       ) : (
                         filteredUserAccounts.map((u) => (
                           <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
-                            <td className="px-4 py-3 font-semibold text-slate-800 bg-white">{u.name}</td>
+                            <td className="px-4 py-3 font-semibold text-slate-800 bg-white">
+                              <div className="flex items-center gap-2.5">
+                                {u.profile_photo_url ? (
+                                  <img
+                                    src={u.profile_photo_url}
+                                    alt={u.name}
+                                    className="h-8 w-8 rounded-full object-cover border border-slate-100 shadow-sm shrink-0"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                    {u.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                                  </div>
+                                )}
+                                <span className="truncate">{u.name}</span>
+                              </div>
+                            </td>
                             <td className="px-4 py-3 text-slate-600 font-mono text-xs bg-white">{u.email}</td>
                             <td className="px-4 py-3 bg-white">
                               <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
@@ -647,7 +759,7 @@ export default function SettingsPage() {
           )}
 
           {/* Preferences Tab */}
-          {activeTab === 'preferences' && (
+          {activeTab === 'preferences' && isAdmin && (
             <form onSubmit={handleSavePreferences} className="space-y-6">
               <div>
                 <h3 className="text-base font-bold text-slate-800 mb-1">Notification Preferences</h3>

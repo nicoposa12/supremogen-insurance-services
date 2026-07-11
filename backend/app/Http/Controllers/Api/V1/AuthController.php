@@ -58,6 +58,7 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'profile_photo_url' => $user->profile_photo_url,
                 ],
                 'roles' => $roles,
                 'permissions' => $permissions,
@@ -96,6 +97,7 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'profile_photo_url' => $user->profile_photo_url,
                 ],
                 'roles' => $roles,
                 'permissions' => $permissions,
@@ -155,6 +157,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'profile_photo_url' => $user->profile_photo_url,
             ]
         ]);
     }
@@ -247,5 +250,48 @@ class AuthController extends Controller
             'success' => false,
             'message' => __($status)
         ], 400);
+    }
+
+    /**
+     * Update the authenticated user's profile photo.
+     */
+    public function updateProfilePhoto(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'photo' => 'required|image|max:2048|mimes:jpeg,png,jpg,gif',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        // Delete old profile photo if exists
+        if ($user->profile_photo_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_photo_path);
+        }
+
+        // Store new photo on public disk
+        $file = $request->file('photo');
+        $path = $file->store('profile-photos', 'public');
+
+        $user->profile_photo_path = $path;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile photo uploaded successfully.',
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'profile_photo_url' => $user->profile_photo_url,
+            ]
+        ]);
     }
 }

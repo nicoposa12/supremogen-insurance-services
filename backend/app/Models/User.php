@@ -25,6 +25,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'profile_photo_path',
     ];
 
     /**
@@ -34,6 +35,7 @@ class User extends Authenticatable
      */
     protected $appends = [
         'role_name',
+        'profile_photo_url',
     ];
 
     /**
@@ -73,5 +75,15 @@ class User extends Authenticatable
     public function getRoleNameAttribute(): string
     {
         return $this->roles->first()?->name ?? 'None';
+    }
+
+    /**
+     * Get the URL to the user's profile photo.
+     */
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        return $this->profile_photo_path
+            ? '/storage/' . $this->profile_photo_path
+            : null;
     }
 }

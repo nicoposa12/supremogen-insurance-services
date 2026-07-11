@@ -156,7 +156,7 @@ export default function App() {
                 <Route path="summary" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal']}><SummaryPage /></ProtectedRoute>} />
 
                 {/* Settings */}
-                <Route path="settings" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Accounting Officer', 'Claims Officer', 'Team Renewal']}><SettingsPage /></ProtectedRoute>} />
+                <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               </Route>
 
               {/* Catch-all redirect to Home */}
