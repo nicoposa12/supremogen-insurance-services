@@ -530,7 +530,7 @@ export default function CustomersPage() {
       label: "Client's Name",
       sortable: true,
       render: (row: Customer) => (
-        <span className="font-medium text-slate-800">
+        <span className="font-medium text-slate-800 uppercase">
           {row.first_name} {row.last_name}
         </span>
       ),

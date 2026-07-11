@@ -86,7 +86,7 @@ export default function InsuranceRequestsPage() {
       key: 'customer', label: 'Assured Client',
       render: (r: Quotation) => (
         <div>
-          <p className="font-semibold text-slate-800 text-sm">
+          <p className="font-semibold text-slate-800 text-sm uppercase">
             {r.customer?.first_name} {r.customer?.last_name}
           </p>
           <p className="text-[11px] text-slate-500 font-medium">{r.customer?.customer_code}</p>
@@ -102,7 +102,7 @@ export default function InsuranceRequestsPage() {
 
         return (
           <div className="flex flex-col items-start gap-0.5">
-            <span className="font-mono text-xs font-semibold text-slate-700">{r.customer?.plate_no || '—'}</span>
+            <span className="font-mono text-xs font-semibold text-slate-700 uppercase">{r.customer?.plate_no || '—'}</span>
             {isUnderwriterOrAdmin && isDuplicate && (
               <span className="inline-flex items-center gap-0.5 text-[9px] font-extrabold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 uppercase tracking-wider animate-pulse">
                 ⚠️ DUPLICATE
@@ -115,7 +115,7 @@ export default function InsuranceRequestsPage() {
     {
       key: 'vehicle', label: 'Vehicle',
       render: (r: Quotation) => (
-        <span className="text-xs font-semibold text-slate-700">{r.customer?.unit || '—'}</span>
+        <span className="text-xs font-semibold text-slate-700 uppercase">{r.customer?.unit || '—'}</span>
       ),
     },
 

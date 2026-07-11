@@ -134,7 +134,7 @@ export default function QuotationsPage() {
       key: 'customer', label: 'Customer',
       render: (r: Quotation) => (
         <div>
-          <p className="font-medium text-slate-800">
+          <p className="font-medium text-slate-800 uppercase">
             {r.customer?.first_name} {r.customer?.last_name}
           </p>
           <p className="text-xs text-slate-500">{r.customer?.customer_code}</p>
@@ -144,7 +144,7 @@ export default function QuotationsPage() {
     {
       key: 'agent', label: 'Agent',
       render: (r: Quotation) => (
-        <span className="text-xs font-semibold text-slate-700">
+        <span className="text-xs font-semibold text-slate-700 uppercase">
           {r.prepared_by && typeof r.prepared_by === 'object' ? r.prepared_by.name : '—'}
         </span>
       ),
@@ -152,13 +152,13 @@ export default function QuotationsPage() {
     {
       key: 'plate_no', label: 'Plate No.',
       render: (r: Quotation) => (
-        <span className="font-mono text-xs font-semibold text-slate-700">{r.customer?.plate_no || '—'}</span>
+        <span className="font-mono text-xs font-semibold text-slate-700 uppercase">{r.customer?.plate_no || '—'}</span>
       ),
     },
     {
       key: 'vehicle', label: 'Vehicle',
       render: (r: Quotation) => (
-        <span className="text-xs font-semibold text-slate-700">{r.customer?.unit || '—'}</span>
+        <span className="text-xs font-semibold text-slate-700 uppercase">{r.customer?.unit || '—'}</span>
       ),
     },
     {

@@ -59,7 +59,7 @@ export default function PoliciesPage() {
       key: 'customer', label: 'Customer',
       render: (r: Policy) => (
         <div>
-          <p className="font-medium text-slate-800">{r.customer?.first_name} {r.customer?.last_name}</p>
+          <p className="font-medium text-slate-800 uppercase">{r.customer?.first_name} {r.customer?.last_name}</p>
           <p className="text-xs text-slate-500">{r.customer?.customer_code}</p>
         </div>
       ),
