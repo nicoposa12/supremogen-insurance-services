@@ -4,6 +4,7 @@ import axios from 'axios';
 import { ChevronDown, Printer, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { getCustomers } from '../../services/customerApi';
 import type { CustomerListParams } from '../../types/CustomerTypes';
+import logoImg from '../../assets/image/supremogen_logo.jpg';
 
 // ─── Helpers ───────────────────────────────────
 const MONTH_NAMES = [
@@ -809,6 +810,37 @@ export default function SummaryPage() {
 
       {/* Preview Card / Print Area */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-8 overflow-hidden max-w-4xl mx-auto" id="print-area">
+        {/* Professional Print Header */}
+        {!isLoading && (
+          <div className="flex flex-col items-center border-b-2 border-[#4A0E17] pb-4 mb-6 bg-white">
+            <div className="flex items-center justify-between w-full gap-6">
+              {/* Logo */}
+              <div className="shrink-0">
+                <img
+                  src={logoImg}
+                  alt="SUPREMOGEN Logo"
+                  className="h-16 w-auto object-contain"
+                />
+              </div>
+              
+              {/* Company Info */}
+              <div className="flex-grow text-right space-y-0.5">
+                <h2 className="text-lg font-black text-[#4A0E17] tracking-tight uppercase leading-none mb-1">
+                  SUPREMOGEN INSURANCE SERVICES
+                </h2>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider leading-relaxed">
+                  VILL STATE CORP BUILDING, 2ND FLR UNIT F&H BRGY. COMMONWEALTH, QUEZON CITY, PHILIPPINES, 1121
+                </p>
+                <div className="flex justify-end gap-2.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>PHONE: 0994-364-2241 / 027-091-5125</span>
+                  <span className="text-[#4A0E17]">•</span>
+                  <span>EMAIL: sales@supremogen.com</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3 bg-white">
             <div className="w-10 h-10 border-4 border-[#4A0E17]/20 border-t-[#4A0E17] rounded-full animate-spin"></div>
