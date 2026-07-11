@@ -52,6 +52,7 @@ services:
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+      - PHP_CLI_SERVER_WORKERS=10
       - DB_CONNECTION=pgsql
       - DB_HOST=db
       - DB_PORT=5432

@@ -23,8 +23,11 @@ Route::prefix('v1')->group(function () {
     // Public routes
     Route::post('/inquiries', [InquiryController::class, 'store']);
     Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    // Stream notifications (authenticated via query param token or bearer token)
+    Route::get('/notifications/stream', [NotificationController::class, 'stream'])
+        ->middleware(['auth:sanctum']);
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -36,6 +36,8 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationApi';
+import { useToast } from '../../components/ui/Toast';
+import type { SystemNotification } from '../../types/NotificationTypes';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 
 // ─── Navigation Config ────────────────────────
@@ -359,7 +361,7 @@ export default function DashboardLayout() {
     window.dispatchEvent(new Event('theme-changed'));
   };
 
-  const { user, roles, permissions, logout } = useAuth();
+  const { user, token, roles, permissions, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -372,14 +374,70 @@ export default function DashboardLayout() {
   }, [roles, location.pathname, navigate]);
 
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const knownNotificationIds = useRef<Set<number>>(new Set());
 
   // Fetch notifications (include user?.id in queryKey to reset cache on login/logout)
   const { data: notificationsRes } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: getNotifications,
-    refetchInterval: 30000,
+    refetchInterval: false, // Disable polling in favor of real-time SSE
     enabled: !!user,
   });
+
+  // Populate known notification IDs on initial fetch
+  useEffect(() => {
+    if (notificationsRes?.data) {
+      notificationsRes.data.forEach((n) => {
+        knownNotificationIds.current.add(n.id);
+      });
+    }
+  }, [notificationsRes]);
+
+  // Listen for real-time notifications via SSE
+  useEffect(() => {
+    if (!user || !token) return;
+
+    // Use query parameter to pass auth token to EventSource
+    const url = `/api/v1/notifications/stream?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data) as SystemNotification[];
+
+        // Find new notifications that we haven't seen before and are unread
+        const newNotifications = data.filter(
+          (n) => !knownNotificationIds.current.has(n.id) && !n.read_at
+        );
+
+        if (newNotifications.length > 0) {
+          newNotifications.forEach((n) => {
+            // Map notification type to toast variant: 'success' | 'error' | 'info'
+            let variant: 'success' | 'error' | 'info' = 'info';
+            if (n.type === 'success') variant = 'success';
+            if (n.type === 'error') variant = 'error';
+
+            showToast(`${n.title}: ${n.message}`, variant);
+            knownNotificationIds.current.add(n.id);
+          });
+        }
+
+        // Direct cache update in TanStack Query
+        queryClient.setQueryData(['notifications', user.id], { data });
+      } catch (error) {
+        console.error('Error parsing SSE notifications:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE Connection Error:', error);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [user, token, queryClient, showToast]);
 
   const notifications = notificationsRes?.data ?? [];
   const unreadCount = notifications.filter((n) => !n.read_at).length;
