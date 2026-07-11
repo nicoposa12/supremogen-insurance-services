@@ -28,6 +28,7 @@ import { getCustomers, deleteCustomer, createCustomer, updateCustomer } from '..
 import { uploadAttachment, getAttachments } from '../../services/attachmentApi';
 import type { Customer, CustomerListParams, CustomerFormData } from '../../types/CustomerTypes';
 import AttachmentPanel from '../../components/ui/AttachmentPanel';
+import { getDownloadUrl } from '../../utils/url';
 
 export function parseFullName(fullName: string) {
   const name = (fullName || '').trim();
@@ -72,7 +73,7 @@ export function parseFullName(fullName: string) {
 export default function CustomersPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { permissions, roles } = useAuth();
+  const { permissions, roles, token } = useAuth();
   const isUnderwriter = roles?.includes('Underwriter') || false;
   const canCreate = permissions.includes('customers.create');
   const canEdit = permissions.includes('customers.update');
@@ -1020,7 +1021,7 @@ export default function CustomersPage() {
                               </div>
                               {orcrAttachment ? (
                                 <a 
-                                  href={`/api/v1/attachments/${orcrAttachment.id}/download`}
+                                  href={getDownloadUrl(orcrAttachment.id, token)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
@@ -1040,7 +1041,7 @@ export default function CustomersPage() {
                               </div>
                               {ellaAttachment ? (
                                 <a 
-                                  href={`/api/v1/attachments/${ellaAttachment.id}/download`}
+                                  href={getDownloadUrl(ellaAttachment.id, token)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
@@ -1061,7 +1062,7 @@ export default function CustomersPage() {
                                 </div>
                                 {deedOfSaleAttachment ? (
                                   <a 
-                                    href={`/api/v1/attachments/${deedOfSaleAttachment.id}/download`}
+                                    href={getDownloadUrl(deedOfSaleAttachment.id, token)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"

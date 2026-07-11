@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 import ConfirmModal from '../../components/ui/ConfirmModal';
+import { getFileUrl } from '../../utils/url';
 
 interface UserAccount {
   id: number;
@@ -442,7 +443,7 @@ export default function SettingsPage() {
                 <div className="relative group cursor-pointer shrink-0">
                   {user?.profile_photo_url ? (
                     <img
-                      src={user.profile_photo_url}
+                      src={getFileUrl(user.profile_photo_url)}
                       alt={user.name}
                       className="h-24 w-24 rounded-2xl object-cover border-2 border-slate-100 shadow-sm"
                     />
@@ -711,7 +712,7 @@ export default function SettingsPage() {
                               <div className="flex items-center gap-2.5">
                                 {u.profile_photo_url ? (
                                   <img
-                                    src={u.profile_photo_url}
+                                    src={getFileUrl(u.profile_photo_url)}
                                     alt={u.name}
                                     className="h-8 w-8 rounded-full object-cover border border-slate-100 shadow-sm shrink-0"
                                   />

@@ -12,6 +12,7 @@ import { updateCustomer } from '../../services/customerApi';
 import { getAttachments, uploadAttachment } from '../../services/attachmentApi';
 import { getClaims } from '../../services/claimApi';
 import { useAuth } from '../../context/AuthContext';
+import { getDownloadUrl } from '../../utils/url';
 
 const roundToTwoDecimals = (num: number): number => {
   return Math.round(num * 100 + 1e-9) / 100;
@@ -20,7 +21,7 @@ const roundToTwoDecimals = (num: number): number => {
 export default function InsuranceRequestDetailPage({ id, onClose }: { id: number; onClose: () => void }) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { permissions } = useAuth();
+  const { permissions, token } = useAuth();
 
   // Review state
   const [reviewRemarks, setReviewRemarks] = useState('');
@@ -421,7 +422,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                           </div>
                         </div>
                         {orcr && (
-                          <a href={`/api/v1/attachments/${orcr.id}/download`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
+                          <a href={getDownloadUrl(orcr.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
                             <Download className="h-3.5 w-3.5" /> Download
                           </a>
                         )}
@@ -440,7 +441,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                           </div>
                         </div>
                         {screenshot && (
-                          <a href={`/api/v1/attachments/${screenshot.id}/download`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
+                          <a href={getDownloadUrl(screenshot.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
                             <Download className="h-3.5 w-3.5" /> Download
                           </a>
                         )}
@@ -459,7 +460,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                           </div>
                         </div>
                         {bankAttachment && (
-                          <a href={`/api/v1/attachments/${bankAttachment.id}/download`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
+                          <a href={getDownloadUrl(bankAttachment.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
                             <Download className="h-3.5 w-3.5" /> Download
                           </a>
                         )}
@@ -479,7 +480,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                             </div>
                           </div>
                           {deedOfSale && (
-                            <a href={`/api/v1/attachments/${deedOfSale.id}/download`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
+                            <a href={getDownloadUrl(deedOfSale.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
                               <Download className="h-3.5 w-3.5" /> Download
                             </a>
                           )}

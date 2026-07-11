@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getFileUrl } from '../../utils/url';
 
 import {
   LayoutDashboard,
@@ -733,7 +734,7 @@ export default function DashboardLayout() {
                 >
                   {user?.profile_photo_url ? (
                     <img
-                      src={user.profile_photo_url}
+                      src={getFileUrl(user.profile_photo_url)}
                       alt={user.name}
                       className="h-8 w-8 rounded-full object-cover border border-slate-200"
                     />
