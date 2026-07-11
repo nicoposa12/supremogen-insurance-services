@@ -35,6 +35,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/auth/profile', [AuthController::class, 'profile']);
         Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
         Route::post('/auth/profile/photo', [AuthController::class, 'updateProfilePhoto']);
+        Route::delete('/auth/profile/photo', [AuthController::class, 'deleteProfilePhoto']);
 
         Route::get('/user', function (Request $request) {
             return $request->user();

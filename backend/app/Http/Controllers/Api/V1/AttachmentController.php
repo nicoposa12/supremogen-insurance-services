@@ -88,7 +88,8 @@ class AttachmentController extends Controller
         $safeName = Str::uuid() . '.' . $extension;
         
         // Store the file in a subdirectory based on the model type
-        $path = $file->storeAs("attachments/{$type}", $safeName, 'local');
+        $disk = config('filesystems.default');
+        $path = $file->storeAs("attachments/{$type}", $safeName, $disk);
 
         $attachment = Attachment::create([
             'attachable_type' => $modelClass,
@@ -119,11 +120,13 @@ class AttachmentController extends Controller
             abort(404, 'Attachment not found.');
         }
 
-        if (!Storage::disk('local')->exists($attachment->file_path)) {
+        $disk = config('filesystems.default');
+
+        if (!Storage::disk($disk)->exists($attachment->file_path)) {
             abort(404, 'File not found on storage.');
         }
 
-        return Storage::disk('local')->download($attachment->file_path, $attachment->file_name);
+        return Storage::disk($disk)->download($attachment->file_path, $attachment->file_name);
     }
 
     /**
@@ -138,8 +141,9 @@ class AttachmentController extends Controller
         }
 
         // Delete from physical storage
-        if (Storage::disk('local')->exists($attachment->file_path)) {
-            Storage::disk('local')->delete($attachment->file_path);
+        $disk = config('filesystems.default');
+        if (Storage::disk($disk)->exists($attachment->file_path)) {
+            Storage::disk($disk)->delete($attachment->file_path);
         }
 
         // Delete database record

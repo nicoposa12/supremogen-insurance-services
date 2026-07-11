@@ -82,8 +82,15 @@ class User extends Authenticatable
      */
     public function getProfilePhotoUrlAttribute(): ?string
     {
-        return $this->profile_photo_path
-            ? '/storage/' . $this->profile_photo_path
-            : null;
+        if (!$this->profile_photo_path) {
+            return null;
+        }
+
+        $disk = config('filesystems.default');
+        if ($disk === 'local' || $disk === 'public') {
+            return '/storage/' . $this->profile_photo_path;
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk($disk)->url($this->profile_photo_path);
     }
 }

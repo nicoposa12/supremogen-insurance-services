@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { User as UserIcon, Shield, Bell, Save, Loader2, Settings, Key, Users, Plus, Pencil, Trash2, X, LogIn, Search, Filter, Eye, EyeOff } from 'lucide-react';
+import { User as UserIcon, Shield, Bell, Save, Loader2, Settings, Key, Users, Plus, Pencil, Trash2, X, LogIn, Search, Filter, Eye, EyeOff, Camera, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContext';
@@ -195,6 +195,22 @@ export default function SettingsPage() {
     },
     onError: (err: any) => {
       showToast(err.response?.data?.message ?? 'Failed to upload photo.', 'error');
+    },
+  });
+
+  const deletePhotoMut = useMutation({
+    mutationFn: async () => {
+      const res = await axios.delete('/api/v1/auth/profile/photo');
+      return res.data;
+    },
+    onSuccess: (res) => {
+      showToast('Profile photo removed successfully.');
+      if (res.data) {
+        updateUser(res.data);
+      }
+    },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message ?? 'Failed to remove photo.', 'error');
     },
   });
 
@@ -433,58 +449,28 @@ export default function SettingsPage() {
           
           {/* Profile Tab */}
           {activeTab === 'profile' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-base font-bold text-slate-800 mb-1">Profile Photo</h3>
-                <p className="text-xs text-slate-400 font-medium">Update your profile avatar picture.</p>
-              </div>
+            <div className="space-y-8">
+              {/* Header card info */}
+              <div className="relative overflow-hidden bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-2xl p-6 border border-slate-100 flex flex-col sm:flex-row items-center gap-6">
+                {/* Avatar with Camera badge */}
+                <div className="relative group shrink-0">
+                  <div className="relative h-24 w-24 rounded-full overflow-hidden border-4 border-white shadow-md ring-4 ring-slate-100/60 transition-all duration-300 hover:ring-[#4A0E17]/20">
+                    {user?.profile_photo_url ? (
+                      <img
+                        src={getFileUrl(user.profile_photo_url)}
+                        alt={user.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-gradient-to-tr from-[#4A0E17] via-[#7D1E2B] to-[#B03A48] flex items-center justify-center text-white text-3xl font-extrabold">
+                        {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                      </div>
+                    )}
 
-              <div className="flex items-center gap-6 pb-4 border-b border-slate-100">
-                <div className="relative group cursor-pointer shrink-0">
-                  {user?.profile_photo_url ? (
-                    <img
-                      src={getFileUrl(user.profile_photo_url)}
-                      alt={user.name}
-                      className="h-24 w-24 rounded-2xl object-cover border-2 border-slate-100 shadow-sm"
-                    />
-                  ) : (
-                    <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold border-2 border-slate-100 shadow-sm">
-                      {user?.name?.charAt(0) ?? 'U'}
-                    </div>
-                  )}
-
-                  {/* Hover Overlay */}
-                  <label className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-white text-xs font-semibold cursor-pointer">
-                    <Plus className="h-5 w-5 mb-1 animate-pulse" />
-                    <span>Upload</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          uploadPhotoMut.mutate(file);
-                        }
-                      }}
-                      className="hidden"
-                      disabled={uploadPhotoMut.isPending}
-                    />
-                  </label>
-
-                  {/* Loading overlay */}
-                  {uploadPhotoMut.isPending && (
-                    <div className="absolute inset-0 bg-white/75 rounded-2xl flex items-center justify-center z-10">
-                      <Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" />
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-bold text-slate-700">{user?.name}</h4>
-                  <p className="text-xs text-slate-400 capitalize mt-0.5">{roles[0] ?? 'Staff'}</p>
-                  <div className="flex gap-2.5 mt-3">
-                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] text-white text-[11px] font-bold rounded-lg hover:bg-[#3D0B12] transition cursor-pointer select-none">
-                      <Pencil className="h-3 w-3" /> Change Photo
+                    {/* Hover Overlay */}
+                    <label className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer select-none">
+                      <Camera className="h-5 w-5 mb-1 animate-pulse" />
+                      <span>UPLOAD</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -499,30 +485,133 @@ export default function SettingsPage() {
                       />
                     </label>
                   </div>
+
+                  {/* Camera overlay icon badge */}
+                  <label className="absolute bottom-0 right-0 h-8 w-8 bg-[#4A0E17] hover:bg-[#3D0B12] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white transition-all hover:scale-110 duration-200 cursor-pointer select-none">
+                    <Camera className="h-3.5 w-3.5" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          uploadPhotoMut.mutate(file);
+                        }
+                      }}
+                      className="hidden"
+                      disabled={uploadPhotoMut.isPending}
+                    />
+                  </label>
+
+                  {/* Loading spinner */}
+                  {(uploadPhotoMut.isPending || deletePhotoMut.isPending) && (
+                    <div className="absolute inset-0 bg-white/70 rounded-full flex items-center justify-center z-10 border-4 border-white">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center sm:text-left space-y-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <h4 className="text-lg font-bold text-slate-800 leading-tight">{user?.name}</h4>
+                    <span className="self-center sm:self-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-[#4A0E17]/10 text-[#4A0E17] border border-[#4A0E17]/20 uppercase tracking-wide">
+                      {roles[0] ?? 'Staff'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium">PNG, JPG, or GIF. Max 2MB.</p>
+                  
+                  <div className="flex items-center gap-3 pt-2">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition shadow-sm hover:shadow cursor-pointer select-none">
+                      <Pencil className="h-3.5 w-3.5 text-slate-500" /> Update Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            uploadPhotoMut.mutate(file);
+                          }
+                        }}
+                        className="hidden"
+                        disabled={uploadPhotoMut.isPending}
+                      />
+                    </label>
+
+                    {user?.profile_photo_url && (
+                      <button
+                        onClick={() => deletePhotoMut.mutate()}
+                        disabled={deletePhotoMut.isPending || uploadPhotoMut.isPending}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-xl transition cursor-pointer select-none"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveProfile} className="space-y-6">
+              {/* Edit Details section */}
+              <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-6">
                 <div>
-                  <h3 className="text-base font-bold text-slate-800 mb-1">Edit Profile Details</h3>
-                  <p className="text-xs text-slate-400">Update your personal account credentials.</p>
+                  <h3 className="text-base font-bold text-slate-800 mb-1">Account Credentials</h3>
+                  <p className="text-xs text-slate-400 font-medium">Ensure your primary email and display name are up to date.</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>Full Name *</label>
-                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+
+                <form onSubmit={handleSaveProfile} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Full Name field with icon */}
+                    <div className="space-y-1.5">
+                      <label className={labelClass}>Full Name *</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#4A0E17]">
+                          <UserIcon className="h-4 w-4" />
+                        </div>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className={`${inputClass} pl-10`}
+                          placeholder="John Doe"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email Address field with icon */}
+                    <div className="space-y-1.5">
+                      <label className={labelClass}>Email Address *</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#4A0E17]">
+                          <Mail className="h-4 w-4" />
+                        </div>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className={`${inputClass} pl-10`}
+                          placeholder="johndoe@example.com"
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Email Address *</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+
+                  <div className="pt-4 border-t border-slate-50 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={updateProfileMut.isPending}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] text-white text-sm font-semibold rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 shadow-sm hover:shadow transition cursor-pointer"
+                    >
+                      {updateProfileMut.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      Save Settings
+                    </button>
                   </div>
-                </div>
-                <div className="pt-2 flex justify-end">
-                  <button type="submit" disabled={updateProfileMut.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] text-white text-sm font-semibold rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 transition cursor-pointer">
-                    {updateProfileMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Changes
-                  </button>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           )}
 

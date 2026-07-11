@@ -271,14 +271,16 @@ class AuthController extends Controller
 
         $user = $request->user();
 
+        $disk = config('filesystems.default');
+
         // Delete old profile photo if exists
         if ($user->profile_photo_path) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_photo_path);
+            \Illuminate\Support\Facades\Storage::disk($disk)->delete($user->profile_photo_path);
         }
 
-        // Store new photo on public disk
+        // Store new photo
         $file = $request->file('photo');
-        $path = $file->store('profile-photos', 'public');
+        $path = $file->store('profile-photos', $disk);
 
         $user->profile_photo_path = $path;
         $user->save();
@@ -291,6 +293,34 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'profile_photo_url' => $user->profile_photo_url,
+            ]
+        ]);
+    }
+
+    /**
+     * Delete the user's profile photo.
+     */
+    public function deleteProfilePhoto(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->profile_photo_path) {
+            $disk = config('filesystems.default');
+            if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($user->profile_photo_path)) {
+                \Illuminate\Support\Facades\Storage::disk($disk)->delete($user->profile_photo_path);
+            }
+            $user->profile_photo_path = null;
+            $user->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile photo removed successfully.',
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'profile_photo_url' => null,
             ]
         ]);
     }
