@@ -68,7 +68,17 @@ export default function PaymentsPage() {
   };
 
   const statusFilters = ['all', 'completed', 'voided', 'refunded'];
-  const methodFilters = ['all', 'cash', 'check', 'bank_transfer', 'online', 'gcash', 'maya'];
+  const methodFilters = [
+    'all',
+    'walk_in',
+    'jt',
+    'jrs',
+    'cod',
+    'bank_transfer_pbcom',
+    'bank_transfer_security_bank',
+    'post_dated_checks',
+    'split_payment'
+  ];
 
   const columns = [
     {

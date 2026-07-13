@@ -39,7 +39,8 @@ export interface Invoice {
 
 // ─── Payment ──────────────────────────────────
 
-export type PaymentMethod = 'cash' | 'check' | 'bank_transfer' | 'online' | 'gcash' | 'maya';
+export type PaymentMethod = 
+  | 'jt' | 'jrs' | 'cod' | 'walk_in' | 'bank_transfer_pbcom' | 'bank_transfer_security_bank' | 'post_dated_checks' | 'split_payment';
 
 export interface Payment {
   id: number;
@@ -108,10 +109,12 @@ export interface PaymentFormData {
 }
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Cash',
-  check: 'Check',
-  bank_transfer: 'Bank Transfer',
-  online: 'Online Payment',
-  gcash: 'GCash',
-  maya: 'Maya',
+  jt: 'J&T',
+  jrs: 'JRS',
+  cod: 'COD',
+  walk_in: 'WALK IN',
+  bank_transfer_pbcom: 'BANK TRANSFER PBCOM',
+  bank_transfer_security_bank: 'BANK TRANSFER SECURITY BANK',
+  post_dated_checks: 'POST DATED CHECKS',
+  split_payment: 'SPLIT PAYMENT (HALF CASH/HALF BANK TRANSFER)',
 };

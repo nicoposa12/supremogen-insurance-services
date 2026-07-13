@@ -55,7 +55,7 @@ export default function CollectionLedgerPage() {
   
   // Record Collection Form State
   const [collectAmount, setCollectAmount] = useState<string>('');
-  const [collectMethod, setCollectMethod] = useState<PaymentMethod>('cash');
+  const [collectMethod, setCollectMethod] = useState<PaymentMethod>('walk_in');
   const [collectDate, setCollectDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [collectReference, setCollectReference] = useState('');
   const [collectNotes, setCollectNotes] = useState('');
@@ -106,7 +106,7 @@ export default function CollectionLedgerPage() {
 
   const resetCollectionForm = () => {
     setCollectAmount('');
-    setCollectMethod('cash');
+    setCollectMethod('walk_in');
     setCollectDate(new Date().toISOString().split('T')[0]);
     setCollectReference('');
     setCollectNotes('');
@@ -206,7 +206,7 @@ export default function CollectionLedgerPage() {
     return 0;
   };
 
-  const needsReference = ['check', 'bank_transfer', 'online', 'gcash', 'maya'].includes(collectMethod);
+  const needsReference = ['bank_transfer_pbcom', 'bank_transfer_security_bank', 'post_dated_checks', 'split_payment'].includes(collectMethod);
 
   return (
     <div className="space-y-6 text-slate-700">
@@ -809,12 +809,9 @@ export default function CollectionLedgerPage() {
                       onChange={(e) => setCollectMethod(e.target.value as PaymentMethod)}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
                     >
-                      <option value="cash">Cash Collection</option>
-                      <option value="gcash">GCash</option>
-                      <option value="maya">Maya</option>
-                      <option value="bank_transfer">Bank Transfer</option>
-                      <option value="check">Check Payment</option>
-                      <option value="online">Online Payment</option>
+                      {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
                     </select>
                   </div>
 
