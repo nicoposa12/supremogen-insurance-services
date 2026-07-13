@@ -1136,107 +1136,106 @@ export default function CollectionLedgerPage() {
                                </td>
                              );
                            })}
-
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 bg-rose-50/40">
-                            {dueAmount > 0 ? (
-                              <span className="px-2 py-1 bg-rose-100 text-rose-800 rounded-lg text-[11px] font-extrabold animate-pulse">
-                                ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 5 : 1} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={() => generateReceipt(row)}
-                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer"
-                            >
-                              <FileText className="h-3 w-3" /> Receipt
-                            </button>
-                          </td>
-                        </tr>
+                           <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                           <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
+                             {dueAmount > 0 ? (
+                               <span className="px-2 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-350 rounded-lg text-[11px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
+                                 ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                               </span>
+                             ) : (
+                               <span className="text-slate-400 dark:text-slate-500">—</span>
+                             )}
+                           </td>
+                           <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 5 : 1} onClick={(e) => e.stopPropagation()}>
+                             <button
+                               onClick={() => generateReceipt(row)}
+                               className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
+                             >
+                               <FileText className="h-3 w-3" /> Receipt
+                             </button>
+                           </td>
+                         </tr>
 
                         {isExpanded && (
                           <>
 
                         {/* Row 2: schedule of payment */}
-                        <tr className="bg-emerald-50/10 text-emerald-800">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 text-[10px] uppercase tracking-wide">automatic</td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20">schedule of payment</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 text-center font-bold">automatic</td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 font-bold text-center">Installment Due Dates</td>
+                        <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
+                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">automatic</td>
+                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">schedule of payment</td>
+                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">automatic</td>
+                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Installment Due Dates</td>
                           
                           {[1, 2, 3, 4, 5, 6].map((idx) => {
                             const monthInfo = installmentMonths[idx - 1];
                             const isActive = idx <= terms;
                             return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 text-slate-300' : 'text-emerald-950 bg-emerald-50/30'}`}>
+                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
                                 {isActive ? monthInfo?.formattedDate : '—'}
                               </td>
                             );
                           })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50"></td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50"></td>
+                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
                         </tr>
 
                         {/* Row 3: amount of payment */}
-                        <tr className="bg-emerald-50/10 text-emerald-800">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 text-[10px] uppercase tracking-wide">automatic</td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20">amount of payment</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 text-center font-bold">automatic</td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 font-bold text-center">Target Amount Per Installment</td>
+                        <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
+                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">automatic</td>
+                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">amount of payment</td>
+                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">automatic</td>
+                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Target Amount Per Installment</td>
                           
                           {[1, 2, 3, 4, 5, 6].map((idx) => {
                             const isActive = idx <= terms;
                             return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 text-slate-300' : 'text-emerald-950 bg-emerald-50/30'}`}>
+                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
                                 {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
                               </td>
                             );
                           })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50"></td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50"></td>
+                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
                         </tr>
 
                         {/* Row 4: actual payment date */}
-                        <tr className="bg-pink-50/10 text-pink-850">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 text-[10px]"></td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20">actual payment date</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 text-center"></td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 font-bold text-center text-pink-900">Recorded Dates Collected</td>
+                        <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
+                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
+                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">actual payment date</td>
+                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
+                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300">Recorded Dates Collected</td>
                           
                           {[1, 2, 3, 4, 5, 6].map((idx) => {
                             const isActive = idx <= terms;
                             const payment = isActive ? payments[idx - 1] : null;
                             return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 text-slate-300' : payment ? 'text-pink-950 bg-pink-50/40 font-bold' : 'text-slate-400'}`}>
+                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
                                 {payment ? new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                               </td>
                             );
                           })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 font-bold text-slate-650 font-mono">
+                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
                             {row.balance <= 0 ? 'PAID IN FULL' : 'PARTIAL'}
                           </td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50"></td>
+                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
                         </tr>
 
                         {/* Row 5: actual amount payment */}
-                        <tr className="bg-pink-50/10 text-pink-850 border-b-2 border-slate-200">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 text-[10px]"></td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20">actual amount payment</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 text-center"></td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 font-bold text-center text-pink-900 font-mono">Amount Paid & Method</td>
+                        <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400 border-b-2 border-slate-200 dark:border-slate-800">
+                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
+                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">actual amount payment</td>
+                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
+                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Amount Paid & Method</td>
                           
                           {[1, 2, 3, 4, 5, 6].map((idx) => {
                             const isActive = idx <= terms;
                             const payment = isActive ? payments[idx - 1] : null;
                             return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 text-slate-300' : payment ? 'text-pink-950 bg-pink-50/40' : 'text-slate-400'}`}>
+                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25' : 'text-slate-400 dark:text-slate-500'}`}>
                                 {payment ? (
                                   <div className="flex flex-col items-center">
                                     <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                    <span className="text-[8px] font-extrabold text-pink-700 bg-pink-100/60 px-1 rounded mt-0.5 uppercase tracking-wide">
+                                    <span className="text-[8px] font-extrabold text-pink-700 bg-pink-100/60 dark:bg-pink-950 dark:text-pink-400 border border-transparent dark:border-pink-900/30 px-1 rounded mt-0.5 uppercase tracking-wide">
                                       {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
                                     </span>
                                   </div>
@@ -1244,10 +1243,10 @@ export default function CollectionLedgerPage() {
                               </td>
                             );
                           })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 font-bold text-emerald-800 font-mono">
+                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-emerald-800 dark:text-emerald-400 font-mono">
                             ₱{amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50"></td>
+                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
                         </tr>
                           </>
                         )}
@@ -1349,13 +1348,13 @@ export default function CollectionLedgerPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-200 bg-white">
                       {/* Row 1: Schedule of Payment (Expected Dates) */}
-                      <tr className="bg-emerald-50/10">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 bg-emerald-50/20 text-left">Schedule of Payment</td>
+                      <tr className="bg-emerald-50/10 dark:bg-emerald-950/5">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/15 text-left">Schedule of Payment</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           return (
                             <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-emerald-950 font-semibold'
+                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-emerald-950 dark:text-emerald-300 font-semibold'
                             }`}>
                               {isActive ? getExpectedDateStr(idx) : '—'}
                             </td>
@@ -1364,13 +1363,13 @@ export default function CollectionLedgerPage() {
                       </tr>
 
                       {/* Row 2: Amount of Payment (Expected Amounts) */}
-                      <tr className="bg-emerald-50/10">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 bg-emerald-50/20 text-left">Amount of Payment</td>
+                      <tr className="bg-emerald-50/10 dark:bg-emerald-950/5">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/15 text-left">Amount of Payment</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           return (
                             <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-emerald-950 font-bold'
+                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-emerald-950 dark:text-emerald-300 font-bold'
                             }`}>
                               {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
                             </td>
@@ -1378,14 +1377,14 @@ export default function CollectionLedgerPage() {
                         })}
                       </tr>
 
-                      <tr className="bg-pink-50/10">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 bg-pink-50/20 text-left">Actual Payment Date</td>
+                      <tr className="bg-pink-50/10 dark:bg-pink-950/5">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 dark:text-pink-400 bg-pink-50/20 dark:bg-pink-950/15 text-left">Actual Payment Date</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           const payment = isActive ? payments[idx - 1] : null;
                           return (
                             <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-400'
+                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'
                             }`}>
                               {payment ? (
                                 new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -1401,7 +1400,7 @@ export default function CollectionLedgerPage() {
                                       inputEl.focus();
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-55 hover:bg-emerald-100 border border-emerald-200 text-[#4A0E17] text-[9px] font-bold rounded transition cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-800 text-[#4A0E17] dark:text-emerald-400 text-[9px] font-bold rounded transition cursor-pointer"
                                   title={`Record ${idx}${idx === 1 ? 'st' : idx === 2 ? 'nd' : idx === 3 ? 'rd' : 'th'} installment`}
                                 >
                                   <CreditCard className="h-2.5 w-2.5" /> Record
@@ -1415,19 +1414,19 @@ export default function CollectionLedgerPage() {
                       </tr>
 
                       {/* Row 4: Actual Amount / Method */}
-                      <tr className="bg-pink-50/10">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 bg-pink-50/20 text-left">Actual Amount & Method</td>
+                      <tr className="bg-pink-50/10 dark:bg-pink-950/5">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 dark:text-pink-400 bg-pink-50/20 dark:bg-pink-950/15 text-left">Actual Amount & Method</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           const payment = isActive ? payments[idx - 1] : null;
                           return (
                             <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-450'
+                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'
                             }`}>
                               {payment ? (
                                 <div className="flex flex-col items-center group relative">
                                   <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                  <span className="text-[9px] font-bold text-pink-700 bg-pink-100/60 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
+                                  <span className="text-[9px] font-bold text-pink-700 bg-pink-100/60 dark:bg-pink-950 dark:text-pink-300 dark:border dark:border-pink-900/30 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
                                     {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
                                   </span>
                                   <button
@@ -1463,7 +1462,7 @@ export default function CollectionLedgerPage() {
                                       inputEl.focus();
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-55 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[9px] font-bold rounded transition cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-55 hover:bg-emerald-100 dark:bg-emerald-950 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold rounded transition cursor-pointer"
                                   title={`Record ${idx}${idx === 1 ? 'st' : idx === 2 ? 'nd' : idx === 3 ? 'rd' : 'th'} installment`}
                                 >
                                   <Plus className="h-2.5 w-2.5" /> Record
@@ -1517,7 +1516,7 @@ export default function CollectionLedgerPage() {
                   </div>
                   <div>
                     <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Outstanding Balance</span>
-                    <span className="font-bold text-[#4A0E17]">₱{selectedInvoice.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-bold text-[#4A0E17] dark:text-[#f28b99]">₱{selectedInvoice.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
 

@@ -652,10 +652,12 @@ export default function CollectionPage() {
                             </td>
                             <td className="px-3 py-3.5 border-r border-slate-100">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${
-                                customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'
-                              }`}>
-                                {customer?.request_type || '—'}
-                              </span>
+                                 customer?.request_type === 'NEW ACCOUNT' 
+                                   ? 'bg-blue-50 text-blue-700 dark:bg-indigo-950/40 dark:text-indigo-300' 
+                                   : 'bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400'
+                               }`}>
+                                 {customer?.request_type || '—'}
+                               </span>
                             </td>
                             <td className="px-4 py-3.5 border-r border-slate-100 font-bold text-slate-800 uppercase tracking-tight">
                               <div>{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
@@ -692,42 +694,56 @@ export default function CollectionPage() {
 
                                return (
                                  <td key={idx} className={`px-2 py-2 border-r border-slate-100 text-center ${
-                                   !isActive ? 'bg-slate-50 text-slate-300' : isPaid ? 'bg-emerald-50/50' : isDue ? 'bg-rose-50/40' : ''
+                                   !isActive 
+                                     ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' 
+                                     : isPaid 
+                                       ? 'bg-emerald-50/50 dark:bg-emerald-950/20' 
+                                       : isDue 
+                                         ? 'bg-rose-50/40 dark:bg-rose-950/20' 
+                                         : 'dark:bg-slate-900/10'
                                  }`}>
                                    {isActive ? (
                                      <div className="flex flex-col items-center justify-center">
-                                       <span className="text-[9px] font-bold text-slate-400 leading-none">{monthInfo?.monthName}</span>
+                                       <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-none">{monthInfo?.monthName}</span>
                                        <span className={`text-[11px] font-mono font-semibold mt-1 leading-none ${
-                                         isPaid ? 'text-emerald-700 font-bold' : isDue ? 'text-rose-700 font-bold' : 'text-slate-600'
+                                         isPaid 
+                                           ? 'text-emerald-700 dark:text-emerald-400 font-bold' 
+                                           : isDue 
+                                             ? 'text-rose-700 dark:text-rose-400 font-bold' 
+                                             : 'text-slate-600 dark:text-slate-350'
                                        }`}>
                                          ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                        </span>
-                                       <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 ${
-                                         isPaid ? 'bg-emerald-100 text-emerald-800' : isDue ? 'bg-rose-100 text-rose-800 animate-pulse' : 'bg-slate-100 text-slate-400'
+                                       <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 border border-transparent ${
+                                         isPaid 
+                                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30' 
+                                           : isDue 
+                                             ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse' 
+                                             : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700/50'
                                        }`}>
                                          <span>{isPaid ? 'Paid' : isDue ? 'Due' : 'Unpaid'}</span>
                                          {isCellOverdue && (
                                            <span title="Overdue by more than 3 days!">
-                                             <AlertTriangle className="h-2 w-2 text-rose-600 animate-pulse" />
+                                             <AlertTriangle className="h-2 w-2 text-rose-600 dark:text-rose-400 animate-pulse" />
                                            </span>
                                          )}
                                        </span>
                                      </div>
                                   ) : (
-                                    <span className="text-slate-300 font-bold">—</span>
+                                    <span className="text-slate-300 dark:text-slate-600 font-bold">—</span>
                                   )}
                                 </td>
                               );
                             })}
 
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-bold text-[#4A0E17]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-black text-rose-800 bg-rose-50/20">
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-bold text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-black text-rose-800 dark:text-rose-400 bg-rose-50/20 dark:bg-rose-950/20">
                               {dueAmount > 0 ? (
-                                <span className="px-2 py-1 bg-rose-100 text-rose-800 rounded-lg text-[11px] font-extrabold animate-pulse">
+                                <span className="px-2 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 rounded-lg text-[11px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
                                   ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </span>
                               ) : (
-                                <span className="text-slate-400">—</span>
+                                <span className="text-slate-400 dark:text-slate-500">—</span>
                               )}
                             </td>
                             <td className="px-4 py-3.5 text-center">
