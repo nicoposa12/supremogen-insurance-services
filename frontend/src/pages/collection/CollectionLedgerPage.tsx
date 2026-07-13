@@ -422,12 +422,18 @@ export default function CollectionLedgerPage() {
                     return (
                       <span key={row.id} className="contents">
                         {/* Row 1: Header row / General Details */}
-                        <tr className="bg-slate-50/50 hover:bg-slate-100/40 transition-colors font-bold text-slate-800">
+                        <tr 
+                          onClick={() => handleOpenCollection(row)}
+                          className="bg-slate-50/50 hover:bg-slate-100 hover:text-slate-900 transition-colors font-bold text-slate-800 cursor-pointer"
+                        >
                           <td className="px-3 py-3 border-r border-slate-200 text-slate-700">
                             <div className="flex items-center gap-1.5">
                               <button 
-                                onClick={() => toggleExpand(row.id)}
-                                className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleExpand(row.id);
+                                }}
+                                className="p-1 rounded hover:bg-slate-250 text-slate-400 hover:text-slate-700 transition cursor-pointer"
                               >
                                 {isExpanded ? (
                                   <ChevronDown className="h-3.5 w-3.5 text-[#4A0E17]" />
@@ -478,7 +484,7 @@ export default function CollectionLedgerPage() {
                               <span className="text-slate-400">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 5 : 1}>
+                          <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 5 : 1} onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => handleOpenCollection(row)}
                               className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer"
