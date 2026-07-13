@@ -23,3 +23,8 @@ export async function voidPayment(id: number): Promise<SingleResponse<Payment>> 
   const { data } = await axios.post<SingleResponse<Payment>>(`${BASE}/${id}/void`);
   return data;
 }
+
+export async function updatePayment(id: number, formData: PaymentFormData): Promise<SingleResponse<Payment>> {
+  const { data } = await axios.put<SingleResponse<Payment>>(`${BASE}/${id}`, formData);
+  return data;
+}

@@ -122,6 +122,47 @@ class PaymentController extends Controller
     }
 
     /**
+     * Update a payment record.
+     */
+    public function update(Request $request, string $id)
+    {
+        $payment = Payment::find($id);
+        if (!$payment) return response()->json(['success' => false, 'message' => 'Payment not found.'], 404);
+
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|in:jt,jrs,cod,walk_in,bank_transfer_pbcom,bank_transfer_security_bank,post_dated_checks,split_payment',
+            'payment_date' => 'required|date',
+            'reference_number' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false, 'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $payment->update([
+            'amount' => $request->amount,
+            'payment_method' => $request->payment_method,
+            'payment_date' => $request->payment_date,
+            'reference_number' => $request->reference_number,
+            'notes' => $request->notes,
+        ]);
+
+        // Recalculate invoice
+        $payment->invoice->recalculate();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment updated successfully.',
+            'data' => $payment->fresh(['invoice']),
+        ]);
+    }
+
+    /**
      * Void a completed payment.
      */
     public function void(Request $request, string $id)

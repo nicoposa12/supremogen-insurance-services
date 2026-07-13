@@ -76,6 +76,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/payments', [PaymentController::class, 'index']);
         Route::post('/payments', [PaymentController::class, 'store']);
         Route::get('/payments/{payment}', [PaymentController::class, 'show']);
+        Route::put('/payments/{payment}', [PaymentController::class, 'update']);
         Route::post('/payments/{payment}/void', [PaymentController::class, 'void']);
 
         // Claims

@@ -15,7 +15,9 @@ import {
   Clock,
   ArrowLeft,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Plus,
+  Pencil
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -23,7 +25,7 @@ import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
 import { getInvoices } from '../../services/invoiceApi';
-import { recordPayment } from '../../services/paymentApi';
+import { recordPayment, updatePayment } from '../../services/paymentApi';
 import { getReportSummary } from '../../services/reportApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
 import type { Invoice, Payment, PaymentMethod, PaymentFormData } from '../../types/AccountingTypes';
@@ -59,6 +61,7 @@ export default function CollectionLedgerPage() {
   const [collectDate, setCollectDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [collectReference, setCollectReference] = useState('');
   const [collectNotes, setCollectNotes] = useState('');
+  const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
 
   // Debounce search inputs
   useEffect(() => {
@@ -87,7 +90,6 @@ export default function CollectionLedgerPage() {
     }),
     placeholderData: (prev) => prev,
   });
-
   // Mutation for recording a collection payment
   const recordCollectionMut = useMutation({
     mutationFn: (data: PaymentFormData) => recordPayment(data),
@@ -104,12 +106,29 @@ export default function CollectionLedgerPage() {
     }
   });
 
+  // Mutation for updating a collection payment
+  const updateCollectionMut = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: PaymentFormData }) => updatePayment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices-ledger'] });
+      queryClient.invalidateQueries({ queryKey: ['report-summary'] });
+      showToast('Payment updated successfully!', 'success');
+      setCollectionModalOpen(false);
+      setSelectedInvoice(null);
+      resetCollectionForm();
+    },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message ?? 'Failed to update payment.', 'error');
+    }
+  });
+
   const resetCollectionForm = () => {
     setCollectAmount('');
     setCollectMethod('walk_in');
     setCollectDate(new Date().toISOString().split('T')[0]);
     setCollectReference('');
     setCollectNotes('');
+    setEditingPaymentId(null);
   };
 
   const handleOpenCollection = (invoice: Invoice, prefilledAmount?: number) => {
@@ -128,8 +147,10 @@ export default function CollectionLedgerPage() {
       return;
     }
 
-    if (amountNum > selectedInvoice.balance) {
-      showToast(`Collection amount cannot exceed the balance of ₱${selectedInvoice.balance.toLocaleString()}`, 'error');
+    const currentPayment = selectedInvoice.payments?.find(p => p.id === editingPaymentId);
+    const maxAllowed = selectedInvoice.balance + (currentPayment ? Number(currentPayment.amount) : 0);
+    if (amountNum > maxAllowed) {
+      showToast(`Collection amount cannot exceed the balance of ₱${maxAllowed.toLocaleString()}`, 'error');
       return;
     }
 
@@ -142,7 +163,11 @@ export default function CollectionLedgerPage() {
       notes: collectNotes || undefined,
     };
 
-    recordCollectionMut.mutate(data);
+    if (editingPaymentId !== null) {
+      updateCollectionMut.mutate({ id: editingPaymentId, data });
+    } else {
+      recordCollectionMut.mutate(data);
+    }
   };
 
   // Metrics calculation
@@ -666,8 +691,8 @@ export default function CollectionLedgerPage() {
                   <CreditCard className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800">Record Collection Payment</h3>
-                  <p className="text-xs text-slate-500">Record collection details for client invoice {selectedInvoice.invoice_number}</p>
+                  <h3 className="text-lg font-bold text-slate-800">{editingPaymentId ? 'Edit Collection Payment' : 'Record Collection Payment'}</h3>
+                  <p className="text-xs text-slate-500">{editingPaymentId ? 'Modify recorded details for client invoice' : 'Record collection details for client invoice'} {selectedInvoice.invoice_number}</p>
                 </div>
               </div>
 
@@ -723,7 +748,6 @@ export default function CollectionLedgerPage() {
                         })}
                       </tr>
 
-                      {/* Row 3: Actual Payment Date */}
                       <tr className="bg-pink-50/10">
                         <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 bg-pink-50/20 text-left">Actual Payment Date</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
@@ -731,9 +755,30 @@ export default function CollectionLedgerPage() {
                           const payment = isActive ? payments[idx - 1] : null;
                           return (
                             <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 text-slate-350' : payment ? 'text-pink-950 font-semibold' : 'text-slate-400'
+                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-400'
                             }`}>
-                              {payment ? new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                              {payment ? (
+                                new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                              ) : isActive ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCollectAmount(String(installmentAmount.toFixed(2)));
+                                    setCollectNotes(`${idx}${idx === 1 ? 'st' : idx === 2 ? 'nd' : idx === 3 ? 'rd' : 'th'} Installment payment`);
+                                    const inputEl = document.getElementById('collection-form-amount');
+                                    if (inputEl) {
+                                      inputEl.scrollIntoView({ behavior: 'smooth' });
+                                      inputEl.focus();
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-55 hover:bg-emerald-100 border border-emerald-200 text-[#4A0E17] text-[9px] font-bold rounded transition cursor-pointer"
+                                  title={`Record ${idx}${idx === 1 ? 'st' : idx === 2 ? 'nd' : idx === 3 ? 'rd' : 'th'} installment`}
+                                >
+                                  <CreditCard className="h-2.5 w-2.5" /> Record
+                                </button>
+                              ) : (
+                                '—'
+                              )}
                             </td>
                           );
                         })}
@@ -747,16 +792,55 @@ export default function CollectionLedgerPage() {
                           const payment = isActive ? payments[idx - 1] : null;
                           return (
                             <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 text-slate-350' : payment ? 'text-pink-950 font-bold' : 'text-slate-400'
+                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-450'
                             }`}>
                               {payment ? (
-                                <div className="flex flex-col items-center">
+                                <div className="flex flex-col items-center group relative">
                                   <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                   <span className="text-[9px] font-bold text-pink-700 bg-pink-100/60 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
                                     {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
                                   </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCollectAmount(String(payment.amount));
+                                      setCollectMethod(payment.payment_method);
+                                      setCollectDate(payment.payment_date);
+                                      setCollectReference(payment.reference_number || '');
+                                      setCollectNotes(payment.notes || '');
+                                      setEditingPaymentId(payment.id);
+                                      const inputEl = document.getElementById('collection-form-amount');
+                                      if (inputEl) {
+                                        inputEl.scrollIntoView({ behavior: 'smooth' });
+                                        inputEl.focus();
+                                      }
+                                    }}
+                                    className="absolute -top-1 -right-2 p-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded text-slate-500 hover:text-slate-800 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                                    title="Edit this payment"
+                                  >
+                                    <Pencil className="h-2.5 w-2.5" />
+                                  </button>
                                 </div>
-                              ) : '—'}
+                              ) : isActive ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCollectAmount(String(installmentAmount.toFixed(2)));
+                                    setCollectNotes(`${idx}${idx === 1 ? 'st' : idx === 2 ? 'nd' : idx === 3 ? 'rd' : 'th'} Installment payment`);
+                                    const inputEl = document.getElementById('collection-form-amount');
+                                    if (inputEl) {
+                                      inputEl.scrollIntoView({ behavior: 'smooth' });
+                                      inputEl.focus();
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-55 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[9px] font-bold rounded transition cursor-pointer"
+                                  title={`Record ${idx}${idx === 1 ? 'st' : idx === 2 ? 'nd' : idx === 3 ? 'rd' : 'th'} installment`}
+                                >
+                                  <Plus className="h-2.5 w-2.5" /> Record
+                                </button>
+                              ) : (
+                                '—'
+                              )}
                             </td>
                           );
                         })}
@@ -807,6 +891,7 @@ export default function CollectionLedgerPage() {
                     Collection Amount (₱) *
                   </label>
                   <input 
+                    id="collection-form-amount"
                     type="number" 
                     step="0.01" 
                     required
@@ -876,26 +961,27 @@ export default function CollectionLedgerPage() {
 
                 {/* Submit Buttons */}
                 <div className="flex items-center justify-end gap-3 mt-6 border-t border-slate-100 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setCollectionModalOpen(false)}
-                    disabled={recordCollectionMut.isPending}
-                    className="px-5 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50 rounded-2xl transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
+                  {editingPaymentId && (
+                    <button
+                      type="button"
+                      onClick={() => resetCollectionForm()}
+                      className="px-5 py-2.5 text-sm font-semibold text-orange-600 hover:bg-orange-50 rounded-2xl transition cursor-pointer"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
                   <button
                     type="submit"
-                    disabled={recordCollectionMut.isPending}
+                    disabled={recordCollectionMut.isPending || updateCollectionMut.isPending}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-bold rounded-2xl shadow-md transition disabled:opacity-50 cursor-pointer"
                   >
-                    {recordCollectionMut.isPending ? (
+                    {recordCollectionMut.isPending || updateCollectionMut.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Recording...</span>
+                        <span>{editingPaymentId ? 'Updating...' : 'Recording...'}</span>
                       </>
                     ) : (
-                      <span>Record Collection</span>
+                      <span>{editingPaymentId ? 'Update Payment' : 'Record Collection'}</span>
                     )}
                   </button>
                 </div>
