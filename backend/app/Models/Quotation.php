@@ -79,6 +79,11 @@ class Quotation extends Model
         return $this->hasMany(QuotationItem::class);
     }
 
+    public function policy(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Policy::class);
+    }
+
     /**
      * Get all of the quotation's attachments.
      */
@@ -111,6 +116,9 @@ class Quotation extends Model
     public function scopeOfStatus($query, ?string $status)
     {
         if (!$status || $status === 'all') return $query;
+        if (str_contains($status, ',')) {
+            return $query->whereIn('status', explode(',', $status));
+        }
         return $query->where('status', $status);
     }
 

@@ -83,6 +83,9 @@ class Invoice extends Model
     public function scopeOfStatus($query, ?string $status)
     {
         if (!$status || $status === 'all') return $query;
+        if (str_contains($status, ',')) {
+            return $query->whereIn('status', explode(',', $status));
+        }
         return $query->where('status', $status);
     }
 

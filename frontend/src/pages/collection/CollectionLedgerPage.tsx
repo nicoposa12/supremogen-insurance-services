@@ -13,7 +13,9 @@ import {
   Loader2, 
   Info,
   Clock,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -40,6 +42,16 @@ export default function CollectionLedgerPage() {
   // Record Collection Modal State
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  // Expanded rows state
+  const [expandedInvoiceIds, setExpandedInvoiceIds] = useState<Record<number, boolean>>({});
+
+  const toggleExpand = (invoiceId: number) => {
+    setExpandedInvoiceIds(prev => ({
+      ...prev,
+      [invoiceId]: !prev[invoiceId]
+    }));
+  };
   
   // Record Collection Form State
   const [collectAmount, setCollectAmount] = useState<string>('');
@@ -405,12 +417,27 @@ export default function CollectionLedgerPage() {
                     }
 
                     const dueAmount = calculateDueAmount(row);
+                    const isExpanded = !!expandedInvoiceIds[row.id];
 
                     return (
                       <span key={row.id} className="contents">
                         {/* Row 1: Header row / General Details */}
                         <tr className="bg-slate-50/50 hover:bg-slate-100/40 transition-colors font-bold text-slate-800">
-                          <td className="px-3 py-3 border-r border-slate-200 text-slate-700">{customer?.agent || '—'}</td>
+                          <td className="px-3 py-3 border-r border-slate-200 text-slate-700">
+                            <div className="flex items-center gap-1.5">
+                              <button 
+                                onClick={() => toggleExpand(row.id)}
+                                className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-3.5 w-3.5 text-[#4A0E17]" />
+                                ) : (
+                                  <ChevronRight className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                              <span>{customer?.agent || '—'}</span>
+                            </div>
+                          </td>
                           <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
                             {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                           </td>
@@ -451,7 +478,7 @@ export default function CollectionLedgerPage() {
                               <span className="text-slate-400">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-center" rowSpan={5}>
+                          <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 5 : 1}>
                             <button
                               onClick={() => handleOpenCollection(row)}
                               className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer"
@@ -460,6 +487,9 @@ export default function CollectionLedgerPage() {
                             </button>
                           </td>
                         </tr>
+
+                        {isExpanded && (
+                          <>
 
                         {/* Row 2: schedule of payment */}
                         <tr className="bg-emerald-50/10 text-emerald-800">
@@ -550,6 +580,8 @@ export default function CollectionLedgerPage() {
                           </td>
                           <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50"></td>
                         </tr>
+                          </>
+                        )}
                       </span>
                     );
                   })}

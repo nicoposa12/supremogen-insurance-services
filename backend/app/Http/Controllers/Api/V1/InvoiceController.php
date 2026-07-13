@@ -15,6 +15,66 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
+        // Self-heal: Check if there are any approved quotations that do not have a policy
+        $orphanedQuotations = \App\Models\Quotation::where('status', 'approved')
+            ->whereDoesntHave('policy')
+            ->with(['customer', 'items.insuranceProduct'])
+            ->get();
+
+        if ($orphanedQuotations->isNotEmpty()) {
+            DB::transaction(function () use ($orphanedQuotations, $request) {
+                foreach ($orphanedQuotations as $quotation) {
+                    $customer = $quotation->customer;
+                    $productId = $quotation->items->first()?->insurance_product_id;
+                    
+                    $policy = \App\Models\Policy::create([
+                        'policy_number' => \App\Models\Policy::generateNumber(),
+                        'quotation_id' => $quotation->id,
+                        'customer_id' => $quotation->customer_id,
+                        'insurance_product_id' => $productId,
+                        'issued_by' => $quotation->reviewed_by ?: ($request->user() ? $request->user()->id : 1),
+                        'status' => 'active',
+                        'effective_date' => $customer?->inception_date ?? now(),
+                        'expiry_date' => $customer?->expiry_date ?? now()->addYear(),
+                        'total_premium' => $customer?->policy_premium ?? 0,
+                        'sum_insured' => $customer?->assured_value ?? 0,
+                        'terms_and_conditions' => $quotation->notes,
+                    ]);
+
+                    foreach ($quotation->items as $item) {
+                        $policy->coverages()->create([
+                            'coverage_name' => $item->insuranceProduct?->name ?? 'Premium Item',
+                            'sum_insured' => $customer?->assured_value ?? 0,
+                            'premium_rate' => 0,
+                            'premium_amount' => $item->premium_amount,
+                        ]);
+                    }
+
+                    $invoice = \App\Models\Invoice::create([
+                        'invoice_number' => \App\Models\Invoice::generateNumber(),
+                        'policy_id' => $policy->id,
+                        'customer_id' => $quotation->customer_id,
+                        'created_by' => $quotation->reviewed_by ?: ($request->user() ? $request->user()->id : 1),
+                        'status' => 'sent',
+                        'due_date' => $customer?->inception_date ?? now(),
+                        'subtotal' => $customer?->policy_premium ?? 0,
+                        'tax_amount' => 0,
+                        'total_amount' => $customer?->policy_premium ?? 0,
+                        'amount_paid' => 0,
+                        'balance' => $customer?->policy_premium ?? 0,
+                        'notes' => 'Automatically generated invoice from approved quotation ' . $quotation->quotation_number,
+                    ]);
+
+                    $invoice->items()->create([
+                        'description' => 'Insurance Premium - ' . ($quotation->items->first()?->insuranceProduct?->name ?? 'Policy'),
+                        'quantity' => 1,
+                        'unit_price' => $customer?->policy_premium ?? 0,
+                        'amount' => $customer?->policy_premium ?? 0,
+                    ]);
+                }
+            });
+        }
+
         $perPage = min((int) $request->input('per_page', 15), 100);
         $sortBy = $request->input('sort_by', 'created_at');
         $sortDir = strtolower($request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
