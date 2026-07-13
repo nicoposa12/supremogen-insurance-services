@@ -138,10 +138,15 @@ export default function CollectionLedgerPage() {
   <title>Acknowledgement Receipt - ${assuredName}</title>
   <style>
     @media print {
-      body {
-        margin: 0;
-        padding: 0.4in;
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
         background: #fff;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
       @page {
         size: letter;
