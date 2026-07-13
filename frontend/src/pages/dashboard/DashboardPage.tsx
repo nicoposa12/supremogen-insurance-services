@@ -73,6 +73,15 @@ export default function DashboardPage() {
     return dashboard.stats.customers[customerTimeframe] || { value: 0, trend: 0 };
   }, [dashboard, customerTimeframe]);
 
+  const activePolicies = useMemo(() => {
+    if (!dashboard || !dashboard.stats || !dashboard.stats.policies) {
+      const val = dashboard?.stats?.active_policies ?? 0;
+      const tr = dashboard?.stats?.policies_trend ?? 0;
+      return { value: val, trend: tr };
+    }
+    return dashboard.stats.policies[customerTimeframe] || { value: 0, trend: 0 };
+  }, [dashboard, customerTimeframe]);
+
   const getOverviewData = () => {
     if (!dashboard) return [];
     switch (overviewTimeframe) {
@@ -203,9 +212,10 @@ export default function DashboardPage() {
         </div>
         <StatCard
           label="Active Policies"
-          value={dashboard.stats.active_policies}
+          value={activePolicies.value}
           icon={ShieldCheck}
-          trend={dashboard.stats.policies_trend}
+          trend={activePolicies.trend}
+          trendLabel={`vs last ${customerTimeframe === 'daily' ? 'day' : customerTimeframe === 'weekly' ? 'week' : customerTimeframe === 'monthly' ? 'month' : 'year'}`}
           iconColor="text-emerald-600"
           iconBg="bg-emerald-50"
         />

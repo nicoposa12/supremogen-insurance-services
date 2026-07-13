@@ -162,6 +162,12 @@ export interface DashboardStats {
     monthly: { value: number; trend: number };
     yearly: { value: number; trend: number };
   };
+  policies?: {
+    daily: { value: number; trend: number };
+    weekly: { value: number; trend: number };
+    monthly: { value: number; trend: number };
+    yearly: { value: number; trend: number };
+  };
 }
 
 export interface MonthlyOverview {

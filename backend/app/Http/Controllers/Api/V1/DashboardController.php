@@ -146,20 +146,53 @@ class DashboardController extends Controller
                 ->whereRaw("UPPER(policy_status) = 'ACTIVE'")
                 ->selectRaw("
                     COUNT(*) as active_count,
-                    SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN 1 ELSE 0 END) as this_month,
-                    SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN 1 ELSE 0 END) as last_month
+                    SUM(CASE WHEN created_at >= ? AND created_at < ? THEN 1 ELSE 0 END) as daily,
+                    SUM(CASE WHEN created_at >= ? AND created_at < ? THEN 1 ELSE 0 END) as yesterday,
+                    SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN 1 ELSE 0 END) as weekly,
+                    SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN 1 ELSE 0 END) as last_week,
+                    SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN 1 ELSE 0 END) as monthly,
+                    SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN 1 ELSE 0 END) as last_month,
+                    SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN 1 ELSE 0 END) as yearly,
+                    SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN 1 ELSE 0 END) as last_year
                 ", [
-                    $now->copy()->startOfMonth(), $now->copy()->endOfMonth(),
-                    $now->copy()->subMonth()->startOfMonth(), $now->copy()->subMonth()->endOfMonth()
+                    Carbon::today(), Carbon::tomorrow(), // daily
+                    Carbon::yesterday(), Carbon::today(), // yesterday
+                    Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek(), // weekly
+                    Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek(), // last week
+                    Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth(), // monthly
+                    Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), // last month
+                    Carbon::now()->startOfYear(), Carbon::now()->endOfYear(), // yearly
+                    Carbon::now()->subYear()->startOfYear(), Carbon::now()->subYear()->endOfYear(), // last year
                 ])
                 ->first();
 
             $activePolicies = (int) ($policyStats->active_count ?? 0);
-            $policiesThisMonth = (int) ($policyStats->this_month ?? 0);
-            $policiesLastMonth = (int) ($policyStats->last_month ?? 0);
-            $policiesTrend = $policiesLastMonth > 0
-                ? round((($policiesThisMonth - $policiesLastMonth) / $policiesLastMonth) * 100, 1)
-                : ($policiesThisMonth > 0 ? 100 : 0);
+            
+            $dailyPolicies = (int) ($policyStats->daily ?? 0);
+            $yesterdayPolicies = (int) ($policyStats->yesterday ?? 0);
+            $dailyPoliciesTrend = $yesterdayPolicies > 0
+                ? round((($dailyPolicies - $yesterdayPolicies) / $yesterdayPolicies) * 100, 1)
+                : ($dailyPolicies > 0 ? 100 : 0);
+
+            $weeklyPolicies = (int) ($policyStats->weekly ?? 0);
+            $lastWeekPolicies = (int) ($policyStats->last_week ?? 0);
+            $weeklyPoliciesTrend = $lastWeekPolicies > 0
+                ? round((($weeklyPolicies - $lastWeekPolicies) / $lastWeekPolicies) * 100, 1)
+                : ($weeklyPolicies > 0 ? 100 : 0);
+
+            $monthlyPolicies = (int) ($policyStats->monthly ?? 0);
+            $lastMonthPolicies = (int) ($policyStats->last_month ?? 0);
+            $monthlyPoliciesTrend = $lastMonthPolicies > 0
+                ? round((($monthlyPolicies - $lastMonthPolicies) / $lastMonthPolicies) * 100, 1)
+                : ($monthlyPolicies > 0 ? 100 : 0);
+
+            $yearlyPolicies = (int) ($policyStats->yearly ?? 0);
+            $lastYearPolicies = (int) ($policyStats->last_year ?? 0);
+            $yearlyPoliciesTrend = $lastYearPolicies > 0
+                ? round((($yearlyPolicies - $lastYearPolicies) / $lastYearPolicies) * 100, 1)
+                : ($yearlyPolicies > 0 ? 100 : 0);
+
+            $policiesTrend = $monthlyPoliciesTrend;
 
             // 3. Premium & Revenue Statistics
             $premiumStats = (clone $customerQuery)
@@ -432,6 +465,12 @@ class DashboardController extends Controller
                     ],
                     'active_policies' => $activePolicies,
                     'policies_trend' => $policiesTrend,
+                    'policies' => [
+                        'daily' => ['value' => $dailyPolicies, 'trend' => $dailyPoliciesTrend],
+                        'weekly' => ['value' => $weeklyPolicies, 'trend' => $weeklyPoliciesTrend],
+                        'monthly' => ['value' => $monthlyPolicies, 'trend' => $monthlyPoliciesTrend],
+                        'yearly' => ['value' => $yearlyPolicies, 'trend' => $yearlyPoliciesTrend],
+                    ],
                     'pending_claims' => $pendingClaims,
                     'total_claims' => $totalClaims,
                     'monthly_revenue' => (float) $monthlyRevenue,
