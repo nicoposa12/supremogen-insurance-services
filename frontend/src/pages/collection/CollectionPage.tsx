@@ -605,7 +605,15 @@ export default function CollectionPage() {
                                 {customer?.request_type || '—'}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5 border-r border-slate-100 font-bold text-slate-800 uppercase tracking-tight">{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</td>
+                            <td className="px-4 py-3.5 border-r border-slate-100 font-bold text-slate-800 uppercase tracking-tight">
+                              <div>{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
+                              {customer && (
+                                <div className="text-[10px] text-slate-500 font-normal normal-case mt-0.5 space-y-0.5">
+                                  <p>{customer.mobile || customer.phone || 'No contact'}</p>
+                                  <p className="truncate max-w-[180px]">{customer.email || 'No email'}</p>
+                                </div>
+                              )}
+                            </td>
                             <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] font-bold text-slate-600">{customer?.plate_no || '—'}</td>
                             <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] text-slate-500">
                               {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
@@ -913,12 +921,22 @@ export default function CollectionPage() {
               </div>
 
               <form onSubmit={handleRecordCollection} className="space-y-4">
-                {/* Selected Invoice Details Box */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                 {/* Selected Invoice Details Box */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
                   <div>
                     <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Client</span>
                     <span className="font-bold text-slate-800 uppercase">
                       {selectedInvoice.customer?.first_name} {selectedInvoice.customer?.last_name}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Contact Number</span>
+                    <span className="font-bold text-slate-800">{selectedInvoice.customer?.mobile || selectedInvoice.customer?.phone || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Email Address</span>
+                    <span className="font-bold text-slate-800 truncate block" title={selectedInvoice.customer?.email || undefined}>
+                      {selectedInvoice.customer?.email || '—'}
                     </span>
                   </div>
                   <div>
