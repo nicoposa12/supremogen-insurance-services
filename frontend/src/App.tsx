@@ -61,6 +61,7 @@ const ReportsPage = lazy(() => import('./pages/reports/ReportsPage'));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
 const SummaryPage = lazy(() => import('./pages/summary/SummaryPage'));
 const CollectionPage = lazy(() => import('./pages/collection/CollectionPage'));
+const CollectionLedgerPage = lazy(() => import('./pages/collection/CollectionLedgerPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -161,6 +162,7 @@ export default function App() {
 
                 {/* Collection */}
                 <Route path="collection" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><CollectionPage /></ProtectedRoute>} />
+                <Route path="collection/ledger" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><CollectionLedgerPage /></ProtectedRoute>} />
               </Route>
 
               {/* Catch-all redirect to Home */}

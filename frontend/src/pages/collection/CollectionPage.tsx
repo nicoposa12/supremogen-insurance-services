@@ -770,163 +770,279 @@ export default function CollectionPage() {
       )}
 
       {/* Record Collection Modal */}
-      {collectionModalOpen && selectedInvoice && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
-            onClick={() => setCollectionModalOpen(false)}
-          />
+      {collectionModalOpen && selectedInvoice && (() => {
+        const customer = selectedInvoice.customer;
+        const terms = Number(customer?.payment_terms || 1);
+        const totalPremium = Number(selectedInvoice.total_amount);
+        const installmentAmount = totalPremium / terms;
+        const inceptionDateStr = customer?.inception_date;
+        
+        // Sort payments sequentially by date
+        const payments = [...(selectedInvoice.payments || [])].sort(
+          (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
+        );
 
-          {/* Form Modal Body */}
-          <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 border border-slate-100 animate-scale-in">
-            <button
+        const getExpectedDateStr = (idx: number) => {
+          if (!inceptionDateStr) return '—';
+          const date = new Date(inceptionDateStr);
+          if (isNaN(date.getTime())) return '—';
+          const d = new Date(date.getFullYear(), date.getMonth() + idx - 1, date.getDate());
+          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        return (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
               onClick={() => setCollectionModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            />
 
-            <div className="flex items-center gap-3 mb-5 border-b border-slate-100 pb-4">
-              <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">Record Collection Payment</h3>
-                <p className="text-xs text-slate-500">Record collection details for client invoice {selectedInvoice.invoice_number}</p>
-              </div>
-            </div>
+            {/* Form Modal Body */}
+            <div className="relative bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-6 border border-slate-100 animate-scale-in max-h-[95vh] overflow-y-auto">
+              <button
+                onClick={() => setCollectionModalOpen(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
 
-            <form onSubmit={handleRecordCollection} className="space-y-4">
-              {/* Selected Invoice Details Box */}
-              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 gap-3 text-xs">
+              <div className="flex items-center gap-3 mb-5 border-b border-slate-100 pb-4">
+                <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600">
+                  <CreditCard className="h-5 w-5" />
+                </div>
                 <div>
-                  <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Client</span>
-                  <span className="font-semibold text-slate-800">
-                    {selectedInvoice.customer?.first_name} {selectedInvoice.customer?.last_name}
+                  <h3 className="text-lg font-bold text-slate-800">Record Collection Payment</h3>
+                  <p className="text-xs text-slate-500">Record collection details for client invoice {selectedInvoice.invoice_number}</p>
+                </div>
+              </div>
+
+              {/* Installment Ledger Section */}
+              <div className="border border-slate-200 rounded-2xl overflow-hidden mb-5">
+                <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Payment Schedule Ledger</span>
+                  <span className="text-[10px] font-extrabold text-[#4A0E17] bg-[#4A0E17]/5 px-2.5 py-0.5 rounded-full border border-[#4A0E17]/20 uppercase">
+                    {terms} Month Terms
                   </span>
                 </div>
-                <div>
-                  <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Invoiced</span>
-                  <span className="font-semibold text-slate-800">₱{selectedInvoice.total_amount.toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Due Date</span>
-                  <span className="font-semibold text-slate-800">
-                    {new Date(selectedInvoice.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Outstanding Balance</span>
-                  <span className="font-bold text-[#4A0E17]">₱{selectedInvoice.balance.toLocaleString()}</span>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 text-[11px] font-medium text-slate-600">
+                    <thead className="bg-slate-100/80 text-[10px] font-bold text-slate-700 uppercase">
+                      <tr>
+                        <th className="px-3 py-2 border-r border-slate-200 bg-slate-50 text-slate-500 font-bold min-w-[140px] text-left">LEDGER DETAIL</th>
+                        <th className="px-2 py-2 border-r border-slate-200 text-center">1st Installment</th>
+                        <th className="px-2 py-2 border-r border-slate-200 text-center">2nd Installment</th>
+                        <th className="px-2 py-2 border-r border-slate-200 text-center">3rd Installment</th>
+                        <th className="px-2 py-2 border-r border-slate-200 text-center">4th Installment</th>
+                        <th className="px-2 py-2 border-r border-slate-200 text-center">5th Installment</th>
+                        <th className="px-2 py-2 border-r border-slate-200 text-center">6th Installment</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {/* Row 1: Schedule of Payment (Expected Dates) */}
+                      <tr className="bg-emerald-50/10">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 bg-emerald-50/20 text-left">Schedule of Payment</td>
+                        {[1, 2, 3, 4, 5, 6].map((idx) => {
+                          const isActive = idx <= terms;
+                          return (
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
+                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-emerald-950 font-semibold'
+                            }`}>
+                              {isActive ? getExpectedDateStr(idx) : '—'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+
+                      {/* Row 2: Amount of Payment (Expected Amounts) */}
+                      <tr className="bg-emerald-50/10">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 bg-emerald-50/20 text-left">Amount of Payment</td>
+                        {[1, 2, 3, 4, 5, 6].map((idx) => {
+                          const isActive = idx <= terms;
+                          return (
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
+                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-emerald-950 font-bold'
+                            }`}>
+                              {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+
+                      {/* Row 3: Actual Payment Date */}
+                      <tr className="bg-pink-50/10">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 bg-pink-50/20 text-left">Actual Payment Date</td>
+                        {[1, 2, 3, 4, 5, 6].map((idx) => {
+                          const isActive = idx <= terms;
+                          const payment = isActive ? payments[idx - 1] : null;
+                          return (
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
+                              !isActive ? 'bg-slate-50 text-slate-350' : payment ? 'text-pink-950 font-semibold' : 'text-slate-400'
+                            }`}>
+                              {payment ? new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+
+                      {/* Row 4: Actual Amount / Method */}
+                      <tr className="bg-pink-50/10">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 bg-pink-50/20 text-left">Actual Amount & Method</td>
+                        {[1, 2, 3, 4, 5, 6].map((idx) => {
+                          const isActive = idx <= terms;
+                          const payment = isActive ? payments[idx - 1] : null;
+                          return (
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
+                              !isActive ? 'bg-slate-50 text-slate-350' : payment ? 'text-pink-950 font-bold' : 'text-slate-400'
+                            }`}>
+                              {payment ? (
+                                <div className="flex flex-col items-center">
+                                  <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                  <span className="text-[9px] font-bold text-pink-700 bg-pink-100/60 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
+                                    {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
+                                  </span>
+                                </div>
+                              ) : '—'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {/* Form Input fields */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                  Collection Amount (₱) *
-                </label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  required
-                  placeholder="Enter amount collected..."
-                  value={collectAmount}
-                  onChange={(e) => setCollectAmount(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                    Payment Method *
-                  </label>
-                  <select
-                    value={collectMethod}
-                    onChange={(e) => setCollectMethod(e.target.value as PaymentMethod)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
-                  >
-                    <option value="cash">Cash Collection</option>
-                    <option value="gcash">GCash</option>
-                    <option value="maya">Maya</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="check">Check Payment</option>
-                    <option value="online">Online Payment</option>
-                  </select>
+              <form onSubmit={handleRecordCollection} className="space-y-4">
+                {/* Selected Invoice Details Box */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Client</span>
+                    <span className="font-bold text-slate-800 uppercase">
+                      {selectedInvoice.customer?.first_name} {selectedInvoice.customer?.last_name}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Invoiced</span>
+                    <span className="font-bold text-slate-800">₱{selectedInvoice.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Due Date</span>
+                    <span className="font-bold text-slate-800">
+                      {new Date(selectedInvoice.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Outstanding Balance</span>
+                    <span className="font-bold text-[#4A0E17]">₱{selectedInvoice.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
 
+                {/* Form Input fields */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                    Date Collected *
+                    Collection Amount (₱) *
                   </label>
                   <input 
-                    type="date" 
+                    type="number" 
+                    step="0.01" 
                     required
-                    value={collectDate}
-                    onChange={(e) => setCollectDate(e.target.value)}
+                    placeholder="Enter amount collected..."
+                    value={collectAmount}
+                    onChange={(e) => setCollectAmount(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                  Reference Number {needsReference ? '*' : '(Optional)'}
-                </label>
-                <input 
-                  type="text" 
-                  required={needsReference}
-                  placeholder={needsReference ? "Enter transaction reference code..." : "e.g. check no., deposit slip id..."}
-                  value={collectReference}
-                  onChange={(e) => setCollectReference(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
-                />
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                      Payment Method *
+                    </label>
+                    <select
+                      value={collectMethod}
+                      onChange={(e) => setCollectMethod(e.target.value as PaymentMethod)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+                    >
+                      <option value="cash">Cash Collection</option>
+                      <option value="gcash">GCash</option>
+                      <option value="maya">Maya</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="check">Check Payment</option>
+                      <option value="online">Online Payment</option>
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                  Collection Notes
-                </label>
-                <textarea 
-                  rows={2}
-                  placeholder="Record additional payment notes..."
-                  value={collectNotes}
-                  onChange={(e) => setCollectNotes(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition resize-none"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                      Date Collected *
+                    </label>
+                    <input 
+                      type="date" 
+                      required
+                      value={collectDate}
+                      onChange={(e) => setCollectDate(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+                    />
+                  </div>
+                </div>
 
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-3 mt-6 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setCollectionModalOpen(false)}
-                  disabled={recordCollectionMut.isPending}
-                  className="px-5 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50 rounded-2xl transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={recordCollectionMut.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-bold rounded-2xl shadow-md transition disabled:opacity-50 cursor-pointer"
-                >
-                  {recordCollectionMut.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Recording...</span>
-                    </>
-                  ) : (
-                    <span>Record Collection</span>
-                  )}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                    Reference Number {needsReference ? '*' : '(Optional)'}
+                  </label>
+                  <input 
+                    type="text" 
+                    required={needsReference}
+                    placeholder={needsReference ? "Enter transaction reference code..." : "e.g. check no., deposit slip id..."}
+                    value={collectReference}
+                    onChange={(e) => setCollectReference(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                    Collection Notes
+                  </label>
+                  <textarea 
+                    rows={2}
+                    placeholder="Record additional payment notes..."
+                    value={collectNotes}
+                    onChange={(e) => setCollectNotes(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition resize-none"
+                  />
+                </div>
+
+                {/* Submit Buttons */}
+                <div className="flex items-center justify-end gap-3 mt-6 border-t border-slate-100 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setCollectionModalOpen(false)}
+                    disabled={recordCollectionMut.isPending}
+                    className="px-5 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50 rounded-2xl transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={recordCollectionMut.isPending}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-bold rounded-2xl shadow-md transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {recordCollectionMut.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Recording...</span>
+                      </>
+                    ) : (
+                      <span>Record Collection</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -68,6 +68,7 @@ const navItems: NavItem[] = [
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
   { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
   { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
+  { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
 ];
 
 // Role-grouped nav (used by Administrator / Owner)
@@ -118,6 +119,7 @@ const adminNavGroups: NavGroup[] = [
     accent: '#06b6d4', // cyan
     children: [
       { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
+      { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
     ],
   },
 ];
@@ -126,6 +128,7 @@ const adminNavGroups: NavGroup[] = [
 const adminGeneralItems: NavItem[] = [
   { label: 'Customer Records', path: '/dashboard/customers', icon: Users },
   { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
+  { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
   { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
 ];
@@ -281,7 +284,7 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   } else if (isUnderwriter) {
     isForbidden = !['Dashboard', 'Insurance Requests', 'Customer Records', 'Summary', 'Reports'].includes(item.label);
   } else if (isCollection) {
-    isForbidden = !['Collection Module'].includes(item.label);
+    isForbidden = !['Collection Module', 'Collection Ledger'].includes(item.label);
   }
 
   if (isForbidden) {

@@ -26,6 +26,7 @@ class InvoiceController extends Controller
                 'customer',
                 'policy:id,policy_number',
                 'createdBy:id,name',
+                'payments',
             ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
