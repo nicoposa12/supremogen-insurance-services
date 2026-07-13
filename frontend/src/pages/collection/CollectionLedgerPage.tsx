@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronRight,
   Plus,
-  Pencil
+  Pencil,
+  AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -519,18 +520,40 @@ export default function CollectionLedgerPage() {
                           </td>
                           <td className="px-3 py-3 border-r border-slate-200 font-mono font-extrabold text-slate-700">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                           <td className="px-2 py-3 border-r border-slate-200 text-center font-mono font-extrabold text-slate-600">{terms}</td>
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono text-slate-650 font-bold">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                          
-                          {/* Monthly cells header row */}
-                          {[1, 2, 3, 4, 5, 6].map((idx) => {
-                            const monthInfo = installmentMonths[idx - 1];
-                            const isActive = idx <= terms;
-                            return (
-                              <td key={idx} className={`px-2 py-3 border-r border-slate-200 text-center text-[10px] font-extrabold bg-[#4A0E17]/5 ${!isActive ? 'bg-slate-100 text-slate-400' : 'text-[#4A0E17]'}`}>
-                                {isActive ? `${idx}ST (${monthInfo?.monthName})` : '—'}
-                              </td>
-                            );
-                          })}
+                           <td className="px-3 py-3 border-r border-slate-200 font-mono text-slate-650 font-bold">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                           
+                           {/* Monthly cells header row */}
+                           {[1, 2, 3, 4, 5, 6].map((idx) => {
+                             const monthInfo = installmentMonths[idx - 1];
+                             const isActive = idx <= terms;
+                             const isPaid = isActive && idx <= Math.floor(amountPaid / installmentAmount);
+                             
+                             const cellDueDate = inceptionDateStr ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + idx - 1, new Date(inceptionDateStr).getDate()) : null;
+                             const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && (() => {
+                               const today = new Date();
+                               const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                               const cellMidnight = new Date(cellDueDate.getFullYear(), cellDueDate.getMonth(), cellDueDate.getDate());
+                               const diff = todayMidnight.getTime() - cellMidnight.getTime();
+                               return Math.floor(diff / (1000 * 60 * 60 * 24)) > 3;
+                             })();
+
+                             const suffix = idx === 1 ? 'ST' : idx === 2 ? 'ND' : idx === 3 ? 'RD' : 'TH';
+
+                             return (
+                               <td key={idx} className={`px-2 py-3 border-r border-slate-200 text-center text-[10px] font-extrabold bg-[#4A0E17]/5 ${!isActive ? 'bg-slate-100 text-slate-400' : 'text-[#4A0E17]'}`}>
+                                 {isActive ? (
+                                   <div className="flex items-center justify-center gap-1">
+                                     <span>{idx}{suffix} ({monthInfo?.monthName})</span>
+                                     {isCellOverdue && (
+                                       <span title="Overdue by more than 3 days!">
+                                         <AlertTriangle className="h-2.5 w-2.5 text-rose-600 animate-pulse" />
+                                       </span>
+                                     )}
+                                   </div>
+                                 ) : '—'}
+                               </td>
+                             );
+                           })}
 
                           <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                           <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 bg-rose-50/40">

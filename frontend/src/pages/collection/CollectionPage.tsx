@@ -15,7 +15,8 @@ import {
   Info,
   Clock,
   Plus,
-  Pencil
+  Pencil,
+  AlertTriangle
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -670,34 +671,48 @@ export default function CollectionPage() {
                               {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                             </td>
                             <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-bold text-slate-700">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            <td className="px-2 py-3.5 border-r border-slate-100 text-center font-mono font-bold text-slate-600">{terms}</td>
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-slate-600">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            
-                            {/* Installments 1 to 6 */}
-                            {[1, 2, 3, 4, 5, 6].map((idx) => {
-                              const monthInfo = installmentMonths[idx - 1];
-                              const isActive = idx <= terms;
-                              const isPaid = isActive && idx <= paidInstallments;
-                              const isDue = isActive && !isPaid && idx === currentInstallmentIndex;
-                              
-                              return (
-                                <td key={idx} className={`px-2 py-2 border-r border-slate-100 text-center ${
-                                  !isActive ? 'bg-slate-50 text-slate-300' : isPaid ? 'bg-emerald-50/50' : isDue ? 'bg-rose-50/40' : ''
-                                }`}>
-                                  {isActive ? (
-                                    <div className="flex flex-col items-center justify-center">
-                                      <span className="text-[9px] font-bold text-slate-400 leading-none">{monthInfo?.monthName}</span>
-                                      <span className={`text-[11px] font-mono font-semibold mt-1 leading-none ${
-                                        isPaid ? 'text-emerald-700 font-bold' : isDue ? 'text-rose-700 font-bold' : 'text-slate-600'
-                                      }`}>
-                                        ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                      </span>
-                                      <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 rounded leading-none ${
-                                        isPaid ? 'bg-emerald-100 text-emerald-800' : isDue ? 'bg-rose-100 text-rose-800 animate-pulse' : 'bg-slate-100 text-slate-400'
-                                      }`}>
-                                        {isPaid ? 'Paid' : isDue ? 'Due' : 'Unpaid'}
-                                      </span>
-                                    </div>
+                             <td className="px-2 py-3.5 border-r border-slate-100 text-center font-mono font-bold text-slate-600">{terms}</td>
+                             <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-slate-600">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                             
+                             {/* Installments 1 to 6 */}
+                             {[1, 2, 3, 4, 5, 6].map((idx) => {
+                               const monthInfo = installmentMonths[idx - 1];
+                               const isActive = idx <= terms;
+                               const isPaid = isActive && idx <= paidInstallments;
+                               const isDue = isActive && !isPaid && idx === currentInstallmentIndex;
+                               
+                               const cellDueDate = inceptionDateStr ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + idx - 1, new Date(inceptionDateStr).getDate()) : null;
+                               const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && (() => {
+                                 const today = new Date();
+                                 const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                 const cellMidnight = new Date(cellDueDate.getFullYear(), cellDueDate.getMonth(), cellDueDate.getDate());
+                                 const diff = todayMidnight.getTime() - cellMidnight.getTime();
+                                 return Math.floor(diff / (1000 * 60 * 60 * 24)) > 3;
+                               })();
+
+                               return (
+                                 <td key={idx} className={`px-2 py-2 border-r border-slate-100 text-center ${
+                                   !isActive ? 'bg-slate-50 text-slate-300' : isPaid ? 'bg-emerald-50/50' : isDue ? 'bg-rose-50/40' : ''
+                                 }`}>
+                                   {isActive ? (
+                                     <div className="flex flex-col items-center justify-center">
+                                       <span className="text-[9px] font-bold text-slate-400 leading-none">{monthInfo?.monthName}</span>
+                                       <span className={`text-[11px] font-mono font-semibold mt-1 leading-none ${
+                                         isPaid ? 'text-emerald-700 font-bold' : isDue ? 'text-rose-700 font-bold' : 'text-slate-600'
+                                       }`}>
+                                         ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                       </span>
+                                       <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 ${
+                                         isPaid ? 'bg-emerald-100 text-emerald-800' : isDue ? 'bg-rose-100 text-rose-800 animate-pulse' : 'bg-slate-100 text-slate-400'
+                                       }`}>
+                                         <span>{isPaid ? 'Paid' : isDue ? 'Due' : 'Unpaid'}</span>
+                                         {isCellOverdue && (
+                                           <span title="Overdue by more than 3 days!">
+                                             <AlertTriangle className="h-2 w-2 text-rose-600 animate-pulse" />
+                                           </span>
+                                         )}
+                                       </span>
+                                     </div>
                                   ) : (
                                     <span className="text-slate-300 font-bold">—</span>
                                   )}
