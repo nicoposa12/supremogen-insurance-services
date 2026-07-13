@@ -25,13 +25,6 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::get('/temp-seed', function () {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', [
-            '--class' => 'RoleAndPermissionSeeder',
-            '--force' => true
-        ]);
-        return 'Database seeded successfully!';
-    });
     // Stream notifications (authenticated via query param token or bearer token)
     Route::get('/notifications/stream', [NotificationController::class, 'stream'])
         ->middleware(['auth:sanctum']);
