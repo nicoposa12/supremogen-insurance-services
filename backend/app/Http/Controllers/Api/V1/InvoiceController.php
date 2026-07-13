@@ -299,4 +299,77 @@ class InvoiceController extends Controller
             'data' => $invoice->fresh(),
         ]);
     }
+
+    /**
+     * Send a payment reminder for the next unpaid installment.
+     */
+    public function sendReminder(string $id)
+    {
+        $invoice = Invoice::with(['customer', 'policy', 'payments'])->find($id);
+        if (!$invoice) {
+            return response()->json(['success' => false, 'message' => 'Invoice not found.'], 404);
+        }
+
+        $customer = $invoice->customer;
+        if (!$customer) {
+            return response()->json(['success' => false, 'message' => 'Customer details not found for this invoice.'], 422);
+        }
+
+        $email = $customer->email;
+        if (!$email) {
+            return response()->json(['success' => false, 'message' => 'Customer does not have a registered email address.'], 422);
+        }
+
+        $terms = (int) ($customer->payment_terms ?? 1);
+        $totalAmount = (float) $invoice->total_amount;
+        $amountPaid = (float) $invoice->amount_paid;
+
+        $installmentAmount = $terms > 0 ? ($totalAmount / $terms) : 0;
+        $paidInstallments = $installmentAmount > 0 ? floor($amountPaid / $installmentAmount) : 0;
+        $nextInstallmentIndex = $paidInstallments + 1;
+
+        if ($nextInstallmentIndex > $terms || $invoice->balance <= 0) {
+            return response()->json(['success' => false, 'message' => 'Invoice has already been paid in full. No reminders needed.'], 422);
+        }
+
+        $inceptionDateStr = $customer->inception_date;
+        if (!$inceptionDateStr) {
+            return response()->json(['success' => false, 'message' => 'Customer inception date is missing. Cannot calculate due date.'], 422);
+        }
+
+        $inception = \Carbon\Carbon::parse($inceptionDateStr);
+        $dueDate = $inception->copy()->addMonths($nextInstallmentIndex - 1);
+        $dueDateFormatted = $dueDate->format('M d, Y');
+
+        $ordinals = [1 => '1st', 2 => '2nd', 3 => '3rd', 4 => '4th', 5 => '5th', 6 => '6th'];
+        $installmentOrdinal = $ordinals[$nextInstallmentIndex] ?? ($nextInstallmentIndex . 'th');
+
+        $customerName = trim($customer->first_name . ' ' . $customer->last_name);
+        $policyNumber = $customer->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($email)->send(
+                new \App\Mail\PaymentReminderMail(
+                    $customerName,
+                    $policyNumber,
+                    $installmentOrdinal,
+                    $terms,
+                    $installmentAmount,
+                    (float) $invoice->balance,
+                    $dueDateFormatted
+                )
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send payment reminder email: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Payment reminder email successfully sent to {$email} for the {$installmentOrdinal} installment."
+        ]);
+    }
 }

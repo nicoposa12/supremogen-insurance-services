@@ -19,6 +19,7 @@ import {
   Plus,
   Pencil,
   AlertTriangle,
+  Mail,
   FileText
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -26,7 +27,7 @@ import { Link } from 'react-router-dom';
 import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
-import { getInvoices } from '../../services/invoiceApi';
+import { getInvoices, sendInvoiceReminder } from '../../services/invoiceApi';
 import { recordPayment, updatePayment } from '../../services/paymentApi';
 import { getReportSummary } from '../../services/reportApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
@@ -618,6 +619,25 @@ export default function CollectionLedgerPage() {
     }
   });
 
+  // State to track which invoice reminder is sending
+  const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
+
+  // Mutation for sending a payment reminder email
+  const sendReminderMut = useMutation({
+    mutationFn: (invoiceId: number) => {
+      setSendingReminderId(invoiceId);
+      return sendInvoiceReminder(invoiceId);
+    },
+    onSuccess: (res: any) => {
+      showToast(res.message || 'Payment reminder sent successfully!', 'success');
+      setSendingReminderId(null);
+    },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message ?? 'Failed to send payment reminder email.', 'error');
+      setSendingReminderId(null);
+    }
+  });
+
   const resetCollectionForm = () => {
     setCollectAmount('');
     setCollectMethod('walk_in');
@@ -1147,12 +1167,33 @@ export default function CollectionLedgerPage() {
                              )}
                            </td>
                            <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 5 : 1} onClick={(e) => e.stopPropagation()}>
-                             <button
-                               onClick={() => generateReceipt(row)}
-                               className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
-                             >
-                               <FileText className="h-3 w-3" /> Receipt
-                             </button>
+                             <div className="flex flex-col items-center gap-2">
+                               <button
+                                 onClick={() => generateReceipt(row)}
+                                 className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
+                               >
+                                 <FileText className="h-3 w-3" /> Receipt
+                               </button>
+                               {row.balance > 0 && (
+                                 <button
+                                   onClick={() => sendReminderMut.mutate(row.id)}
+                                   disabled={!customer?.email || sendingReminderId === row.id}
+                                   className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer ${
+                                     !customer?.email
+                                       ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-650 cursor-not-allowed shadow-none border border-transparent'
+                                       : 'bg-blue-700 hover:bg-blue-800 dark:bg-blue-800 dark:hover:bg-blue-700'
+                                   }`}
+                                   title={!customer?.email ? 'No email registered for client' : 'Send payment reminder email to client'}
+                                 >
+                                   {sendingReminderId === row.id ? (
+                                     <Loader2 className="h-3 w-3 animate-spin" />
+                                   ) : (
+                                     <Mail className="h-3 w-3" />
+                                   )}
+                                   <span>Reminder</span>
+                                 </button>
+                               )}
+                             </div>
                            </td>
                          </tr>
 

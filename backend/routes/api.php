@@ -71,6 +71,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/invoices', InvoiceController::class);
         Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send']);
         Route::post('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
+        Route::post('/invoices/{invoice}/send-reminder', [InvoiceController::class, 'sendReminder']);
 
         // Payments
         Route::get('/payments', [PaymentController::class, 'index']);

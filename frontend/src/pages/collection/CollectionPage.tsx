@@ -16,7 +16,8 @@ import {
   Clock,
   Plus,
   Pencil,
-  AlertTriangle
+  AlertTriangle,
+  Mail
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -24,7 +25,7 @@ import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
-import { getInvoices } from '../../services/invoiceApi';
+import { getInvoices, sendInvoiceReminder } from '../../services/invoiceApi';
 import { getPayments, recordPayment, updatePayment } from '../../services/paymentApi';
 import { getReportSummary } from '../../services/reportApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
@@ -141,6 +142,25 @@ export default function CollectionPage() {
     },
     onError: (err: any) => {
       showToast(err.response?.data?.message ?? 'Failed to update collection.', 'error');
+    }
+  });
+
+  // State to track which invoice reminder is sending
+  const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
+
+  // Mutation for sending a payment reminder email
+  const sendReminderMut = useMutation({
+    mutationFn: (invoiceId: number) => {
+      setSendingReminderId(invoiceId);
+      return sendInvoiceReminder(invoiceId);
+    },
+    onSuccess: (res: any) => {
+      showToast(res.message || 'Payment reminder sent successfully!', 'success');
+      setSendingReminderId(null);
+    },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message ?? 'Failed to send payment reminder email.', 'error');
+      setSendingReminderId(null);
     }
   });
 
@@ -746,14 +766,38 @@ export default function CollectionPage() {
                                 <span className="text-slate-400 dark:text-slate-500">—</span>
                               )}
                             </td>
-                            <td className="px-4 py-3.5 text-center">
-                              <button
-                                onClick={() => handleOpenCollection(row)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
-                              >
-                                <CreditCard className="h-3 w-3" /> Record
-                              </button>
-                            </td>
+                             <td className="px-4 py-3.5 text-center">
+                               <div className="flex flex-col items-center gap-1.5 min-w-[95px]">
+                                 <button
+                                   onClick={() => handleOpenCollection(row)}
+                                   className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
+                                 >
+                                   <CreditCard className="h-3 w-3" /> Record
+                                 </button>
+                                 {row.balance > 0 && (
+                                   <button
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       sendReminderMut.mutate(row.id);
+                                     }}
+                                     disabled={!row.customer?.email || sendingReminderId === row.id}
+                                     className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${
+                                       !row.customer?.email
+                                         ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-650 cursor-not-allowed shadow-none border border-transparent'
+                                         : 'bg-blue-700 hover:bg-blue-800 dark:bg-blue-800 dark:hover:bg-blue-700'
+                                     }`}
+                                     title={!row.customer?.email ? 'No email registered for client' : 'Send payment reminder email to client'}
+                                   >
+                                     {sendingReminderId === row.id ? (
+                                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                     ) : (
+                                       <Mail className="h-3.5 w-3.5" />
+                                     )}
+                                     <span>Reminder</span>
+                                   </button>
+                                 )}
+                               </div>
+                             </td>
                           </tr>
                         );
                       })}
