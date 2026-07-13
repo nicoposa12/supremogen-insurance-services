@@ -1048,22 +1048,30 @@ export default function CollectionLedgerPage() {
                     const dueAmount = calculateDueAmount(row);
                     const isExpanded = !!expandedInvoiceIds[row.id];
 
+                    // Calculate first active due installment index (the first one not fully paid)
+                    const currentInstallmentIndex = (() => {
+                      for (let i = 1; i <= terms; i++) {
+                        const pay = payments[i - 1];
+                        if (!pay || Number(pay.amount) < installmentAmount) {
+                          return i;
+                        }
+                      }
+                      return terms + 1; // All paid
+                    })();
+
                     // Grace period check for highlighting (3-6 terms, 3 day grace period)
                     let isHighlighted = false;
-                    if (terms >= 3 && terms <= 6 && inceptionDateStr) {
-                      const paidCount = Math.floor(amountPaid / installmentAmount);
-                      if (paidCount < terms) {
-                        const inDate = new Date(inceptionDateStr);
-                        const unpaidDueDate = new Date(inDate.getFullYear(), inDate.getMonth() + paidCount, inDate.getDate());
-                        const today = new Date();
-                        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                        const dueMidnight = new Date(unpaidDueDate.getFullYear(), unpaidDueDate.getMonth(), unpaidDueDate.getDate());
-                        
-                        const diffTime = todayMidnight.getTime() - dueMidnight.getTime();
-                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                        if (diffDays > 3) {
-                          isHighlighted = true;
-                        }
+                    if (terms >= 3 && terms <= 6 && inceptionDateStr && currentInstallmentIndex <= terms) {
+                      const inDate = new Date(inceptionDateStr);
+                      const unpaidDueDate = new Date(inDate.getFullYear(), inDate.getMonth() + (currentInstallmentIndex - 1), inDate.getDate());
+                      const today = new Date();
+                      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                      const dueMidnight = new Date(unpaidDueDate.getFullYear(), unpaidDueDate.getMonth(), unpaidDueDate.getDate());
+                      
+                      const diffTime = todayMidnight.getTime() - dueMidnight.getTime();
+                      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                      if (diffDays > 3) {
+                        isHighlighted = true;
                       }
                     }
 
@@ -1124,38 +1132,75 @@ export default function CollectionLedgerPage() {
                           <td className="px-2 py-3 border-r border-slate-200 text-center font-mono font-extrabold text-slate-600">{terms}</td>
                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-slate-650 font-bold">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                            
-                           {/* Monthly cells header row */}
                            {[1, 2, 3, 4, 5, 6].map((idx) => {
-                             const monthInfo = installmentMonths[idx - 1];
-                             const isActive = idx <= terms;
-                             const isPaid = isActive && idx <= Math.floor(amountPaid / installmentAmount);
-                             
-                             const cellDueDate = inceptionDateStr ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + idx - 1, new Date(inceptionDateStr).getDate()) : null;
-                             const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && (() => {
-                               const today = new Date();
-                               const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                               const cellMidnight = new Date(cellDueDate.getFullYear(), cellDueDate.getMonth(), cellDueDate.getDate());
-                               const diff = todayMidnight.getTime() - cellMidnight.getTime();
-                               return Math.floor(diff / (1000 * 60 * 60 * 24)) > 3;
-                             })();
+                              const monthInfo = installmentMonths[idx - 1];
+                              const isActive = idx <= terms;
+                              const payment = isActive ? payments[idx - 1] : null;
+                              
+                              const isPaid = isActive && payment && Number(payment.amount) >= installmentAmount;
+                              const isPartial = isActive && payment && Number(payment.amount) > 0 && Number(payment.amount) < installmentAmount;
+                              const isDue = isActive && !isPaid && idx === currentInstallmentIndex;
+                              
+                              const cellDueDate = inceptionDateStr ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + idx - 1, new Date(inceptionDateStr).getDate()) : null;
+                              const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && (() => {
+                                const today = new Date();
+                                const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                const cellMidnight = new Date(cellDueDate.getFullYear(), cellDueDate.getMonth(), cellDueDate.getDate());
+                                const diff = todayMidnight.getTime() - cellMidnight.getTime();
+                                return Math.floor(diff / (1000 * 60 * 60 * 24)) > 3;
+                              })();
 
-                             const suffix = idx === 1 ? 'ST' : idx === 2 ? 'ND' : idx === 3 ? 'RD' : 'TH';
+                              const suffix = idx === 1 ? 'ST' : idx === 2 ? 'ND' : idx === 3 ? 'RD' : 'TH';
 
-                             return (
-                               <td key={idx} className={`px-2 py-3 border-r border-slate-200 text-center text-[10px] font-extrabold bg-[#4A0E17]/5 ${!isActive ? 'bg-slate-100 text-slate-400' : 'text-[#4A0E17]'}`}>
-                                 {isActive ? (
-                                   <div className="flex items-center justify-center gap-1">
-                                     <span>{idx}{suffix} ({monthInfo?.monthName})</span>
-                                     {isCellOverdue && (
-                                       <span title="Overdue by more than 3 days!">
-                                         <AlertTriangle className="h-2.5 w-2.5 text-rose-600 animate-pulse" />
-                                       </span>
-                                     )}
-                                   </div>
-                                 ) : '—'}
-                               </td>
-                             );
-                           })}
+                              return (
+                                <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center transition-all ${
+                                  !isActive 
+                                    ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650' 
+                                    : isPaid 
+                                      ? 'bg-emerald-50/50 dark:bg-emerald-950/20' 
+                                      : isPartial
+                                        ? 'bg-amber-50/50 dark:bg-amber-950/20'
+                                        : isDue 
+                                          ? 'bg-rose-50/40 dark:bg-rose-950/20' 
+                                          : 'dark:bg-slate-900/10'
+                                }`}>
+                                  {isActive ? (
+                                    <div className="flex flex-col items-center justify-center gap-0.5">
+                                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-none">{idx}{suffix} ({monthInfo?.monthName})</span>
+                                      <span className={`text-[10px] font-mono font-bold mt-0.5 leading-none ${
+                                        isPaid 
+                                          ? 'text-emerald-700 dark:text-emerald-400' 
+                                          : isPartial
+                                            ? 'text-amber-700 dark:text-amber-400 font-bold'
+                                            : isDue 
+                                              ? 'text-rose-700 dark:text-rose-400' 
+                                              : 'text-slate-655 dark:text-slate-350'
+                                      }`}>
+                                        ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </span>
+                                      <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 border border-transparent ${
+                                        isPaid 
+                                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30' 
+                                          : isPartial
+                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/30 animate-pulse'
+                                            : isDue 
+                                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse' 
+                                              : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700/50'
+                                      }`}>
+                                        <span>{isPaid ? 'Paid' : isPartial ? 'Partial' : isDue ? 'Due' : 'Unpaid'}</span>
+                                        {isCellOverdue && (
+                                          <span title="Overdue by more than 3 days!">
+                                            <AlertTriangle className="h-2 w-2 text-rose-600 dark:text-rose-455 animate-pulse" />
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-300 dark:text-slate-600 font-bold">—</span>
+                                  )}
+                                </td>
+                              );
+                            })}
                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
                              {dueAmount > 0 ? (
