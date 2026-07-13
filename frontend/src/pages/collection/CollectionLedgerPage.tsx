@@ -50,6 +50,7 @@ export default function CollectionLedgerPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [nameFilter, setNameFilter] = useState('');
   const [plateFilter, setPlateFilter] = useState('');
+  const [policyFilter, setPolicyFilter] = useState('');
 
   // Record Collection Modal State
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
@@ -72,6 +73,7 @@ export default function CollectionLedgerPage() {
     setTypeFilter('');
     setNameFilter('');
     setPlateFilter('');
+    setPolicyFilter('');
     setPage(1);
   };
 
@@ -572,10 +574,18 @@ export default function CollectionLedgerPage() {
           return false;
         }
       }
+
+      // Policy Number filter
+      if (policyFilter) {
+        const policyNo = (customer?.policy_no || row.policy?.policy_number || '').toLowerCase();
+        if (!policyNo.includes(policyFilter.toLowerCase())) {
+          return false;
+        }
+      }
       
       return true;
     });
-  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter]);
+  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter]);
   // Mutation for recording a collection payment
   const recordCollectionMut = useMutation({
     mutationFn: (data: PaymentFormData) => recordPayment(data),
@@ -831,7 +841,7 @@ export default function CollectionLedgerPage() {
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition" 
             />
-            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter) && (
+            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter) && (
               <button 
                 onClick={handleClearSearchAndFilters}
                 title="Clear all search and column filters"
@@ -921,6 +931,19 @@ export default function CollectionLedgerPage() {
                         />
                       </div>
                     </th>
+                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[140px]">
+                      <div className="flex flex-col gap-1.5">
+                        <span>Policy Number</span>
+                        <input 
+                          type="text" 
+                          placeholder="Filter Policy..." 
+                          value={policyFilter}
+                          onChange={(e) => setPolicyFilter(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
+                        />
+                      </div>
+                    </th>
                     <th className="px-3 py-2.5 border-r border-slate-200 min-w-[130px]">
                       <div className="flex flex-col gap-1.5">
                         <span>Plate Number</span>
@@ -955,17 +978,17 @@ export default function CollectionLedgerPage() {
                     <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">5th</th>
                     <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">6th</th>
                     <th className="px-3 py-3 border-r border-slate-200">Remaining Balance</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-[#4A0E17] font-extrabold bg-[#4A0E17]/10 min-w-[130px]">Due {currentMonthName} {currentYear}</th>
+                    <th className="px-3 py-2.5 border-r border-slate-200 text-[#4A0E17] font-extrabold bg-[#4A0E17]/10 min-w-[130px]">Due {currentMonthName} {currentYear}</th>
                     <th className="px-4 py-3 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-slate-200 bg-white">
                   {filteredInvoices.length === 0 ? (
                     <tr className="bg-white">
-                      <td colSpan={18} className="px-4 py-16 text-center">
+                      <td colSpan={19} className="px-4 py-16 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="p-4 rounded-full bg-slate-50 text-slate-400">
-                            <Receipt className="h-8 w-8 text-slate-450" />
+                            <Receipt className="h-8 w-8 text-slate-455" />
                           </div>
                           <span className="text-sm font-bold text-slate-800">No record found</span>
                           <span className="text-xs text-slate-400 font-normal">Adjust your filters or record collections to display schedules.</span>
@@ -1072,6 +1095,7 @@ export default function CollectionLedgerPage() {
                               </div>
                             )}
                           </td>
+                          <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-800 uppercase">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
                           <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-600 uppercase">{customer?.plate_no || '—'}</td>
                           <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
                             {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
@@ -1139,7 +1163,7 @@ export default function CollectionLedgerPage() {
                         {/* Row 2: schedule of payment */}
                         <tr className="bg-emerald-50/10 text-emerald-800">
                           <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 text-[10px] uppercase tracking-wide">automatic</td>
-                          <td className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20">schedule of payment</td>
+                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20">schedule of payment</td>
                           <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 text-center font-bold">automatic</td>
                           <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 font-bold text-center">Installment Due Dates</td>
                           
@@ -1159,7 +1183,7 @@ export default function CollectionLedgerPage() {
                         {/* Row 3: amount of payment */}
                         <tr className="bg-emerald-50/10 text-emerald-800">
                           <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 text-[10px] uppercase tracking-wide">automatic</td>
-                          <td className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20">amount of payment</td>
+                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20">amount of payment</td>
                           <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 text-center font-bold">automatic</td>
                           <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 font-bold text-center">Target Amount Per Installment</td>
                           
@@ -1178,7 +1202,7 @@ export default function CollectionLedgerPage() {
                         {/* Row 4: actual payment date */}
                         <tr className="bg-pink-50/10 text-pink-850">
                           <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 text-[10px]"></td>
-                          <td className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20">actual payment date</td>
+                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20">actual payment date</td>
                           <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 text-center"></td>
                           <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 font-bold text-center text-pink-900">Recorded Dates Collected</td>
                           
@@ -1200,7 +1224,7 @@ export default function CollectionLedgerPage() {
                         {/* Row 5: actual amount payment */}
                         <tr className="bg-pink-50/10 text-pink-850 border-b-2 border-slate-200">
                           <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 text-[10px]"></td>
-                          <td className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20">actual amount payment</td>
+                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20">actual amount payment</td>
                           <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 text-center"></td>
                           <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 font-bold text-center text-pink-900 font-mono">Amount Paid & Method</td>
                           
@@ -1458,11 +1482,17 @@ export default function CollectionLedgerPage() {
 
               <form onSubmit={handleRecordCollection} className="space-y-4">
                  {/* Selected Invoice Details Box */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
                   <div>
                     <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Client</span>
                     <span className="font-bold text-slate-800 uppercase">
                       {selectedInvoice.customer?.first_name} {selectedInvoice.customer?.last_name}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Policy Number</span>
+                    <span className="font-bold text-slate-800 uppercase">
+                      {selectedInvoice.customer?.policy_no || selectedInvoice.policy?.policy_number || '—'}
                     </span>
                   </div>
                   <div>
