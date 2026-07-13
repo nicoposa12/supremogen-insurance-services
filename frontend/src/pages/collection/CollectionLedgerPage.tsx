@@ -52,6 +52,7 @@ export default function CollectionLedgerPage() {
   const [nameFilter, setNameFilter] = useState('');
   const [plateFilter, setPlateFilter] = useState('');
   const [policyFilter, setPolicyFilter] = useState('');
+  const [termFilter, setTermFilter] = useState('');
 
   // Record Collection Modal State
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
@@ -78,6 +79,7 @@ export default function CollectionLedgerPage() {
     setNameFilter('');
     setPlateFilter('');
     setPolicyFilter('');
+    setTermFilter('');
     setPage(1);
   };
 
@@ -590,10 +592,18 @@ export default function CollectionLedgerPage() {
           return false;
         }
       }
+
+      // Terms filter
+      if (termFilter) {
+        const terms = String(customer?.payment_terms || 1);
+        if (terms !== termFilter) {
+          return false;
+        }
+      }
       
       return true;
     });
-  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter]);
+  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter, termFilter]);
   // Mutation for recording a collection payment
   const recordCollectionMut = useMutation({
     mutationFn: (data: PaymentFormData) => recordPayment(data),
@@ -1107,7 +1117,7 @@ export default function CollectionLedgerPage() {
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition" 
             />
-            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter) && (
+            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter) && (
               <button 
                 onClick={handleClearSearchAndFilters}
                 title="Clear all search and column filters"
@@ -1235,7 +1245,25 @@ export default function CollectionLedgerPage() {
                         <div className="h-7" />
                       </div>
                     </th>
-                    <th className="px-2 py-3 border-r border-slate-200 text-center">Terms</th>
+                    <th className="px-2 py-2.5 border-r border-slate-200 text-center min-w-[80px]">
+                      <div className="flex flex-col gap-1.5 items-center">
+                        <span>Terms</span>
+                        <select
+                          value={termFilter}
+                          onChange={(e) => setTermFilter(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full max-w-[70px] px-1 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
+                        >
+                          <option value="">All</option>
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                          <option value="5">5</option>
+                          <option value="6">6</option>
+                        </select>
+                      </div>
+                    </th>
                     <th className="px-3 py-3 border-r border-slate-200">Amount of Payment</th>
                     <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">1st</th>
                     <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">2nd</th>
