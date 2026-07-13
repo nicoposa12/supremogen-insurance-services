@@ -403,6 +403,7 @@ export default function SettingsPage() {
     'Accounting Officer': 'Accounting Officer (Billing / Payments)',
     'Claims Officer': 'Claims Officer (Claims filing / Settle)',
     'Team Renewal': 'Team Renewal (Renewal Accounts)',
+    'Collection': 'Collection Department (Billing / Payments)',
   };
 
   return (
@@ -820,6 +821,7 @@ export default function SettingsPage() {
                                 u.role_name === 'Underwriter' ? 'bg-blue-50 text-blue-700' :
                                 u.role_name === 'Accounting Officer' ? 'bg-emerald-50 text-emerald-700' :
                                 u.role_name === 'Claims Officer' ? 'bg-purple-50 text-purple-700' :
+                                u.role_name === 'Collection' ? 'bg-cyan-50 text-cyan-700' :
                                 'bg-slate-100 text-slate-700'
                               }`}>
                                 {u.role_name}

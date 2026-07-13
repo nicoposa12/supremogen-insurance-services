@@ -190,6 +190,17 @@ class RoleAndPermissionSeeder extends Seeder
             'reports.view',
         ]);
 
+        // 8. Collection
+        $collectionRole = Role::findOrCreate('Collection');
+        $collectionRole->givePermissionTo([
+            'dashboard.view',
+            'customers.view',
+            'invoices.view',
+            'payments.view',
+            'payments.create',
+            'reports.view',
+        ]);
+
         // Create the default administrator account only.
         // All other user accounts should be created through the application's Settings panel.
         $defaultUsers = [

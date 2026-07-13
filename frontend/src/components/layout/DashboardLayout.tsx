@@ -67,6 +67,7 @@ const navItems: NavItem[] = [
   { label: 'Renewals', path: '/dashboard/renewals', icon: RefreshCw },
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
   { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
+  { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
 ];
 
 // Role-grouped nav (used by Administrator / Owner)
@@ -109,6 +110,14 @@ const adminNavGroups: NavGroup[] = [
     accent: '#ef4444', // red
     children: [
       { label: 'Claims', path: '/dashboard/claims', icon: ShieldHalf },
+    ],
+  },
+  {
+    roleLabel: 'Collection',
+    icon: DollarSign,
+    accent: '#06b6d4', // cyan
+    children: [
+      { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
     ],
   },
 ];
@@ -262,6 +271,7 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   const { roles } = useAuth();
   const isAgent = roles.includes('Sales Agent') || roles.includes('Team Renewal');
   const isUnderwriter = roles.includes('Underwriter');
+  const isCollection = roles.includes('Collection');
 
   let isForbidden = false;
 
@@ -269,6 +279,8 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
     isForbidden = !['Customer Records', 'Policy Issuance Request'].includes(item.label);
   } else if (isUnderwriter) {
     isForbidden = !['Dashboard', 'Insurance Requests', 'Customer Records', 'Summary', 'Reports'].includes(item.label);
+  } else if (isCollection) {
+    isForbidden = !['Collection Module'].includes(item.label);
   }
 
   if (isForbidden) {
@@ -366,11 +378,14 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect Sales Agents and Team Renewal away from /dashboard to Customer Records
+  // Redirect Sales Agents, Team Renewal and Collection away from /dashboard to their specific landing pages
   useEffect(() => {
     const isAgent = roles?.includes('Sales Agent') || roles?.includes('Team Renewal');
+    const isCollection = roles?.includes('Collection');
     if (isAgent && location.pathname === '/dashboard') {
       navigate('/dashboard/customers', { replace: true });
+    } else if (isCollection && location.pathname === '/dashboard') {
+      navigate('/dashboard/collection', { replace: true });
     }
   }, [roles, location.pathname, navigate]);
 

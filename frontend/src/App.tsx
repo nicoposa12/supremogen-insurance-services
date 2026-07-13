@@ -60,6 +60,7 @@ const RenewalsPage = lazy(() => import('./pages/renewals/RenewalsPage'));
 const ReportsPage = lazy(() => import('./pages/reports/ReportsPage'));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
 const SummaryPage = lazy(() => import('./pages/summary/SummaryPage'));
+const CollectionPage = lazy(() => import('./pages/collection/CollectionPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -157,6 +158,9 @@ export default function App() {
 
                 {/* Settings */}
                 <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+
+                {/* Collection */}
+                <Route path="collection" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal']}><CollectionPage /></ProtectedRoute>} />
               </Route>
 
               {/* Catch-all redirect to Home */}
