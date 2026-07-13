@@ -140,12 +140,12 @@ export default function CollectionLedgerPage() {
     @media print {
       body {
         margin: 0;
-        padding: 0;
+        padding: 0.4in;
         background: #fff;
       }
       @page {
         size: letter;
-        margin: 0.4in;
+        margin: 0;
       }
       .receipt-border {
         border: 1.5px solid #000 !important;
