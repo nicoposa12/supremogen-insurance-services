@@ -152,11 +152,14 @@ function SidebarSubItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   const roleMatch = !itemParams.has('role') || itemParams.get('role') === currentParams.get('role');
   const isActive = (cleanPath === '/dashboard'
     ? location.pathname === '/dashboard'
-    : location.pathname.startsWith(cleanPath)) && roleMatch;
+    : (cleanPath === '/dashboard/collection'
+        ? location.pathname === '/dashboard/collection'
+        : location.pathname.startsWith(cleanPath))) && roleMatch;
 
   return (
     <NavLink
       to={item.path}
+      end={item.path === '/dashboard' || item.path === '/dashboard/collection'}
       className={
         `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
           ? 'bg-gradient-to-r from-[#8A1C2E] to-[#5C0612] text-white shadow-md shadow-[#8A1C2E]/20 active-nav-item'
@@ -294,7 +297,7 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   return (
     <NavLink
       to={item.path}
-      end={item.path === '/dashboard'}
+      end={item.path === '/dashboard' || item.path === '/dashboard/collection'}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
           ? 'bg-gradient-to-r from-[#8A1C2E] to-[#5C0612] text-white shadow-md shadow-[#8A1C2E]/20 active-nav-item'
@@ -498,12 +501,19 @@ export default function DashboardLayout() {
 
   // Get current page title from navigation
   const titleLookup = isAdmin ? allAdminNavItems : navItems;
-  const currentTitle = titleLookup
-    .find((item) => {
-      const cleanPath = item.path.split('?')[0];
-      if (cleanPath === '/dashboard') return location.pathname === '/dashboard';
-      return location.pathname.startsWith(cleanPath);
-    })?.label ?? 'Dashboard';
+  const currentTitle = (() => {
+    const exact = titleLookup.find((item) => item.path.split('?')[0] === location.pathname);
+    if (exact) return exact.label;
+    
+    const prefix = [...titleLookup]
+      .sort((a, b) => b.path.split('?')[0].length - a.path.split('?')[0].length)
+      .find((item) => {
+        const cleanPath = item.path.split('?')[0];
+        if (cleanPath === '/dashboard') return location.pathname === '/dashboard';
+        return location.pathname.startsWith(cleanPath);
+      });
+    return prefix?.label ?? 'Dashboard';
+  })();
 
   // Sidebar content (reused for mobile drawer and desktop sidebar)
   const sidebarContent = (
