@@ -57,6 +57,9 @@ export default function CollectionLedgerPage() {
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
+  // Receipt Page View State
+  const [viewingReceiptInvoice, setViewingReceiptInvoice] = useState<Invoice | null>(null);
+
   // Expanded rows state
   const [expandedInvoiceIds, setExpandedInvoiceIds] = useState<Record<number, boolean>>({});
 
@@ -78,8 +81,8 @@ export default function CollectionLedgerPage() {
     setPage(1);
   };
 
-  // Generate Receipt
-  const generateReceipt = (invoice: Invoice) => {
+  // Generate Receipt and Print via Hidden Iframe (No new tab or popup)
+  const printReceiptHtml = (invoice: Invoice) => {
     const customer = invoice.customer;
     const terms = Number(customer?.payment_terms || 1);
     const totalPremium = Number(invoice.total_amount);
@@ -285,95 +288,80 @@ export default function CollectionLedgerPage() {
     .schedule-table td {
       border: 1px solid #000;
       padding: 4px;
-    }
-    .notice-block {
       font-size: 11px;
-      line-height: 1.35;
-      margin-bottom: 6px;
     }
-    .notice-block p {
-      margin: 4px 0;
-    }
-    .notice-block .blue-text {
-      color: #003399;
-      font-weight: bold;
-    }
-    .notice-block .red-highlight {
-      color: #8B0000;
-      font-weight: bold;
-    }
-    .notice-block .green-highlight {
-      color: #006600;
-      font-weight: bold;
-      font-style: italic;
-    }
-    .doc-stamps-title {
-      text-align: center;
-      color: #C59B27;
-      font-weight: bold;
-      text-decoration: underline;
-      font-size: 11px;
-      margin: 4px 0 2px 0;
-      text-transform: uppercase;
-    }
-    .doc-stamps-text {
-      text-align: center;
+    .reminder-box {
       font-size: 9.5px;
-      margin: 0 0 8px 0;
-      line-height: 1.3;
+      line-height: 1.45;
+      margin-bottom: 15px;
+      text-align: justify;
     }
-    .bank-info {
-      font-size: 11px;
-      line-height: 1.35;
-      margin-bottom: 8px;
-    }
-    .bank-info p {
-      margin: 2px 0;
-    }
-    .bank-info .bank-name {
-      color: #8B0000;
+    .reminder-box .bold-blue {
+      color: #0000CD;
       font-weight: bold;
     }
-    .bank-info .underline-text {
+    .reminder-box .bold-red {
+      color: #B22222;
+      font-weight: bold;
+    }
+    .reminder-box .bold-green {
+      color: #008000;
+      font-weight: bold;
+    }
+    .stamps-box {
+      border: 1px solid #000;
+      padding: 8px 12px;
+      font-size: 9px;
+      text-align: center;
+      line-height: 1.4;
+      margin-bottom: 15px;
+    }
+    .stamps-title {
+      font-weight: bold;
       text-decoration: underline;
+      color: #D2691E;
+      margin-bottom: 2px;
     }
-    .closing-block {
-      font-size: 11px;
-      line-height: 1.35;
-      margin-bottom: 5px;
+    .bank-box {
+      font-size: 10px;
+      line-height: 1.4;
+      margin-bottom: 25px;
     }
-    .closing-block p {
-      margin: 2px 0;
-    }
-    .closing-block .company-name {
-      color: #8B0000;
+    .bank-box .bank-title {
       font-weight: bold;
+      color: #8B0000;
+      margin-bottom: 2px;
+    }
+    .thank-you-box {
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+    .thank-you-box .company-name {
+      font-weight: bold;
+      color: #8B0000;
+      margin-top: 2px;
     }
     .footer-block {
-      margin-top: auto;
       text-align: center;
+      margin-top: auto;
     }
     .footer-block img {
       width: 100%;
       height: auto;
+      max-height: 100px;
       display: block;
-    }
-    .content-wrap {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
     }
   </style>
 </head>
 <body>
   <div class="receipt-border">
-    <div class="content-wrap">
+    <div>
       <div class="header-layout">
         <div class="header-left-spacer"></div>
         <div class="header-center">
-          <img src="${supremogenLogo}" alt="Supremogen Insurance Services" />
+          <img src="${supremogenLogo}" alt="Supremogen Logo" />
           <div class="address-text">
-            2nd Flr. Unit F & H, Village Mall, Commonwealth Avenue, East Fairview Park Subdivision, Brgy. Fairview Q.C.<br/>
+            2nd Flr. Unit F & H, Village Mall, Commonwealth Avenue, East Fairview Park Subdivision, Brgy. Fairview Q.C.<br />
             sales@supremogen.com || 027-091-5125
           </div>
         </div>
@@ -382,10 +370,10 @@ export default function CollectionLedgerPage() {
           <div>${paymentMethodLabel}</div>
         </div>
       </div>
-      
-      <div class="header-line"></div>
 
-      <div class="title">ACKNOWLEDGEMENT RECEIPT</div>
+      <hr class="header-line" />
+
+      <h1 class="title">ACKNOWLEDGEMENT RECEIPT</h1>
       <div class="subtitle">This letter acknowledges receipt of partial payment for COMPREHENSIVE INSURANCE for the assured name below.</div>
 
       <table class="aligned-table">
@@ -399,11 +387,11 @@ export default function CollectionLedgerPage() {
         </tr>
         <tr>
           <td class="label">Unit Details:</td>
-          <td>${unit.toUpperCase()}</td>
+          <td>${unit}</td>
         </tr>
         <tr>
           <td class="label">Plate Number:</td>
-          <td>${plateNo.toUpperCase()}</td>
+          <td style="text-transform: uppercase;">${plateNo}</td>
         </tr>
         <tr>
           <td class="label">Effectivity Date:</td>
@@ -411,19 +399,19 @@ export default function CollectionLedgerPage() {
         </tr>
       </table>
 
-      <div class="delivery-title">DELIVERY DETAILS</div>
-      <table class="aligned-table">
+      <div class="delivery-title">Delivery Details</div>
+      <table class="aligned-table" style="margin-bottom: 12px;">
         <tr>
           <td class="label">Receiver's Name:</td>
-          <td>${receiverName.toUpperCase()}</td>
+          <td>${receiverName}</td>
         </tr>
         <tr>
           <td class="label">Delivery Address:</td>
-          <td>${deliveryAddress.toUpperCase()}</td>
+          <td>${deliveryAddress}</td>
         </tr>
         <tr>
           <td class="label">Landmark:</td>
-          <td>${landmark.toUpperCase()}</td>
+          <td>${landmark}</td>
         </tr>
         <tr>
           <td class="label">Contact Number:</td>
@@ -435,24 +423,24 @@ export default function CollectionLedgerPage() {
         </tr>
       </table>
 
-      <table class="aligned-table" style="margin-top: 8px;">
+      <table class="aligned-table" style="margin-top: 10px;">
         <tr>
-          <td class="label">Agent's Name:</td>
-          <td>${agentName.toUpperCase()}</td>
+          <td class="label" style="color: #8B0000; font-size: 11.5px;">Agent's Name:</td>
+          <td style="color: #8B0000; font-weight: bold; font-size: 11.5px;">${agentName}</td>
         </tr>
-        <tr style="font-weight: bold;">
-          <td class="label">TOTAL PREMIUM:</td>
-          <td>${totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+        <tr>
+          <td class="label" style="font-size: 11.5px;">TOTAL PREMIUM:</td>
+          <td style="font-weight: bold; font-size: 11.5px;">${totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
         </tr>
       </table>
 
-      <div class="schedule-title">SCHEDULE OF PAYMENT</div>
+      <div class="schedule-title">Schedule of Payment</div>
       <table class="schedule-table">
         <thead>
-          <tr style="border-bottom: 1.5px solid #000;">
-            <th style="color: #8B0000; border-right: 1.5px solid #000;">DETAILS OF PAYMENT</th>
-            <th style="border-right: 1.5px solid #000;">DUE DATE</th>
-            <th style="border-right: 1.5px solid #000;">AMOUNT</th>
+          <tr>
+            <th style="color: #8B0000;">DETAILS OF PAYMENT</th>
+            <th>DUE DATE</th>
+            <th>AMOUNT</th>
             <th style="color: #8B0000;">REMARKS</th>
           </tr>
         </thead>
@@ -461,27 +449,26 @@ export default function CollectionLedgerPage() {
         </tbody>
       </table>
 
-      <div class="notice-block">
-        <p class="blue-text">All payments must be made directly to account name of the company (Supremogen Insurance Services). Do not pay with unauthorized individual or employees.</p>
-        <p>
-          <span class="red-highlight">REMINDER : FAILURE TO PAY</span> the installment due will result to <span class="red-highlight">POLICY CANCELLATION</span>. 
-          Kindly send your proof of payment at <a href="mailto:paymentcollection@supremogen.com" style="color: #8B0000; text-decoration: underline;">paymentcollection@supremogen.com</a> and inform your Agent.
-        </p>
-        <p class="green-highlight">In event of CLAIM INSURANCE, premium should be FULLY PAID</p>
+      <div class="reminder-box">
+        <span class="bold-blue">All payments must be made directly to account name of the company (Supremogen Insurance Services). Do not pay with unauthorized individual or employees.</span>
+        <br />
+        <span class="bold-red">REMINDER : FAILURE TO PAY</span> the installment due will result to <span class="bold-red">POLICY CANCELLATION</span>. Kindly send your proof of payment at <span class="bold-red" style="text-decoration: underline;">paymentcollection@supremogen.com</span> and inform your Agent.
+        <br />
+        <span class="bold-green">In event of CLAIM INSURANCE, premium should be FULLY PAID</span>
       </div>
 
-      <div class="doc-stamps-title">DOCUMENTARY STAMPS TAX</div>
-      <div class="doc-stamps-text">
+      <div class="stamps-box">
+        <div class="stamps-title">DOCUMENTARY STAMPS TAX</div>
         The implementation of the Electronic Documentary Stamp Tax (EDST) system by BIR now mandates the payment of the DST portion upon policy issuance. Refunds on DST for cancelled policies are not allowed.
       </div>
 
-      <div class="bank-info">
-        <p class="bank-name">Philippine Bank of Communications</p>
-        <p>PB COM ACCOUNT NAME : Supremogen Insurance Services</p>
-        <p>ACCOUNT NUMBER : <span class="underline-text" style="font-weight: bold;">227101004869</span></p>
+      <div class="bank-box">
+        <div class="bank-title">Philippine Bank of Communications</div>
+        PBCom Account Name: Supremogen Insurance Services<br />
+        ACCOUNT NUMBER: <u>227101004869</u>
       </div>
 
-      <div class="closing-block">
+      <div class="thank-you-box">
         <p>Thank you,</p>
         <p class="company-name">Supremogen Insurance Services</p>
       </div>
@@ -494,16 +481,31 @@ export default function CollectionLedgerPage() {
 
   <script>
     window.onload = function() {
-      window.print();
+      // Print using silent hidden iframe (prevents new window popup/redirect!)
     }
   </script>
 </body>
 </html>`;
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(receiptHtml);
-      printWindow.document.close();
+    // Print using silent hidden iframe (prevents new window popup/redirect!)
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (doc) {
+      doc.write(receiptHtml);
+      doc.close();
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        document.body.removeChild(iframe);
+      }, 500);
     }
   };
   
@@ -753,6 +755,245 @@ export default function CollectionLedgerPage() {
   };
 
   const needsReference = ['bank_transfer_pbcom', 'bank_transfer_security_bank', 'post_dated_checks', 'split_payment'].includes(collectMethod);
+
+  if (viewingReceiptInvoice) {
+    return (
+      <div className="space-y-6 text-slate-700">
+        {/* Header */}
+        <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-3xl shadow-sm">
+          <button
+            onClick={() => setViewingReceiptInvoice(null)}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-750 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-sm font-semibold transition cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Ledger
+          </button>
+          <button
+            onClick={() => printReceiptHtml(viewingReceiptInvoice)}
+            className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.02] cursor-pointer"
+          >
+            <FileText className="h-4 w-4" /> Print Receipt
+          </button>
+        </div>
+
+        {/* Paper Container */}
+        <div className="flex justify-center bg-slate-100 dark:bg-slate-950 p-6 md:p-10 rounded-3xl border border-slate-200/80 dark:border-slate-800">
+          <div className="bg-white text-black p-6 md:p-10 rounded-xl shadow-md max-w-[7.7in] w-full border border-slate-200 flex flex-col justify-between" style={{ fontFamily: "'Arial', sans-serif", minHeight: '10.2in' }}>
+            <div>
+              {/* Header */}
+              <div className="flex justify-between items-start">
+                <div className="w-[120px]"></div>
+                <div className="flex-1 text-center">
+                  <img src={supremogenLogo} alt="Supremogen Logo" className="max-w-[280px] md:max-w-[340px] mx-auto h-auto" />
+                  <div className="text-[9px] md:text-[10px] font-bold text-black mt-2 leading-tight">
+                    2nd Flr. Unit F & H, Village Mall, Commonwealth Avenue, East Fairview Park Subdivision, Brgy. Fairview Q.C.<br />
+                    sales@supremogen.com || 027-091-5125
+                  </div>
+                </div>
+                <div className="w-[120px] text-right text-[10px] md:text-[11px] font-bold text-black pt-4">
+                  <div>
+                    {(() => {
+                      const payments = [...(viewingReceiptInvoice.payments || [])].sort(
+                        (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
+                      );
+                      const firstPayment = payments[0];
+                      const refDate = firstPayment ? new Date(firstPayment.payment_date) : new Date();
+                      const pad = (n: number) => n.toString().padStart(2, '0');
+                      return `${refDate.getMonth() + 1}${pad(refDate.getDate())}${refDate.getFullYear()}`;
+                    })()}
+                  </div>
+                  <div className="mt-1">
+                    {(() => {
+                      const payments = [...(viewingReceiptInvoice.payments || [])].sort(
+                        (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
+                      );
+                      const firstPayment = payments[0];
+                      return firstPayment 
+                        ? (PAYMENT_METHOD_LABELS[firstPayment.payment_method] || firstPayment.payment_method).toUpperCase()
+                        : 'WALK IN';
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-[4px] bg-gradient-to-r from-[#8B0000] via-[#8B0000] to-[#DAA520] my-4"></div>
+
+              <h1 className="text-center text-xl md:text-2xl font-black tracking-wide text-black mb-1">ACKNOWLEDGEMENT RECEIPT</h1>
+              <p className="text-center text-[10px] md:text-[11px] text-slate-800 mb-4">
+                This letter acknowledges receipt of partial payment for COMPREHENSIVE INSURANCE for the assured name below.
+              </p>
+
+              {/* Assured & Policy Info Table */}
+              <table className="w-full text-[10px] md:text-[11px] mb-4 border-collapse">
+                <tbody>
+                  <tr>
+                    <td className="font-bold py-1 w-[120px]">Assured Name:</td>
+                    <td className="py-1">
+                      {(() => {
+                        const customer = viewingReceiptInvoice.customer;
+                        const assuredName = customer ? `${customer.first_name} ${customer.last_name}`.toUpperCase() : '—';
+                        const mortgageText = customer?.mortgage ? ` LEASED TO ${customer.mortgage.toUpperCase()}` : '';
+                        return assuredName + mortgageText;
+                      })()}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">Policy Number:</td>
+                    <td className="py-1">{viewingReceiptInvoice.policy?.policy_number || viewingReceiptInvoice.customer?.policy_no || '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">Unit Details:</td>
+                    <td className="py-1">{viewingReceiptInvoice.customer?.unit || '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">Plate Number:</td>
+                    <td className="py-1 uppercase">{viewingReceiptInvoice.customer?.plate_no || '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">Effectivity Date:</td>
+                    <td className="py-1">
+                      {viewingReceiptInvoice.customer?.inception_date
+                        ? new Date(viewingReceiptInvoice.customer.inception_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+                        : '—'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Delivery Details */}
+              <div className="font-bold text-[#8B0000] text-[11px] md:text-[12px] uppercase mb-2">Delivery Details</div>
+              <table className="w-full text-[10px] md:text-[11px] mb-4 border-collapse">
+                <tbody>
+                  <tr>
+                    <td className="font-bold py-1 w-[120px]">Receiver's Name:</td>
+                    <td className="py-1">
+                      {viewingReceiptInvoice.customer?.receiver_name || 
+                       (viewingReceiptInvoice.customer ? `${viewingReceiptInvoice.customer.first_name} ${viewingReceiptInvoice.customer.last_name}`.toUpperCase() : '—')}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">Delivery Address:</td>
+                    <td className="py-1">{viewingReceiptInvoice.customer?.delivery_address || '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">Landmark:</td>
+                    <td className="py-1">{viewingReceiptInvoice.customer?.landmark || 'N/A'}</td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">Contact Number:</td>
+                    <td className="py-1">{viewingReceiptInvoice.customer?.mobile || viewingReceiptInvoice.customer?.phone || '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">Back up Number:</td>
+                    <td className="py-1">
+                      {viewingReceiptInvoice.customer?.backup_phone || 
+                       viewingReceiptInvoice.customer?.mobile || 
+                       viewingReceiptInvoice.customer?.phone || '—'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Agent and Premium Table */}
+              <table className="w-full text-[11px] md:text-[12px] mt-4 border-collapse">
+                <tbody>
+                  <tr>
+                    <td className="font-bold py-1 w-[120px] text-[#8B0000]">Agent's Name:</td>
+                    <td className="font-bold py-1 text-[#8B0000]">{viewingReceiptInvoice.customer?.agent || '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="font-bold py-1">TOTAL PREMIUM:</td>
+                    <td className="font-bold py-1">₱{Number(viewingReceiptInvoice.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Schedule of Payment */}
+              <div className="text-center font-bold text-[12px] md:text-[13px] uppercase mt-4 mb-2 tracking-wide">Schedule of Payment</div>
+              <table className="w-[85%] mx-auto text-[10px] md:text-[11px] text-center border border-black mb-4 border-collapse">
+                <thead>
+                  <tr className="border-b border-black">
+                    <th className="border-r border-black p-1 text-[#8B0000] font-bold">DETAILS OF PAYMENT</th>
+                    <th className="border-r border-black p-1 font-bold">DUE DATE</th>
+                    <th className="border-r border-black p-1 font-bold">AMOUNT</th>
+                    <th className="p-1 text-[#8B0000] font-bold">REMARKS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const customer = viewingReceiptInvoice.customer;
+                    const terms = Number(customer?.payment_terms || 1);
+                    const totalPremium = Number(viewingReceiptInvoice.total_amount);
+                    const installmentAmt = totalPremium / terms;
+                    const payments = [...(viewingReceiptInvoice.payments || [])].sort(
+                      (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
+                    );
+                    const inceptionDateStr = customer?.inception_date;
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+                    return Array.from({ length: terms }).map((_, i) => {
+                      const dueDate = inceptionDateStr
+                        ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + i, new Date(inceptionDateStr).getDate())
+                        : null;
+                      const dueDateStr = dueDate ? `${monthNames[dueDate.getMonth()]} ${dueDate.getDate()}, ${dueDate.getFullYear()}` : '—';
+                      const payment = payments[i];
+                      const remarks = payment ? (PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method).toUpperCase() : '';
+                      const suffix = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
+
+                      return (
+                        <tr key={i} className="border-b border-black last:border-b-0">
+                          <td className="border-r border-black p-1 text-[#8B0000] font-bold text-[10px]">{suffix}</td>
+                          <td className="border-r border-black p-1 text-[10px]">{dueDateStr}</td>
+                          <td className="border-r border-black p-1 text-[10px]">₱{installmentAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td className="p-1 font-bold text-[10px]">{remarks}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+
+              {/* Legal reminders */}
+              <div className="text-[8.5px] md:text-[9.5px] leading-relaxed text-justify mb-4 space-y-1">
+                <p className="text-[#0000CD] font-bold">
+                  All payments must be made directly to account name of the company (Supremogen Insurance Services). Do not pay with unauthorized individual or employees.
+                </p>
+                <p className="text-[#B22222] font-semibold">
+                  <span className="font-bold">REMINDER : FAILURE TO PAY</span> the installment due will result to <span className="font-bold">POLICY CANCELLATION</span>. Kindly send your proof of payment at <span className="font-bold underline">paymentcollection@supremogen.com</span> and inform your Agent.
+                </p>
+                <p className="text-[#008000] font-bold">
+                  In event of CLAIM INSURANCE, premium should be FULLY PAID
+                </p>
+              </div>
+
+              {/* Documentary Stamps Tax */}
+              <div className="border border-black p-2 text-[8px] md:text-[9px] text-center leading-normal mb-4">
+                <div className="font-bold underline text-[#D2691E] mb-1">DOCUMENTARY STAMPS TAX</div>
+                The implementation of the Electronic Documentary Stamp Tax (EDST) system by BIR now mandates the payment of the DST portion upon policy issuance. Refunds on DST for cancelled policies are not allowed.
+              </div>
+
+              {/* Bank Details */}
+              <div className="text-[9px] md:text-[10px] leading-tight mb-4">
+                <div className="font-bold text-[#8B0000] mb-0.5">Philippine Bank of Communications</div>
+                PBCom Account Name: Supremogen Insurance Services<br />
+                ACCOUNT NUMBER: <span className="font-bold underline">227101004869</span>
+              </div>
+
+              {/* Signature / Company block */}
+              <div className="text-[9.5px] md:text-[10.5px]">
+                <p>Thank you,</p>
+                <p className="font-bold text-[#8B0000] mt-0.5">Supremogen Insurance Services</p>
+              </div>
+            </div>
+
+            {/* Footer Graphic */}
+            <div className="text-center mt-6">
+              <img src={supremogenFooter} alt="Footer Graphic" className="w-full h-auto max-h-[80px]" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 text-slate-700">
@@ -1219,7 +1460,7 @@ export default function CollectionLedgerPage() {
                            <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 5 : 1} onClick={(e) => e.stopPropagation()}>
                              <div className="flex flex-col items-center gap-2">
                                <button
-                                 onClick={() => generateReceipt(row)}
+                                 onClick={() => setViewingReceiptInvoice(row)}
                                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
                                >
                                  <FileText className="h-3 w-3" /> Receipt
@@ -1716,6 +1957,7 @@ export default function CollectionLedgerPage() {
           </div>
         );
       })()}
+
     </div>
   );
 }
