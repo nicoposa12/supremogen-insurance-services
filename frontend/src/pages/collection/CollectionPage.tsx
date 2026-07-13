@@ -165,6 +165,55 @@ export default function CollectionPage() {
     recordCollectionMut.mutate(data);
   };
 
+  const currentMonthName = useMemo(() => {
+    const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    return monthNames[new Date().getMonth()];
+  }, []);
+  
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
+
+  const calculateDueAmount = (invoice: Invoice) => {
+    const terms = Number(invoice.customer?.payment_terms || 1);
+    const totalAmount = Number(invoice.total_amount);
+    const amountPaid = Number(invoice.amount_paid);
+    const installmentAmount = totalAmount / terms;
+    const inceptionDateStr = invoice.customer?.inception_date;
+    if (!inceptionDateStr) return 0;
+    
+    const inceptionDate = new Date(inceptionDateStr);
+    if (isNaN(inceptionDate.getTime())) return 0;
+
+    const today = new Date();
+    const currentYr = today.getFullYear();
+    const currentMth = today.getMonth();
+
+    let currentInstallmentIndex = -1;
+    for (let i = 0; i < terms; i++) {
+      const targetDate = new Date(inceptionDate.getFullYear(), inceptionDate.getMonth() + i, 1);
+      if (targetDate.getFullYear() === currentYr && targetDate.getMonth() === currentMth) {
+        currentInstallmentIndex = i + 1;
+        break;
+      }
+    }
+
+    const firstInstDate = new Date(inceptionDate.getFullYear(), inceptionDate.getMonth(), 1);
+    if (today < firstInstDate) {
+      currentInstallmentIndex = 1;
+    }
+
+    if (currentInstallmentIndex === -1) {
+      return 0;
+    }
+
+    const paidCount = Math.floor(amountPaid / installmentAmount);
+
+    if (currentInstallmentIndex > paidCount) {
+      return installmentAmount;
+    }
+
+    return 0;
+  };
+
   // Metrics calculation from report summary
   const collectionMetrics = useMemo(() => {
     const summary = reportSummaryRes?.data?.collection_summary;
@@ -472,11 +521,155 @@ export default function CollectionPage() {
               />
             ) : (
               <>
-                <DataTable 
-                  columns={invoiceColumns} 
-                  data={invoicesRes?.data?.data ?? []} 
-                  loading={invoicesLoading}
-                />
+                <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs font-medium text-slate-500">
+                    <thead className="bg-[#4A0E17]/5 text-slate-700 uppercase tracking-wider text-[10px] font-bold">
+                      <tr>
+                        <th className="px-3 py-3 border-r border-slate-200">Agent</th>
+                        <th className="px-3 py-3 border-r border-slate-200">Date Request</th>
+                        <th className="px-3 py-3 border-r border-slate-200">Type</th>
+                        <th className="px-4 py-3 border-r border-slate-200 min-w-[200px]">Assured Name</th>
+                        <th className="px-3 py-3 border-r border-slate-200">Plate Number</th>
+                        <th className="px-3 py-3 border-r border-slate-200">Inception Date</th>
+                        <th className="px-3 py-3 border-r border-slate-200">Total Premium</th>
+                        <th className="px-2 py-3 border-r border-slate-200 text-center">Terms</th>
+                        <th className="px-3 py-3 border-r border-slate-200">Payment Amt</th>
+                        <th className="px-3 py-3 border-r border-slate-200 text-center">1st</th>
+                        <th className="px-3 py-3 border-r border-slate-200 text-center">2nd</th>
+                        <th className="px-3 py-3 border-r border-slate-200 text-center">3rd</th>
+                        <th className="px-3 py-3 border-r border-slate-200 text-center">4th</th>
+                        <th className="px-3 py-3 border-r border-slate-200 text-center">5th</th>
+                        <th className="px-3 py-3 border-r border-slate-200 text-center">6th</th>
+                        <th className="px-3 py-3 border-r border-slate-200">Remaining Bal</th>
+                        <th className="px-3 py-3 border-r border-slate-200 text-[#4A0E17] font-extrabold bg-[#4A0E17]/10">Due {currentMonthName} {currentYear}</th>
+                        <th className="px-4 py-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {(invoicesRes?.data?.data ?? []).map((row: Invoice) => {
+                        const customer = row.customer;
+                        const terms = Number(customer?.payment_terms || 1);
+                        const totalPremium = Number(row.total_amount);
+                        const amountPaid = Number(row.amount_paid);
+                        const installmentAmount = totalPremium / terms;
+                        
+                        // Calculate number of paid installments
+                        const paidInstallments = Math.floor(amountPaid / installmentAmount);
+                        
+                        // Get month list starting from inception date
+                        const inceptionDateStr = customer?.inception_date;
+                        let installmentMonths: { monthName: string; year: number; index: number }[] = [];
+                        if (inceptionDateStr) {
+                          const date = new Date(inceptionDateStr);
+                          const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                          for (let i = 0; i < 6; i++) {
+                            const d = new Date(date.getFullYear(), date.getMonth() + i, 1);
+                            installmentMonths.push({
+                              index: i + 1,
+                              monthName: monthNames[d.getMonth()],
+                              year: d.getFullYear(),
+                            });
+                          }
+                        }
+
+                        // Find active due installment index
+                        const today = new Date();
+                        let currentInstallmentIndex = -1;
+                        if (inceptionDateStr) {
+                          const inceptionDate = new Date(inceptionDateStr);
+                          for (let i = 0; i < terms; i++) {
+                            const targetDate = new Date(inceptionDate.getFullYear(), inceptionDate.getMonth() + i, 1);
+                            if (targetDate.getFullYear() === today.getFullYear() && targetDate.getMonth() === today.getMonth()) {
+                              currentInstallmentIndex = i + 1;
+                              break;
+                            }
+                          }
+                          const firstInstDate = new Date(inceptionDate.getFullYear(), inceptionDate.getMonth(), 1);
+                          if (today < firstInstDate) {
+                            currentInstallmentIndex = 1;
+                          }
+                        }
+
+                        const dueAmount = calculateDueAmount(row);
+
+                        return (
+                          <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-semibold text-slate-700">{customer?.agent || '—'}</td>
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] text-slate-500">
+                              {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </td>
+                            <td className="px-3 py-3.5 border-r border-slate-100">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${
+                                customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'
+                              }`}>
+                                {customer?.request_type || '—'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5 border-r border-slate-100 font-bold text-slate-800 uppercase tracking-tight">{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</td>
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] font-bold text-slate-600">{customer?.plate_no || '—'}</td>
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] text-slate-500">
+                              {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </td>
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-bold text-slate-700">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-2 py-3.5 border-r border-slate-100 text-center font-mono font-bold text-slate-600">{terms}</td>
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-slate-600">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            
+                            {/* Installments 1 to 6 */}
+                            {[1, 2, 3, 4, 5, 6].map((idx) => {
+                              const monthInfo = installmentMonths[idx - 1];
+                              const isActive = idx <= terms;
+                              const isPaid = isActive && idx <= paidInstallments;
+                              const isDue = isActive && !isPaid && idx === currentInstallmentIndex;
+                              
+                              return (
+                                <td key={idx} className={`px-2 py-2 border-r border-slate-100 text-center ${
+                                  !isActive ? 'bg-slate-50 text-slate-300' : isPaid ? 'bg-emerald-50/50' : isDue ? 'bg-rose-50/40' : ''
+                                }`}>
+                                  {isActive ? (
+                                    <div className="flex flex-col items-center justify-center">
+                                      <span className="text-[9px] font-bold text-slate-400 leading-none">{monthInfo?.monthName}</span>
+                                      <span className={`text-[11px] font-mono font-semibold mt-1 leading-none ${
+                                        isPaid ? 'text-emerald-700 font-bold' : isDue ? 'text-rose-700 font-bold' : 'text-slate-600'
+                                      }`}>
+                                        ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </span>
+                                      <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 rounded leading-none ${
+                                        isPaid ? 'bg-emerald-100 text-emerald-800' : isDue ? 'bg-rose-100 text-rose-800 animate-pulse' : 'bg-slate-100 text-slate-400'
+                                      }`}>
+                                        {isPaid ? 'Paid' : isDue ? 'Due' : 'Unpaid'}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-300 font-bold">—</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-bold text-[#4A0E17]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-black text-rose-800 bg-rose-50/20">
+                              {dueAmount > 0 ? (
+                                <span className="px-2 py-1 bg-rose-100 text-rose-800 rounded-lg text-[11px] font-extrabold animate-pulse">
+                                  ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3.5 text-center">
+                              <button
+                                onClick={() => handleOpenCollection(row)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
+                              >
+                                <CreditCard className="h-3 w-3" /> Record
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
                 {invoicesRes?.data && (
                   <Pagination
                     currentPage={invoicesRes.data.current_page}

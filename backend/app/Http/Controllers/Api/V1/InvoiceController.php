@@ -23,7 +23,7 @@ class InvoiceController extends Controller
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
         $invoices = Invoice::with([
-                'customer:id,customer_code,first_name,last_name',
+                'customer',
                 'policy:id,policy_number',
                 'createdBy:id,name',
             ])

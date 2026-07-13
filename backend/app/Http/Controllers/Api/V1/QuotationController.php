@@ -344,14 +344,70 @@ class QuotationController extends Controller
 
         $action = $request->input('action');
 
-        $quotation->update([
-            'status' => $action === 'approve' ? 'approved' : 'rejected',
-            'reviewed_by' => $request->user()->id,
-            'reviewer_remarks' => $request->input('reviewer_remarks'),
-            'reviewed_at' => now(),
-            'or_number' => $request->input('or_number', $quotation->or_number),
-            'trip_number' => $request->input('trip_number', $quotation->trip_number),
-        ]);
+        DB::transaction(function () use ($quotation, $action, $request) {
+            $quotation->update([
+                'status' => $action === 'approve' ? 'approved' : 'rejected',
+                'reviewed_by' => $request->user()->id,
+                'reviewer_remarks' => $request->input('reviewer_remarks'),
+                'reviewed_at' => now(),
+                'or_number' => $request->input('or_number', $quotation->or_number),
+                'trip_number' => $request->input('trip_number', $quotation->trip_number),
+            ]);
+
+            // Automatically create Policy and Invoice if approved
+            if ($action === 'approve') {
+                $customer = $quotation->customer;
+                $productId = $quotation->items->first()?->insurance_product_id;
+                
+                $policy = \App\Models\Policy::create([
+                    'policy_number' => \App\Models\Policy::generateNumber(),
+                    'quotation_id' => $quotation->id,
+                    'customer_id' => $quotation->customer_id,
+                    'insurance_product_id' => $productId,
+                    'issued_by' => $request->user()->id,
+                    'status' => 'active',
+                    'effective_date' => $customer?->inception_date ?? now(),
+                    'expiry_date' => $customer?->expiry_date ?? now()->addYear(),
+                    'total_premium' => $customer?->policy_premium ?? 0,
+                    'sum_insured' => $customer?->assured_value ?? 0,
+                    'terms_and_conditions' => $quotation->notes,
+                ]);
+
+                // Create default coverages for the policy matching quotation items
+                foreach ($quotation->items as $item) {
+                    $policy->coverages()->create([
+                        'coverage_name' => $item->insuranceProduct?->name ?? 'Premium Item',
+                        'sum_insured' => $customer?->assured_value ?? 0,
+                        'premium_rate' => 0,
+                        'premium_amount' => $item->premium_amount,
+                    ]);
+                }
+
+                // Create Invoice
+                $invoice = \App\Models\Invoice::create([
+                    'invoice_number' => \App\Models\Invoice::generateNumber(),
+                    'policy_id' => $policy->id,
+                    'customer_id' => $quotation->customer_id,
+                    'created_by' => $request->user()->id,
+                    'status' => 'sent',
+                    'due_date' => $customer?->inception_date ?? now(),
+                    'subtotal' => $customer?->policy_premium ?? 0,
+                    'tax_amount' => 0,
+                    'total_amount' => $customer?->policy_premium ?? 0,
+                    'amount_paid' => 0,
+                    'balance' => $customer?->policy_premium ?? 0,
+                    'notes' => 'Automatically generated invoice from approved quotation ' . $quotation->quotation_number,
+                ]);
+
+                // Create line items
+                $invoice->items()->create([
+                    'description' => 'Insurance Premium - ' . ($quotation->items->first()?->insuranceProduct?->name ?? 'Policy'),
+                    'quantity' => 1,
+                    'unit_price' => $customer?->policy_premium ?? 0,
+                    'amount' => $customer?->policy_premium ?? 0,
+                ]);
+            }
+        });
 
         // Notify the creator of the quotation (Sales Agent or Team Renewal)
         try {

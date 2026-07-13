@@ -13,6 +13,8 @@ export interface InvoiceItem {
   amount: number;
 }
 
+import type { Customer } from './CustomerTypes';
+
 export interface Invoice {
   id: number;
   invoice_number: string;
@@ -29,13 +31,7 @@ export interface Invoice {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  customer?: {
-    id: number;
-    customer_code: string;
-    first_name: string;
-    last_name: string;
-    email?: string;
-  };
+  customer?: Customer;
   policy?: { id: number; policy_number: string; status?: string } | null;
   items?: InvoiceItem[];
   payments?: Payment[];
