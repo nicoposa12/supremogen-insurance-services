@@ -620,8 +620,31 @@ export default function CollectionPage() {
 
                         const dueAmount = calculateDueAmount(row);
 
+                        // Grace period check for highlighting (3-6 terms, 3 day grace period)
+                        let isHighlighted = false;
+                        if (terms >= 3 && terms <= 6 && inceptionDateStr) {
+                          const paidCount = Math.floor(amountPaid / installmentAmount);
+                          if (paidCount < terms) {
+                            const inDate = new Date(inceptionDateStr);
+                            const unpaidDueDate = new Date(inDate.getFullYear(), inDate.getMonth() + paidCount, inDate.getDate());
+                            const today = new Date();
+                            const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                            const dueMidnight = new Date(unpaidDueDate.getFullYear(), unpaidDueDate.getMonth(), unpaidDueDate.getDate());
+                            
+                            const diffTime = todayMidnight.getTime() - dueMidnight.getTime();
+                            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                            if (diffDays > 3) {
+                              isHighlighted = true;
+                            }
+                          }
+                        }
+
                         return (
-                          <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
+                          <tr key={row.id} className={`transition-colors ${
+                            isHighlighted 
+                              ? 'bg-rose-50/90 hover:bg-rose-100 text-rose-950 font-semibold' 
+                              : 'hover:bg-slate-50/80'
+                          }`}>
                             <td className="px-3 py-3.5 border-r border-slate-100 font-semibold text-slate-700">{customer?.agent || '—'}</td>
                             <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] text-slate-500">
                               {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}

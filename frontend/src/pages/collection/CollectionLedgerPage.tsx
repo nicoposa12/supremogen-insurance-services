@@ -446,12 +446,35 @@ export default function CollectionLedgerPage() {
                     const dueAmount = calculateDueAmount(row);
                     const isExpanded = !!expandedInvoiceIds[row.id];
 
+                    // Grace period check for highlighting (3-6 terms, 3 day grace period)
+                    let isHighlighted = false;
+                    if (terms >= 3 && terms <= 6 && inceptionDateStr) {
+                      const paidCount = Math.floor(amountPaid / installmentAmount);
+                      if (paidCount < terms) {
+                        const inDate = new Date(inceptionDateStr);
+                        const unpaidDueDate = new Date(inDate.getFullYear(), inDate.getMonth() + paidCount, inDate.getDate());
+                        const today = new Date();
+                        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const dueMidnight = new Date(unpaidDueDate.getFullYear(), unpaidDueDate.getMonth(), unpaidDueDate.getDate());
+                        
+                        const diffTime = todayMidnight.getTime() - dueMidnight.getTime();
+                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays > 3) {
+                          isHighlighted = true;
+                        }
+                      }
+                    }
+
                     return (
                       <span key={row.id} className="contents">
                         {/* Row 1: Header row / General Details */}
                         <tr 
                           onClick={() => handleOpenCollection(row)}
-                          className="bg-slate-50/50 hover:bg-slate-100 hover:text-slate-900 transition-colors font-bold text-slate-800 cursor-pointer"
+                          className={`transition-colors font-bold cursor-pointer ${
+                            isHighlighted 
+                              ? 'bg-rose-50/90 hover:bg-rose-100 text-rose-950' 
+                              : 'bg-slate-50/50 hover:bg-slate-100 text-slate-800 hover:text-slate-900'
+                          }`}
                         >
                           <td className="px-3 py-3 border-r border-slate-200 text-slate-700">
                             <div className="flex items-center gap-1.5">
