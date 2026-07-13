@@ -39,7 +39,7 @@ export default function CollectionPage() {
   // Search & Pagination & Filter States
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceSearchInput, setInvoiceSearchInput] = useState('');
-  const [invoiceStatus, setInvoiceStatus] = useState('all');
+  const [invoiceStatus, setInvoiceStatus] = useState('every');
   const [invoicePage, setInvoicePage] = useState(1);
   const [invoicePerPage, setInvoicePerPage] = useState(10);
 
@@ -90,7 +90,7 @@ export default function CollectionPage() {
       page: invoicePage,
       per_page: invoicePerPage,
       search: invoiceSearch,
-      status: invoiceStatus === 'all' ? 'sent,partial,overdue' : invoiceStatus,
+      status: invoiceStatus === 'all' ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid' : invoiceStatus),
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
@@ -526,10 +526,12 @@ export default function CollectionPage() {
                   }}
                   className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
                 >
-                  <option value="all">All Receivables (Sent/Partial/Overdue)</option>
+                  <option value="every">All Invoices</option>
+                  <option value="all">All Outstanding</option>
                   <option value="sent">Sent (Unpaid)</option>
                   <option value="partial">Partially Paid</option>
                   <option value="overdue">Overdue</option>
+                  <option value="paid">Paid</option>
                 </select>
               </div>
             </div>
