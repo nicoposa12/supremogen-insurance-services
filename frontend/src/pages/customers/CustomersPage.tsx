@@ -109,6 +109,7 @@ export default function CustomersPage() {
   const [orcrFile, setOrcrFile] = useState<File | null>(null);
   const [ellaScreenshotFile, setEllaScreenshotFile] = useState<File | null>(null);
   const [deedOfSaleFile, setDeedOfSaleFile] = useState<File | null>(null);
+  const [termApprovalFile, setTermApprovalFile] = useState<File | null>(null);
 
   // Fetch attachments for selected customer details view
   const { data: selectedAttachmentsRes } = useQuery({
@@ -174,6 +175,7 @@ export default function CustomersPage() {
       setOrcrFile(null);
       setEllaScreenshotFile(null);
       setDeedOfSaleFile(null);
+      setTermApprovalFile(null);
       if (formEditTarget) {
         const nameParts = [formEditTarget.first_name, formEditTarget.middle_name, formEditTarget.last_name, formEditTarget.suffix].filter(Boolean).join(' ');
         reset({
@@ -336,9 +338,18 @@ export default function CustomersPage() {
         showToast('Failed to upload Deed of Sale: ' + (e.response?.data?.message ?? e.message), 'error');
       }
     }
+    if (termApprovalFile) {
+      try {
+        await uploadAttachment('customer', customerId, termApprovalFile, 'term_approval');
+      } catch (e: any) {
+        console.error('Failed to upload Term Approval attachment', e);
+        showToast('Failed to upload Term Approval: ' + (e.response?.data?.message ?? e.message), 'error');
+      }
+    }
     setOrcrFile(null);
     setEllaScreenshotFile(null);
     setDeedOfSaleFile(null);
+    setTermApprovalFile(null);
   };
 
   // ─── Mutations ──────────────────────
@@ -429,6 +440,13 @@ export default function CustomersPage() {
     const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownershipValue || '');
     if (needsDeedOfSale && !deedOfSaleFile && !formEditTarget) {
       showToast('Please upload Deed of Sale / NDOS for 2nd-4th owners.', 'error');
+      return;
+    }
+
+    const paymentTermsValue = watch('payment_terms');
+    const needsTermApproval = ['5', '6'].includes(String(paymentTermsValue || ''));
+    if (needsTermApproval && !termApprovalFile && !formEditTarget) {
+      showToast('Please upload the Term Approval Attachment for 5-6 month terms.', 'error');
       return;
     }
 
@@ -802,6 +820,7 @@ export default function CustomersPage() {
                 const orcrAttachment = selectedAttachments.find(a => a.document_type === 'orcr_ndos_4sides');
                 const ellaAttachment = selectedAttachments.find(a => a.document_type === 'ella_langrio_screenshot');
                 const deedOfSaleAttachment = selectedAttachments.find(a => a.document_type === 'deed_of_sale_ndos');
+                const termApprovalAttachment = selectedAttachments.find(a => a.document_type === 'term_approval');
 
                 return (
                   <div className="space-y-6">
@@ -1063,6 +1082,28 @@ export default function CustomersPage() {
                                 {deedOfSaleAttachment ? (
                                   <a 
                                     href={getDownloadUrl(deedOfSaleAttachment.id, token)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
+                                  >
+                                    Download File
+                                  </a>
+                                ) : (
+                                  <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Term Approval */}
+                            {(['5', '6'].includes(String(selectedCustomer.payment_terms || '')) || termApprovalAttachment) && (
+                              <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                                <div className="flex items-center gap-2">
+                                  <Paperclip className="h-4 w-4 text-slate-400" />
+                                  <span className="text-xs font-semibold text-slate-700">Term Approval Attachment</span>
+                                </div>
+                                {termApprovalAttachment ? (
+                                  <a 
+                                    href={getDownloadUrl(termApprovalAttachment.id, token)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
@@ -1607,8 +1648,11 @@ export default function CustomersPage() {
                         <select {...register('payment_terms', { required: 'Payment terms are required' })} className={inputClass(errors.payment_terms)}>
                           <option value="">Select Terms</option>
                           <option value="1">1 Month</option>
+                          <option value="2">2 Months</option>
                           <option value="3">3 Months</option>
                           <option value="4">4 Months</option>
+                          <option value="5">5 Months</option>
+                          <option value="6">6 Months</option>
                         </select>
                         {errors.payment_terms && <p className="text-xs text-red-500 mt-1">{errors.payment_terms.message}</p>}
                       </div>
@@ -1879,6 +1923,65 @@ export default function CustomersPage() {
                                   className="hidden" 
                                   onChange={(e) => {
                                     if (e.target.files && e.target.files.length > 0) setDeedOfSaleFile(e.target.files[0]);
+                                  }} 
+                                  accept="image/*,application/pdf" 
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {['5', '6'].includes(String(watch('payment_terms') || '')) && (
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
+                            Term Approval Attachment (Upload) <span className="text-rose-500 font-bold">*</span>
+                          </label>
+                          <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
+                            termApprovalFile 
+                              ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
+                              : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
+                          }`}>
+                            {termApprovalFile ? (
+                              <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
+                                <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                                <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={termApprovalFile.name}>
+                                  {termApprovalFile.name}
+                                </span>
+                                <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
+                                  {(termApprovalFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                                </span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setTermApprovalFile(null)} 
+                                  className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
+                                  title="Remove file"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                                <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
+                                  <UploadCloud className="h-5 w-5" />
+                                </div>
+                                <span className="text-xs text-slate-700 font-bold">
+                                  Click to select file
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  Upload Term Approval (max 10MB)
+                                </span>
+                                <input 
+                                  type="file" 
+                                  className="hidden" 
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) setTermApprovalFile(e.target.files[0]);
                                   }} 
                                   accept="image/*,application/pdf" 
                                 />

@@ -323,23 +323,14 @@ export default function CustomerFormPage() {
             </div>
             <div>
               <label className={labelClass}>Type *</label>
-              {(roles.includes('Sales Agent') || roles.includes('Team Renewal')) ? (
-                <input 
-                  type="text" 
-                  {...register('request_type', { required: 'Request type is required' })} 
-                  readOnly 
-                  className={`${inputClass(errors.request_type)} bg-slate-50 opacity-90`}
-                />
-              ) : (
-                <select 
-                  {...register('request_type', { required: 'Request type is required' })} 
-                  className={inputClass(errors.request_type)}
-                >
-                  <option value="">Select Type</option>
-                  <option value="NEW ACCOUNT">NEW ACCOUNT</option>
-                  <option value="RENEWAL CLIENT">RENEWAL CLIENT</option>
-                </select>
-              )}
+              <select 
+                {...register('request_type', { required: 'Request type is required' })} 
+                className={inputClass(errors.request_type)}
+              >
+                <option value="">Select Type</option>
+                <option value="NEW ACCOUNT">NEW ACCOUNT</option>
+                <option value="RENEWAL CLIENT">RENEWAL CLIENT</option>
+              </select>
               {errors.request_type && <p className="text-xs text-red-500 mt-1">{errors.request_type.message}</p>}
             </div>
             <div>
