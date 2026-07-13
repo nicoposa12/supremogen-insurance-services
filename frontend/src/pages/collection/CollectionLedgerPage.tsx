@@ -177,11 +177,12 @@ export default function CollectionLedgerPage() {
       margin: 0 auto;
     }
     .header-center .address-text {
-      font-size: 9.5px;
+      font-size: 11px;
       color: #000;
       margin-top: 4px;
       line-height: 1.4;
-      font-weight: normal;
+      font-weight: bold;
+      white-space: nowrap;
     }
     .header-right {
       width: 120px;
@@ -207,9 +208,10 @@ export default function CollectionLedgerPage() {
     }
     .subtitle {
       text-align: center;
-      font-size: 11px;
+      font-size: 12px;
       color: #000;
       margin-bottom: 12px;
+      white-space: nowrap;
     }
     .aligned-table {
       width: 100%;
