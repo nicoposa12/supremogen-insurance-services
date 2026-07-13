@@ -125,6 +125,7 @@ const adminNavGroups: NavGroup[] = [
 // General items visible to admin at the bottom
 const adminGeneralItems: NavItem[] = [
   { label: 'Customer Records', path: '/dashboard/customers', icon: Users },
+  { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
   { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
 ];
@@ -490,7 +491,7 @@ export default function DashboardLayout() {
     navigate('/agentportal');
   };
 
-  const isAdmin = roles.includes('Administrator');
+  const isAdmin = roles.includes('Administrator') || roles.includes('Owner');
 
   // Get current page title from navigation
   const titleLookup = isAdmin ? allAdminNavItems : navItems;
