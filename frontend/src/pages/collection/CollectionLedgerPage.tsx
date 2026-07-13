@@ -45,6 +45,12 @@ export default function CollectionLedgerPage() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
+  // Column Header Filter States
+  const [agentFilter, setAgentFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [nameFilter, setNameFilter] = useState('');
+  const [plateFilter, setPlateFilter] = useState('');
+
   // Record Collection Modal State
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -57,6 +63,16 @@ export default function CollectionLedgerPage() {
       ...prev,
       [invoiceId]: !prev[invoiceId]
     }));
+  };
+
+  const handleClearSearchAndFilters = () => {
+    setSearchInput('');
+    setSearchVal('');
+    setAgentFilter('');
+    setTypeFilter('');
+    setNameFilter('');
+    setPlateFilter('');
+    setPage(1);
   };
 
   // Generate Receipt
@@ -518,6 +534,48 @@ export default function CollectionLedgerPage() {
     }),
     placeholderData: (prev) => prev,
   });
+
+  // Client-side filtering for Agent, Type, Assured Name, and Plate Number columns
+  const filteredInvoices = useMemo(() => {
+    const rawList = invoicesRes?.data?.data ?? [];
+    return rawList.filter((row: Invoice) => {
+      const customer = row.customer;
+      
+      // Agent filter
+      if (agentFilter) {
+        const agent = (customer?.agent || '').toLowerCase();
+        if (!agent.includes(agentFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      
+      // Type filter
+      if (typeFilter && typeFilter !== '') {
+        const reqType = (customer?.request_type || '').toUpperCase();
+        if (reqType !== typeFilter.toUpperCase()) {
+          return false;
+        }
+      }
+      
+      // Assured Name filter
+      if (nameFilter) {
+        const fullName = `${customer?.first_name || ''} ${customer?.last_name || ''}`.toLowerCase();
+        if (!fullName.includes(nameFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      
+      // Plate Number filter
+      if (plateFilter) {
+        const plate = (customer?.plate_no || '').toLowerCase();
+        if (!plate.includes(plateFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter]);
   // Mutation for recording a collection payment
   const recordCollectionMut = useMutation({
     mutationFn: (data: PaymentFormData) => recordPayment(data),
@@ -773,12 +831,13 @@ export default function CollectionLedgerPage() {
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition" 
             />
-            {searchInput && (
+            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter) && (
               <button 
-                onClick={() => setSearchInput('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600"
+                onClick={handleClearSearchAndFilters}
+                title="Clear all search and column filters"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
@@ -809,25 +868,84 @@ export default function CollectionLedgerPage() {
             <Loader2 className="h-8 w-8 animate-spin text-[#4A0E17]" />
             <span className="text-sm text-slate-400">Loading payment ledger...</span>
           </div>
-        ) : (invoicesRes?.data?.data ?? []).length === 0 ? (
-          <EmptyState 
-            icon={<Receipt className="h-10 w-10 text-slate-400" />}
-            title="No ledger records found" 
-            description="Adjust your filters or record collections to display schedules." 
-          />
         ) : (
           <>
             <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
               <table className="min-w-full divide-y divide-slate-200 text-left text-xs font-medium text-slate-500">
                 <thead className="bg-[#4A0E17]/5 text-slate-700 uppercase tracking-wider text-[10px] font-bold">
                   <tr>
-                    <th className="px-3 py-3 border-r border-slate-200 min-w-[130px]">Agent</th>
-                    <th className="px-3 py-3 border-r border-slate-200 min-w-[110px]">Date Request</th>
-                    <th className="px-3 py-3 border-r border-slate-200 min-w-[130px]">Type</th>
-                    <th className="px-4 py-3 border-r border-slate-200 min-w-[200px]">Assured Name</th>
-                    <th className="px-3 py-3 border-r border-slate-200 min-w-[120px]">Plate Number</th>
-                    <th className="px-3 py-3 border-r border-slate-200 min-w-[150px]">Inception Date</th>
-                    <th className="px-3 py-3 border-r border-slate-200">Total Premium</th>
+                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[140px]">
+                      <div className="flex flex-col gap-1.5">
+                        <span>Agent</span>
+                        <input 
+                          type="text" 
+                          placeholder="Filter Agent..." 
+                          value={agentFilter}
+                          onChange={(e) => setAgentFilter(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
+                        />
+                      </div>
+                    </th>
+                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[110px] vertical-align-top">
+                      <div className="flex flex-col gap-1.5 h-full justify-between">
+                        <span>Date Request</span>
+                        <div className="h-7" /> {/* spacer to align with input rows */}
+                      </div>
+                    </th>
+                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[140px]">
+                      <div className="flex flex-col gap-1.5">
+                        <span>Type</span>
+                        <select
+                          value={typeFilter}
+                          onChange={(e) => setTypeFilter(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
+                        >
+                          <option value="">All Types</option>
+                          <option value="NEW ACCOUNT">NEW ACCOUNT</option>
+                          <option value="RENEWAL">RENEWAL</option>
+                        </select>
+                      </div>
+                    </th>
+                    <th className="px-4 py-2.5 border-r border-slate-200 min-w-[210px]">
+                      <div className="flex flex-col gap-1.5">
+                        <span>Assured Name</span>
+                        <input 
+                          type="text" 
+                          placeholder="Filter Name..." 
+                          value={nameFilter}
+                          onChange={(e) => setNameFilter(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
+                        />
+                      </div>
+                    </th>
+                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[130px]">
+                      <div className="flex flex-col gap-1.5">
+                        <span>Plate Number</span>
+                        <input 
+                          type="text" 
+                          placeholder="Filter Plate..." 
+                          value={plateFilter}
+                          onChange={(e) => setPlateFilter(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
+                        />
+                      </div>
+                    </th>
+                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[150px]">
+                      <div className="flex flex-col gap-1.5 h-full justify-between">
+                        <span>Inception Date</span>
+                        <div className="h-7" />
+                      </div>
+                    </th>
+                    <th className="px-3 py-2.5 border-r border-slate-200">
+                      <div className="flex flex-col gap-1.5 h-full justify-between">
+                        <span>Total Premium</span>
+                        <div className="h-7" />
+                      </div>
+                    </th>
                     <th className="px-2 py-3 border-r border-slate-200 text-center">Terms</th>
                     <th className="px-3 py-3 border-r border-slate-200">Amount of Payment</th>
                     <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">1st</th>
@@ -842,8 +960,21 @@ export default function CollectionLedgerPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-slate-200 bg-white">
-                  {(invoicesRes?.data?.data ?? []).map((row: Invoice) => {
-                    const customer = row.customer;
+                  {filteredInvoices.length === 0 ? (
+                    <tr className="bg-white">
+                      <td colSpan={18} className="px-4 py-16 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="p-4 rounded-full bg-slate-50 text-slate-400">
+                            <Receipt className="h-8 w-8 text-slate-450" />
+                          </div>
+                          <span className="text-sm font-bold text-slate-800">No record found</span>
+                          <span className="text-xs text-slate-400 font-normal">Adjust your filters or record collections to display schedules.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredInvoices.map((row: Invoice) => {
+                      const customer = row.customer;
                     const terms = Number(customer?.payment_terms || 1);
                     const totalPremium = Number(row.total_amount);
                     const amountPaid = Number(row.amount_paid);
@@ -941,7 +1072,7 @@ export default function CollectionLedgerPage() {
                               </div>
                             )}
                           </td>
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-600">{customer?.plate_no || '—'}</td>
+                          <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-600 uppercase">{customer?.plate_no || '—'}</td>
                           <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
                             {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                           </td>
@@ -1098,13 +1229,13 @@ export default function CollectionLedgerPage() {
                         )}
                       </span>
                     );
-                  })}
+                  })
+                )}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination */}
-            {invoicesRes?.data && (
+            {invoicesRes?.data && filteredInvoices.length > 0 && (
               <Pagination
                 currentPage={invoicesRes.data.current_page}
                 lastPage={invoicesRes.data.last_page}
