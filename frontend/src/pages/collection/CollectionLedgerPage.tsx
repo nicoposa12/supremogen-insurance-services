@@ -1493,25 +1493,6 @@ export default function CollectionLedgerPage() {
                                >
                                  <FileText className="h-3 w-3" /> Receipt
                                </button>
-                               {row.balance > 0 && (
-                                 <button
-                                   onClick={() => sendReminderMut.mutate(row.id)}
-                                   disabled={!customer?.email || sendingReminderId === row.id}
-                                   className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer ${
-                                     !customer?.email
-                                       ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-650 cursor-not-allowed shadow-none border border-transparent'
-                                       : 'bg-blue-700 hover:bg-blue-800 dark:bg-blue-800 dark:hover:bg-blue-700'
-                                   }`}
-                                   title={!customer?.email ? 'No email registered for client' : 'Send payment reminder email to client'}
-                                 >
-                                   {sendingReminderId === row.id ? (
-                                     <Loader2 className="h-3 w-3 animate-spin" />
-                                   ) : (
-                                     <Mail className="h-3 w-3" />
-                                   )}
-                                   <span>Reminder</span>
-                                 </button>
-                               )}
                              </div>
                            </td>
                          </tr>
