@@ -157,10 +157,16 @@
 
 /* Premium Background Image Pattern with legibility overlay */
 .bg-hero-maroon {
-  background-image: linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.65)), url('./assets/image/supremogen_bgs.png');
+  background-image: linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.65)), url('./assets/image/supremo_bg.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+@media (min-width: 1024px) {
+  .bg-hero-maroon {
+    background-size: 100% 100%;
+  }
 }
 
 .bg-hero-home {

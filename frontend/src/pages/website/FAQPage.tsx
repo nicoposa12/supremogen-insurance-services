@@ -131,16 +131,16 @@ export default function FAQPage() {
   return (
     <div className="flex flex-col bg-background">
       {/* Header */}
-      <section className="bg-hero-maroon text-white py-20 relative overflow-hidden">
+      <section className="bg-hero-maroon text-white py-12 sm:py-16 lg:py-20 relative overflow-hidden">
         <div className="container-page relative z-10 text-left">
-          <div className="max-w-3xl space-y-4">
+          <div className="max-w-3xl space-y-3.5">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#F5A623]">
               FAQs
             </div>
-            <h1 className="text-4xl font-extrabold sm:text-5xl text-white tracking-tight leading-tight">
-              Questions, answered.
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              Questions, Answered.
             </h1>
-            <p className="text-base sm:text-lg text-white/80 leading-relaxed max-w-2xl">
+            <p className="text-sm sm:text-base text-white/80 leading-relaxed max-w-2xl">
               Quick answers to the things our clients ask most. Can't find what you're looking for?{' '}
               <Link to="/contact" className="text-[#F5A623] hover:underline font-semibold">
                 Get in touch

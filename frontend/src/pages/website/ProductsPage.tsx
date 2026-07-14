@@ -584,19 +584,19 @@ export default function ProductsPage() {
   return (
     <div className="flex flex-col bg-white">
       {/* Hero Section */}
-      <section className="bg-hero-maroon text-white py-20 relative overflow-hidden">
+      <section className="bg-hero-maroon text-white py-12 sm:py-16 lg:py-20 relative overflow-hidden">
         <div className="container-page relative z-10 text-left">
-          <div className="max-w-3xl space-y-4">
+          <div className="max-w-3xl space-y-3.5">
             {/* Small Label */}
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#F5A623]">
               Products &amp; Services
             </div>
             
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              Insurance built for Philippine realities
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              Insurance for Philippine Realities
             </h1>
             
-            <p className="text-base sm:text-lg text-white/80 leading-relaxed max-w-2xl">
+            <p className="text-sm sm:text-base text-white/80 leading-relaxed max-w-2xl">
               A complete portfolio of non-life insurance products from the country's most trusted underwriters.
             </p>
           </div>
