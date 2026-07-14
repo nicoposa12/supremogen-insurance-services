@@ -27,7 +27,7 @@ Route::get('/debug-queue', function () {
                 'id' => $fj->id,
                 'connection' => $fj->connection,
                 'queue' => $fj->queue,
-                'exception' => substr($fj->exception, 0, 150) . '...',
+                'exception' => substr($fj->exception, 0, 1000) . '...',
                 'failed_at' => $fj->failed_at
             ];
         });

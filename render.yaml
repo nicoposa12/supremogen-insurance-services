@@ -35,4 +35,12 @@ services:
         value: cookie
       - key: QUEUE_CONNECTION
         value: database
+      - key: MAIL_MAILER
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        value: collections@supremogen.com
+      - key: MAIL_FROM_NAME
+        value: "Supremogen Insurance Services"
 
