@@ -82,43 +82,35 @@ class PaymentController extends Controller
         // Recalculate invoice totals & status
         $invoice->recalculate();
 
-        // Send payment receipt email to client AFTER the response (non-blocking)
-        $invoiceId = $invoice->id;
-        $paymentId = $payment->id;
-        dispatch(function () use ($invoiceId, $paymentId) {
-            try {
-                $invoice = \App\Models\Invoice::find($invoiceId);
-                $payment = \App\Models\Payment::find($paymentId);
-                if (!$invoice || !$payment) return;
+        // Send payment receipt email to client (auto-queued via ShouldQueue)
+        try {
+            $customer = $invoice->customer;
+            if ($customer && $customer->email) {
+                $payments = $invoice->payments()->where('status', 'completed')->orderBy('payment_date', 'asc')->orderBy('created_at', 'asc')->get();
+                $paymentIndex = $payments->pluck('id')->search($payment->id);
+                $installmentNumber = ($paymentIndex !== false) ? ($paymentIndex + 1) : 1;
 
-                $customer = $invoice->customer;
-                if ($customer && $customer->email) {
-                    $payments = $invoice->payments()->where('status', 'completed')->orderBy('payment_date', 'asc')->orderBy('created_at', 'asc')->get();
-                    $paymentIndex = $payments->pluck('id')->search($payment->id);
-                    $installmentNumber = ($paymentIndex !== false) ? ($paymentIndex + 1) : 1;
+                $ordinals = [1 => '1ST', 2 => '2ND', 3 => '3RD', 4 => '4TH', 5 => '5TH', 6 => '6TH'];
+                $installmentOrdinal = $ordinals[$installmentNumber] ?? ($installmentNumber . 'TH');
 
-                    $ordinals = [1 => '1ST', 2 => '2ND', 3 => '3RD', 4 => '4TH', 5 => '5TH', 6 => '6TH'];
-                    $installmentOrdinal = $ordinals[$installmentNumber] ?? ($installmentNumber . 'TH');
+                $customerName = trim($customer->first_name . ' ' . $customer->last_name);
+                $policyNumber = $customer->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
 
-                    $customerName = trim($customer->first_name . ' ' . $customer->last_name);
-                    $policyNumber = $customer->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
+                \Illuminate\Support\Facades\Mail::to($customer->email)->send(
+                    new \App\Mail\PaymentReceiptMail(
+                        $customerName,
+                        $policyNumber,
+                        $installmentOrdinal,
+                        (float) $payment->amount,
+                        (float) $invoice->balance
+                    )
+                );
 
-                    \Illuminate\Support\Facades\Mail::to($customer->email)->send(
-                        new \App\Mail\PaymentReceiptMail(
-                            $customerName,
-                            $policyNumber,
-                            $installmentOrdinal,
-                            (float) $payment->amount,
-                            (float) $invoice->balance
-                        )
-                    );
-
-                    \Illuminate\Support\Facades\Log::info("Payment receipt email sent to {$customer->email} for invoice {$invoice->invoice_number}, {$installmentOrdinal} payment.");
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to send payment receipt email: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::info("Payment receipt email queued for {$customer->email} for invoice {$invoice->invoice_number}, {$installmentOrdinal} payment.");
             }
-        })->afterResponse();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to queue payment receipt email: ' . $e->getMessage());
+        }
 
         // Notify the agent who owns this customer about the payment
         try {

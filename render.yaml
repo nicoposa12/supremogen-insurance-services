@@ -33,4 +33,6 @@ services:
         value: "https://your-app.vercel.app"
       - key: SESSION_DRIVER
         value: cookie
+      - key: QUEUE_CONNECTION
+        value: database
 
