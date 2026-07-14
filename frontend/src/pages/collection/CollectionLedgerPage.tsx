@@ -466,10 +466,17 @@ export default function CollectionLedgerPage() {
         The implementation of the Electronic Documentary Stamp Tax (EDST) system by BIR now mandates the payment of the DST portion upon policy issuance. Refunds on DST for cancelled policies are not allowed.
       </div>
 
-      <div class="bank-box">
-        <div class="bank-title">Philippine Bank of Communications</div>
-        PBCom Account Name: Supremogen Insurance Services<br />
-        ACCOUNT NUMBER: <u>227101004869</u>
+      <div class="bank-box" style="display: flex; gap: 30px;">
+        <div style="flex: 1;">
+          <div class="bank-title">Philippine Bank of Communications (PBCom)</div>
+          Account Name: Supremogen Insurance Services<br />
+          ACCOUNT NUMBER: <u>227101004869</u>
+        </div>
+        <div style="flex: 1;">
+          <div class="bank-title">Security Bank</div>
+          Account Name: Supremogen Insurance Services<br />
+          ACCOUNT NUMBER: <u>0000069770932</u>
+        </div>
       </div>
 
       <div class="thank-you-box">
@@ -994,10 +1001,17 @@ export default function CollectionLedgerPage() {
               </div>
 
               {/* Bank Details */}
-              <div className="text-[9px] md:text-[10px] leading-tight mb-4">
-                <div className="font-bold text-[#8B0000] mb-0.5">Philippine Bank of Communications</div>
-                PBCom Account Name: Supremogen Insurance Services<br />
-                ACCOUNT NUMBER: <span className="font-bold underline">227101004869</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[9px] md:text-[10px] leading-tight mb-4">
+                <div>
+                  <div className="font-bold text-[#8B0000] mb-0.5">Philippine Bank of Communications (PBCom)</div>
+                  Account Name: Supremogen Insurance Services<br />
+                  ACCOUNT NUMBER: <span className="font-bold underline">227101004869</span>
+                </div>
+                <div>
+                  <div className="font-bold text-[#8B0000] mb-0.5">Security Bank</div>
+                  Account Name: Supremogen Insurance Services<br />
+                  ACCOUNT NUMBER: <span className="font-bold underline">0000069770932</span>
+                </div>
               </div>
 
               {/* Signature / Company block */}
