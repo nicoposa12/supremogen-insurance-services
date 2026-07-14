@@ -728,7 +728,11 @@ export default function DashboardLayout() {
                                 }
                               } else if (matchInvoice) {
                                 const code = matchInvoice[0];
-                                navigate(`/dashboard/invoices?search=${code}`);
+                                if (roles.includes('Collection')) {
+                                  navigate(`/dashboard/collection/ledger?search=${code}`);
+                                } else {
+                                  navigate(`/dashboard/invoices?search=${code}`);
+                                }
                               } else if (matchClaim) {
                                 const code = matchClaim[0];
                                 navigate(`/dashboard/claims?search=${code}`);
@@ -744,7 +748,11 @@ export default function DashboardLayout() {
                               } else if (title.toLowerCase().includes('claim')) {
                                 navigate('/dashboard/claims');
                               } else if (title.toLowerCase().includes('invoice') || title.toLowerCase().includes('payment')) {
-                                navigate('/dashboard/invoices');
+                                if (roles.includes('Collection')) {
+                                  navigate('/dashboard/collection/ledger');
+                                } else {
+                                  navigate('/dashboard/invoices');
+                                }
                               } else if (title.toLowerCase().includes('policy')) {
                                 navigate('/dashboard/renewals');
                               }

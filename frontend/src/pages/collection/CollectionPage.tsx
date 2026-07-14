@@ -30,17 +30,20 @@ import { getPayments, recordPayment, updatePayment } from '../../services/paymen
 import { getReportSummary } from '../../services/reportApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
 import type { Invoice, Payment, PaymentMethod, PaymentFormData } from '../../types/AccountingTypes';
+import { useSearchParams } from 'react-router-dom';
 
 export default function CollectionPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
+  const querySearch = searchParams.get('search') || '';
 
   // Tab State: 'dashboard' | 'history'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'history'>('dashboard');
 
   // Search & Pagination & Filter States
-  const [invoiceSearch, setInvoiceSearch] = useState('');
-  const [invoiceSearchInput, setInvoiceSearchInput] = useState('');
+  const [invoiceSearch, setInvoiceSearch] = useState(querySearch);
+  const [invoiceSearchInput, setInvoiceSearchInput] = useState(querySearch);
   const [invoiceStatus, setInvoiceStatus] = useState('every');
   const [invoicePage, setInvoicePage] = useState(1);
   const [invoicePerPage, setInvoicePerPage] = useState(10);
@@ -64,6 +67,13 @@ export default function CollectionPage() {
   const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
 
   // Debounce search inputs
+  useEffect(() => {
+    if (querySearch) {
+      setInvoiceSearchInput(querySearch);
+      setInvoiceSearch(querySearch);
+    }
+  }, [querySearch]);
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setInvoiceSearch(invoiceSearchInput);

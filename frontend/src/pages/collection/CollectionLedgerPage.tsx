@@ -22,7 +22,7 @@ import {
   Mail,
   FileText
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
@@ -38,10 +38,12 @@ import supremogenFooter from '../../assets/image/Picture2.png';
 export default function CollectionLedgerPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
+  const querySearch = searchParams.get('search') || '';
 
   // Search & Pagination & Filter States
-  const [searchVal, setSearchVal] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [searchVal, setSearchVal] = useState(querySearch);
+  const [searchInput, setSearchInput] = useState(querySearch);
   const [invoiceStatus, setInvoiceStatus] = useState('every');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
@@ -520,6 +522,13 @@ export default function CollectionLedgerPage() {
   const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
 
   // Debounce search inputs
+  useEffect(() => {
+    if (querySearch) {
+      setSearchInput(querySearch);
+      setSearchVal(querySearch);
+    }
+  }, [querySearch]);
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchVal(searchInput);
