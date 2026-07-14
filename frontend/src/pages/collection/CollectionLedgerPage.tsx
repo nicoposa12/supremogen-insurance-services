@@ -723,6 +723,9 @@ export default function CollectionLedgerPage() {
 
   // Helper to calculate active due amount for this month
   const calculateDueAmount = (invoice: Invoice) => {
+    if (Number(invoice.balance) <= 0) {
+      return 0;
+    }
     const terms = Number(invoice.customer?.payment_terms || 1);
     const totalAmount = Number(invoice.total_amount);
     const amountPaid = Number(invoice.amount_paid);
@@ -1326,7 +1329,7 @@ export default function CollectionLedgerPage() {
                     const currentInstallmentIndex = (() => {
                       for (let i = 1; i <= terms; i++) {
                         const pay = payments[i - 1];
-                        if (!pay || Number(pay.amount) < installmentAmount) {
+                        if (!pay || Number(pay.amount) < (installmentAmount - 0.05)) {
                           return i;
                         }
                       }
@@ -1335,7 +1338,7 @@ export default function CollectionLedgerPage() {
 
                     // Grace period check for highlighting (3-6 terms, 3 day grace period)
                     let isHighlighted = false;
-                    if (terms >= 3 && terms <= 6 && inceptionDateStr && currentInstallmentIndex <= terms) {
+                    if (Number(row.balance) > 0 && terms >= 3 && terms <= 6 && inceptionDateStr && currentInstallmentIndex <= terms) {
                       const inDate = new Date(inceptionDateStr);
                       const unpaidDueDate = new Date(inDate.getFullYear(), inDate.getMonth() + (currentInstallmentIndex - 1), inDate.getDate());
                       const today = new Date();
@@ -1411,9 +1414,10 @@ export default function CollectionLedgerPage() {
                               const isActive = idx <= terms;
                               const payment = isActive ? payments[idx - 1] : null;
                               
-                              const isPaid = isActive && payment && Number(payment.amount) >= installmentAmount;
-                              const isPartial = isActive && payment && Number(payment.amount) > 0 && Number(payment.amount) < installmentAmount;
-                              const isDue = isActive && !isPaid && idx === currentInstallmentIndex;
+                              const isInvoicePaid = Number(row.balance) <= 0;
+                              const isPaid = isActive && (isInvoicePaid || (payment && Number(payment.amount) >= (installmentAmount - 0.05)));
+                              const isPartial = isActive && !isInvoicePaid && payment && Number(payment.amount) > 0 && Number(payment.amount) < (installmentAmount - 0.05);
+                              const isDue = isActive && !isInvoicePaid && !isPaid && idx === currentInstallmentIndex;
                               
                               const cellDueDate = inceptionDateStr ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + idx - 1, new Date(inceptionDateStr).getDate()) : null;
                               const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && (() => {

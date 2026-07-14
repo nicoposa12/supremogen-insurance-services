@@ -220,6 +220,9 @@ export default function CollectionPage() {
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
   const calculateDueAmount = (invoice: Invoice) => {
+    if (Number(invoice.balance) <= 0) {
+      return 0;
+    }
     const terms = Number(invoice.customer?.payment_terms || 1);
     const totalAmount = Number(invoice.total_amount);
     const amountPaid = Number(invoice.amount_paid);
