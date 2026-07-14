@@ -49,6 +49,17 @@
             color: #475569;
             margin-bottom: 24px;
         }
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #4A0E17;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            margin-top: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
         .details-card {
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -67,7 +78,7 @@
         .details-table td.label {
             color: #64748b;
             font-weight: 600;
-            width: 45%;
+            width: 40%;
         }
         .details-table td.value {
             color: #1e293b;
@@ -78,40 +89,24 @@
             border-top: 1px solid #e2e8f0;
             margin: 15px 0;
         }
-        .instructions-header {
-            font-size: 14px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #4A0E17;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-        .bank-details {
-            background-color: #fdf2f4;
-            border-left: 4px solid #4A0E17;
-            border-radius: 4px 8px 8px 4px;
+        .warning-box {
+            background-color: #fff1f2;
+            border-left: 4px solid #e11d48;
+            border-radius: 4px;
             padding: 15px;
-            margin-bottom: 15px;
-        }
-        .bank-name {
             font-size: 13px;
-            font-weight: 700;
-            color: #4A0E17;
-            margin: 0 0 5px 0;
+            color: #be123c;
+            font-weight: 600;
+            margin-bottom: 20px;
         }
-        .bank-info {
+        .officer-box {
+            background-color: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            border-radius: 4px;
+            padding: 15px;
             font-size: 13px;
-            color: #475569;
-            margin: 0;
-        }
-        .notice {
-            font-size: 13px;
-            color: #64748b;
-            background-color: #f1f5f9;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 25px;
-            text-align: center;
+            color: #166534;
+            margin-bottom: 20px;
         }
         .footer {
             background-color: #f1f5f9;
@@ -132,63 +127,54 @@
             <h1>Supremogen Insurance Services</h1>
         </div>
         <div class="content">
-            <div class="greeting">Dear {{ $customerName }},</div>
+            <div class="greeting">Greetings!</div>
             <div class="lead-text">
-                This is a friendly reminder that the <strong>{{ $installmentOrdinal }}</strong> installment of your insurance premium is due on <strong>{{ $dueDate }}</strong>.
+                Friendly reminder for your PAYMENT with Supremogen Insurance Services.
             </div>
 
+            <div class="section-title">Policy Details</div>
             <div class="details-card">
                 <table class="details-table">
+                    <tr>
+                        <td class="label">Assured Name</td>
+                        <td class="value">{{ $customerName }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Plate Number</td>
+                        <td class="value">{{ $plateNumber }}</td>
+                    </tr>
                     <tr>
                         <td class="label">Policy Number</td>
                         <td class="value">{{ $policyNumber }}</td>
                     </tr>
-                    <tr>
-                        <td class="label">Installment Term</td>
-                        <td class="value">{{ $installmentOrdinal }} of {{ $totalTerms }} Months</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Installment Amount</td>
-                        <td class="value" style="color: #4A0E17; font-size: 16px;">₱{{ number_format($installmentAmount, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td class="divider" colspan="2"></td>
-                    </tr>
-                    <tr>
-                        <td class="label">Remaining Balance</td>
-                        <td class="value">₱{{ number_format($balance, 2) }}</td>
-                    </tr>
                 </table>
             </div>
 
-            <div class="instructions-header">Payment Instructions</div>
-            <p style="font-size: 13px; color: #475569; margin-top: 0; margin-bottom: 15px;">
-                You can settle your payment through bank transfer to either of the following accounts:
+            <div class="warning-box">
+                <div style="font-size: 16px; margin-bottom: 5px;">🔴 {{ $installmentOrdinal }} PAYMENT</div>
+                <div>DUE DATE: {{ $dueDate }}</div>
+                <div>Amount Due: ₱{{ number_format($installmentAmount, 2) }}</div>
+            </div>
+
+            <p style="font-size: 13px; color: #475569; margin-bottom: 15px;">
+                Please settle <strong>ON OR BEFORE YOUR DUE DATE TO AVOID POLICY CANCELLATION</strong>. Reply with your settlement date. If paid, inform your agent and send confirmation to:
             </p>
 
-            <div class="bank-details">
-                <p class="bank-name">BANK TRANSFER - PBCOM</p>
-                <p class="bank-info">
-                    Account Name: <strong>Supremogen Insurance Services</strong><br>
-                    Account Number: <strong>227101004869</strong>
-                </p>
+            <div class="officer-box">
+                <div style="font-weight: 700; text-transform: uppercase;">VIBER : COLLECTION OFFICER</div>
+                <div style="font-size: 16px; font-weight: 800; margin-top: 3px;">0994 138 6387</div>
             </div>
 
-            <div class="bank-details">
-                <p class="bank-name">BANK TRANSFER - SECURITY BANK</p>
-                <p class="bank-info">
-                    Account Name: <strong>Supremogen Insurance Services</strong><br>
-                    Account Number: <strong>(Contact your Agent / office for details)</strong>
-                </p>
+            <div class="warning-box" style="background-color: #fff1f2; border: 1px dashed #e11d48; border-left: 4px solid #e11d48;">
+                ⚠️ REMINDER: FAILURE TO PAY the installment due will result in POLICY CANCELLATION.
             </div>
 
-            <div class="notice">
-                Please reply to this email with a screenshot of your bank transfer receipt or deposit slip so we can record your payment in the system.
-            </div>
+            <p style="font-size: 14px; font-weight: 600; color: #4A0E17; margin-top: 25px;">
+                Thank you!
+            </p>
         </div>
         <div class="footer">
             <p><strong>Supremogen Insurance Services</strong></p>
-            <p>If you have already settled this payment, please disregard this email.</p>
             <p>&copy; {{ date('Y') }} Supremogen. All rights reserved.</p>
         </div>
     </div>

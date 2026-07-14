@@ -55,10 +55,13 @@ Artisan::command('reminders:send', function () {
         
         if ((int)$daysDiff === 1) {
             $dueDateFormatted = $dueDate->format('M d, Y');
-            $ordinals = [1 => '1st', 2 => '2nd', 3 => '3rd', 4 => '4th', 5 => '5th', 6 => '6th'];
-            $installmentOrdinal = $ordinals[$nextInstallmentIndex] ?? ($nextInstallmentIndex . 'th');
+            $ordinals = [1 => '1ST', 2 => '2ND', 3 => '3RD', 4 => '4TH', 5 => '5TH', 6 => '6TH'];
+            $isLast = ((int)$nextInstallmentIndex === (int)$terms);
+            $installmentOrdinal = $isLast ? 'LAST' : ($ordinals[$nextInstallmentIndex] ?? ($nextInstallmentIndex . 'TH'));
+            
             $customerName = trim($customer->first_name . ' ' . $customer->last_name);
             $policyNumber = $customer->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
+            $plateNumber = strtoupper($customer->plate_no ?: 'N/A');
 
             try {
                 Mail::to($customer->email)->send(
@@ -69,7 +72,8 @@ Artisan::command('reminders:send', function () {
                         $terms,
                         $installmentAmount,
                         (float) $invoice->balance,
-                        $dueDateFormatted
+                        $dueDateFormatted,
+                        $plateNumber
                     )
                 );
                 $sentCount++;

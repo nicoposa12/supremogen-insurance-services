@@ -19,6 +19,7 @@ class PaymentReminderMail extends Mailable
     public $installmentAmount;
     public $balance;
     public $dueDate;
+    public $plateNumber;
 
     /**
      * Create a new message instance.
@@ -30,7 +31,8 @@ class PaymentReminderMail extends Mailable
         int $totalTerms,
         float $installmentAmount,
         float $balance,
-        string $dueDate
+        string $dueDate,
+        string $plateNumber = 'N/A'
     ) {
         $this->customerName = $customerName;
         $this->policyNumber = $policyNumber;
@@ -39,6 +41,7 @@ class PaymentReminderMail extends Mailable
         $this->installmentAmount = $installmentAmount;
         $this->balance = $balance;
         $this->dueDate = $dueDate;
+        $this->plateNumber = $plateNumber;
     }
 
     /**
@@ -47,7 +50,7 @@ class PaymentReminderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Payment Reminder: Upcoming Insurance Installment Due - ' . $this->policyNumber,
+            subject: 'Payment Reminder: ' . $this->installmentOrdinal . ' PAYMENT - ' . $this->policyNumber,
         );
     }
 
