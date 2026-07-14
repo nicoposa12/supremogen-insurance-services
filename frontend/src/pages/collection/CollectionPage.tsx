@@ -285,10 +285,34 @@ export default function CollectionPage() {
       key: 'customer',
       label: 'Customer Details',
       render: (r: Invoice) => (
-        <div>
-          <p className="font-semibold text-slate-800">{r.customer?.first_name} {r.customer?.last_name}</p>
-          <p className="text-xs text-slate-500 font-mono">{r.customer?.customer_code}</p>
+        <div className="space-y-1">
+          <p className="font-semibold text-slate-800">{r.customer ? `${r.customer.first_name} ${r.customer.last_name}` : '—'}</p>
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
+            <span className="font-mono">{r.customer?.customer_code}</span>
+            {r.customer?.request_type && (
+              <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                r.customer.request_type === 'NEW ACCOUNT'
+                  ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                  : 'bg-orange-50 text-orange-700 border border-orange-100'
+              }`}>
+                {r.customer.request_type}
+              </span>
+            )}
+          </div>
+          {r.customer && (
+            <div className="text-[10px] text-slate-500 font-normal leading-tight">
+              <p>{r.customer.mobile || r.customer.phone || 'No contact'}</p>
+              <p className="truncate max-w-[180px]">{r.customer.email || 'No email'}</p>
+            </div>
+          )}
         </div>
+      ),
+    },
+    {
+      key: 'agent',
+      label: 'Agent',
+      render: (r: Invoice) => (
+        <span className="font-medium text-slate-700">{r.customer?.agent || '—'}</span>
       ),
     },
     {
@@ -309,7 +333,9 @@ export default function CollectionPage() {
       key: 'due_date',
       label: 'Due Date',
       render: (r: Invoice) => (
-        <span className="text-xs text-slate-600 font-medium">{new Date(r.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        <span className="text-xs text-slate-600 font-medium">
+          {new Date(r.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+        </span>
       ),
     },
     {
@@ -321,12 +347,36 @@ export default function CollectionPage() {
       key: 'actions',
       label: 'Action',
       render: (r: Invoice) => (
-        <button
-          onClick={() => handleOpenCollection(r)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
-        >
-          <CreditCard className="h-3 w-3" /> Record Collection
-        </button>
+        <div className="flex flex-col gap-1.5 min-w-[120px]">
+          <button
+            onClick={() => handleOpenCollection(r)}
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
+          >
+            <CreditCard className="h-3 w-3" /> Record
+          </button>
+          {r.balance > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                sendReminderMut.mutate(r.id);
+              }}
+              disabled={!r.customer?.email || sendingReminderId === r.id}
+              className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${
+                !r.customer?.email
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-transparent'
+                  : 'bg-blue-700 hover:bg-blue-800'
+              }`}
+              title={!r.customer?.email ? 'No email registered for client' : 'Send payment reminder email to client'}
+            >
+              {sendingReminderId === r.id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Mail className="h-3.5 w-3.5" />
+              )}
+              <span>Reminder</span>
+            </button>
+          )}
+        </div>
       ),
     },
   ];
@@ -570,219 +620,11 @@ export default function CollectionPage() {
               />
             ) : (
               <>
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
-                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs font-medium text-slate-500">
-                    <thead className="bg-[#4A0E17]/5 text-slate-700 uppercase tracking-wider text-[10px] font-bold">
-                      <tr>
-                        <th className="px-3 py-3 border-r border-slate-200">Agent</th>
-                        <th className="px-3 py-3 border-r border-slate-200">Date Request</th>
-                        <th className="px-3 py-3 border-r border-slate-200">Type</th>
-                        <th className="px-4 py-3 border-r border-slate-200 min-w-[200px]">Assured Name</th>
-                        <th className="px-3 py-3 border-r border-slate-200">Plate Number</th>
-                        <th className="px-3 py-3 border-r border-slate-200">Inception Date</th>
-                        <th className="px-3 py-3 border-r border-slate-200">Total Premium</th>
-                        <th className="px-2 py-3 border-r border-slate-200 text-center">Terms</th>
-                        <th className="px-3 py-3 border-r border-slate-200">Payment Amt</th>
-                        <th className="px-3 py-3 border-r border-slate-200 text-center">1st</th>
-                        <th className="px-3 py-3 border-r border-slate-200 text-center">2nd</th>
-                        <th className="px-3 py-3 border-r border-slate-200 text-center">3rd</th>
-                        <th className="px-3 py-3 border-r border-slate-200 text-center">4th</th>
-                        <th className="px-3 py-3 border-r border-slate-200 text-center">5th</th>
-                        <th className="px-3 py-3 border-r border-slate-200 text-center">6th</th>
-                        <th className="px-3 py-3 border-r border-slate-200">Remaining Bal</th>
-                        <th className="px-3 py-3 border-r border-slate-200 text-[#4A0E17] font-extrabold bg-[#4A0E17]/10">Due {currentMonthName} {currentYear}</th>
-                        <th className="px-4 py-3 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {(invoicesRes?.data?.data ?? []).map((row: Invoice) => {
-                        const customer = row.customer;
-                        const terms = Number(customer?.payment_terms || 1);
-                        const totalPremium = Number(row.total_amount);
-                        const installmentAmount = totalPremium / terms;
-                        
-                        // Calculate sorted payments list
-                        const payments = [...(row.payments || [])].sort(
-                          (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
-                        );
-
-                        // Calculate first active due installment index (the first one not fully paid)
-                        const currentInstallmentIndex = (() => {
-                          for (let i = 1; i <= terms; i++) {
-                            const pay = payments[i - 1];
-                            if (!pay || Number(pay.amount) < installmentAmount) {
-                              return i;
-                            }
-                          }
-                          return terms + 1; // All paid
-                        })();
-
-                        // Get month list starting from inception date
-                        const inceptionDateStr = customer?.inception_date;
-                        let installmentMonths: { monthName: string; year: number; index: number }[] = [];
-                        if (inceptionDateStr) {
-                          const date = new Date(inceptionDateStr);
-                          const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                          for (let i = 0; i < 6; i++) {
-                            const d = new Date(date.getFullYear(), date.getMonth() + i, 1);
-                            installmentMonths.push({
-                              index: i + 1,
-                              monthName: monthNames[d.getMonth()],
-                              year: d.getFullYear(),
-                            });
-                          }
-                        }
-
-                        const dueAmount = calculateDueAmount(row);
-
-                        return (
-                          <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-semibold text-slate-700">{customer?.agent || '—'}</td>
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] text-slate-500">
-                              {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                            </td>
-                            <td className="px-3 py-3.5 border-r border-slate-100">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${
-                                 customer?.request_type === 'NEW ACCOUNT' 
-                                   ? 'bg-blue-50 text-blue-700 dark:bg-indigo-950/40 dark:text-indigo-300' 
-                                   : 'bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400'
-                               }`}>
-                                 {customer?.request_type || '—'}
-                               </span>
-                            </td>
-                            <td className="px-4 py-3.5 border-r border-slate-100 font-bold text-slate-800 uppercase tracking-tight">
-                              <div>{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
-                              {customer && (
-                                <div className="text-[10px] text-slate-500 font-normal normal-case mt-0.5 space-y-0.5">
-                                  <p>{customer.mobile || customer.phone || 'No contact'}</p>
-                                  <p className="truncate max-w-[180px]">{customer.email || 'No email'}</p>
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] font-bold text-slate-600">{customer?.plate_no || '—'}</td>
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-[11px] text-slate-500">
-                              {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                            </td>
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-bold text-slate-700">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                             <td className="px-2 py-3.5 border-r border-slate-100 text-center font-mono font-bold text-slate-600">{terms}</td>
-                             <td className="px-3 py-3.5 border-r border-slate-100 font-mono text-slate-600">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                             
-                             {[1, 2, 3, 4, 5, 6].map((idx) => {
-                                const monthInfo = installmentMonths[idx - 1];
-                                const isActive = idx <= terms;
-                                const payment = isActive ? payments[idx - 1] : null;
-                                
-                                const isPaid = isActive && payment && Number(payment.amount) >= installmentAmount;
-                                const isPartial = isActive && payment && Number(payment.amount) > 0 && Number(payment.amount) < installmentAmount;
-                                const isDue = isActive && !isPaid && idx === currentInstallmentIndex;
-                                
-                                const cellDueDate = inceptionDateStr ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + idx - 1, new Date(inceptionDateStr).getDate()) : null;
-                                const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && (() => {
-                                  const today = new Date();
-                                  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                                  const cellMidnight = new Date(cellDueDate.getFullYear(), cellDueDate.getMonth(), cellDueDate.getDate());
-                                  const diff = todayMidnight.getTime() - cellMidnight.getTime();
-                                  return Math.floor(diff / (1000 * 60 * 60 * 24)) > 3;
-                                })();
-
-                                return (
-                                  <td key={idx} className={`px-2 py-2 border-r border-slate-100 text-center transition-all ${
-                                    !isActive 
-                                      ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' 
-                                      : isPaid 
-                                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20' 
-                                        : isPartial
-                                          ? 'bg-amber-50/50 dark:bg-amber-950/20'
-                                          : isDue 
-                                            ? 'bg-rose-50/40 dark:bg-rose-950/20' 
-                                            : 'dark:bg-slate-900/10'
-                                  }`}>
-                                    {isActive ? (
-                                      <div className="flex flex-col items-center justify-center gap-0.5">
-                                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-none">{monthInfo?.monthName}</span>
-                                        <span className={`text-[11px] font-mono font-semibold mt-1 leading-none ${
-                                          isPaid 
-                                            ? 'text-emerald-700 dark:text-emerald-400 font-bold' 
-                                            : isPartial
-                                              ? 'text-amber-700 dark:text-amber-400 font-bold'
-                                              : isDue 
-                                                ? 'text-rose-700 dark:text-rose-400 font-bold' 
-                                                : 'text-slate-600 dark:text-slate-350'
-                                        }`}>
-                                          ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </span>
-                                        <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 border border-transparent ${
-                                          isPaid 
-                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30' 
-                                            : isPartial
-                                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/30 animate-pulse'
-                                              : isDue 
-                                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse' 
-                                                : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700/50'
-                                        }`}>
-                                          <span>{isPaid ? 'Paid' : isPartial ? 'Partial' : isDue ? 'Due' : 'Unpaid'}</span>
-                                          {isCellOverdue && (
-                                            <span title="Overdue by more than 3 days!">
-                                              <AlertTriangle className="h-2 w-2 text-rose-600 dark:text-rose-400 animate-pulse" />
-                                            </span>
-                                          )}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-slate-300 dark:text-slate-600 font-bold">—</span>
-                                    )}
-                                  </td>
-                                );
-                            })}
-
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-bold text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            <td className="px-3 py-3.5 border-r border-slate-100 font-mono font-black text-rose-800 dark:text-rose-400 bg-rose-50/20 dark:bg-rose-950/20">
-                              {dueAmount > 0 ? (
-                                <span className="px-2 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 rounded-lg text-[11px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
-                                  ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400 dark:text-slate-500">—</span>
-                              )}
-                            </td>
-                             <td className="px-4 py-3.5 text-center">
-                               <div className="flex flex-col items-center gap-1.5 min-w-[95px]">
-                                 <button
-                                   onClick={() => handleOpenCollection(row)}
-                                   className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
-                                 >
-                                   <CreditCard className="h-3 w-3" /> Record
-                                 </button>
-                                 {row.balance > 0 && (
-                                   <button
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       sendReminderMut.mutate(row.id);
-                                     }}
-                                     disabled={!row.customer?.email || sendingReminderId === row.id}
-                                     className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${
-                                       !row.customer?.email
-                                         ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-650 cursor-not-allowed shadow-none border border-transparent'
-                                         : 'bg-blue-700 hover:bg-blue-800 dark:bg-blue-800 dark:hover:bg-blue-700'
-                                     }`}
-                                     title={!row.customer?.email ? 'No email registered for client' : 'Send payment reminder email to client'}
-                                   >
-                                     {sendingReminderId === row.id ? (
-                                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                     ) : (
-                                       <Mail className="h-3.5 w-3.5" />
-                                     )}
-                                     <span>Reminder</span>
-                                   </button>
-                                 )}
-                               </div>
-                             </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable 
+                  columns={invoiceColumns} 
+                  data={invoicesRes?.data?.data ?? []} 
+                  loading={invoicesLoading}
+                />
                 {invoicesRes?.data && (
                   <Pagination
                     currentPage={invoicesRes.data.current_page}
