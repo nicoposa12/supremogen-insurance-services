@@ -83,6 +83,26 @@ Artisan::command('reminders:send', function () {
                 Log::error("Failed to send auto payment reminder for invoice {$invoice->invoice_number}: " . $e->getMessage());
                 $this->error("Failed to send auto payment reminder for invoice {$invoice->invoice_number}: " . $e->getMessage());
             }
+        } elseif ((int)$daysDiff <= -3 && !$invoice->cancellation_warning_sent) {
+            $customerName = trim($customer->first_name . ' ' . $customer->last_name);
+            $policyNumber = $customer->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
+
+            try {
+                Mail::to($customer->email)->send(
+                    new \App\Mail\PolicyCancellationWarningMail(
+                        $customerName,
+                        $policyNumber
+                    )
+                );
+                $sentCount++;
+                $invoice->cancellation_warning_sent = \Illuminate\Support\Facades\DB::raw('true');
+                $invoice->save();
+                Log::info("Sent auto policy cancellation warning to {$customer->email} for invoice {$invoice->invoice_number}");
+                $this->info("Sent auto policy cancellation warning to {$customer->email} for invoice {$invoice->invoice_number}");
+            } catch (\Exception $e) {
+                Log::error("Failed to send auto policy cancellation warning for invoice {$invoice->invoice_number}: " . $e->getMessage());
+                $this->error("Failed to send auto policy cancellation warning for invoice {$invoice->invoice_number}: " . $e->getMessage());
+            }
         }
     }
 

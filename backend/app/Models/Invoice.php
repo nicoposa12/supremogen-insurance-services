@@ -15,7 +15,7 @@ class Invoice extends Model
     protected $fillable = [
         'invoice_number', 'policy_id', 'customer_id', 'created_by',
         'status', 'due_date', 'subtotal', 'tax_amount', 'total_amount',
-        'amount_paid', 'balance', 'notes',
+        'amount_paid', 'balance', 'notes', 'cancellation_warning_sent',
     ];
 
     protected function casts(): array
@@ -27,6 +27,7 @@ class Invoice extends Model
             'total_amount' => 'decimal:2',
             'amount_paid' => 'decimal:2',
             'balance' => 'decimal:2',
+            'cancellation_warning_sent' => 'boolean',
         ];
     }
 
