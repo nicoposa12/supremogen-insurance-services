@@ -83,7 +83,7 @@ Artisan::command('reminders:send', function () {
                 Log::error("Failed to send auto payment reminder for invoice {$invoice->invoice_number}: " . $e->getMessage());
                 $this->error("Failed to send auto payment reminder for invoice {$invoice->invoice_number}: " . $e->getMessage());
             }
-        } elseif ((int)$daysDiff <= -3 && !$invoice->cancellation_warning_sent) {
+        } elseif ((int)$daysDiff <= -4 && !$invoice->cancellation_warning_sent) {
             $customerName = trim($customer->first_name . ' ' . $customer->last_name);
             $policyNumber = $customer->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
 
