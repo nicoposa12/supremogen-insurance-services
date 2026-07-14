@@ -959,7 +959,7 @@ export default function CollectionPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Invoiced</span>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Premium</span>
                     <span className="font-bold text-slate-800">₱{selectedInvoice.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div>
@@ -969,7 +969,7 @@ export default function CollectionPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Outstanding Balance</span>
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Remaining balance</span>
                     <span className="font-bold text-[#4A0E17]">₱{selectedInvoice.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
