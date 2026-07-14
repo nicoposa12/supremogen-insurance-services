@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Car, CloudLightning, ShieldAlert, Users, HeartPulse, DollarSign, CreditCard, Zap, Globe, LifeBuoy, Truck } from 'lucide-react';
 
 // Custom standalone SVGs for exact UI/UX matching
 const CarIconGold = () => (
@@ -140,24 +140,34 @@ export default function HomePage() {
 
   const features = [
     {
-      icon: <ShieldCheckGold />,
-      title: 'Trusted Insurance Partner',
-      desc: 'Decades of combined experience working with the country\'s most reputable underwriters.'
+      icon: <DollarSign className="h-6 w-6 stroke-[2]" />,
+      title: 'Affordable Premium',
+      desc: 'Get quality protection without overspending.'
     },
     {
-      icon: <ClockGold />,
+      icon: <CreditCard className="h-6 w-6 stroke-[2]" />,
+      title: 'Flexible Installment',
+      desc: 'Enjoy convenient payment terms with 0% interest on eligible plans.'
+    },
+    {
+      icon: <Zap className="h-6 w-6 stroke-[2]" />,
       title: 'Fast Processing',
-      desc: 'Same-day quotations and policy issuance for qualified accounts, with minimal paperwork.'
+      desc: 'Receive your policy quickly with minimal requirements.'
     },
     {
-      icon: <HeadphonesGold />,
-      title: 'Reliable Customer Support',
-      desc: 'Dedicated account officers and a 24/7 emergency claims hotline.'
+      icon: <Globe className="h-6 w-6 stroke-[2]" />,
+      title: 'Nationwide Coverage',
+      desc: "You're protected wherever your journey takes you."
     },
     {
-      icon: <PesoIconGold />,
-      title: 'Affordable Solutions',
-      desc: 'Competitive premiums, flexible payment terms, and bundled packages.'
+      icon: <LifeBuoy className="h-6 w-6 stroke-[2]" />,
+      title: 'Claims Assistance',
+      desc: "We'll guide you throughout the claims process."
+    },
+    {
+      icon: <Truck className="h-6 w-6 stroke-[2]" />,
+      title: 'Free Policy Delivery',
+      desc: 'Nationwide delivery at no additional cost.'
     }
   ];
 
@@ -229,20 +239,17 @@ export default function HomePage() {
           {/* Hero Left Content */}
           <div className="lg:col-span-7 space-y-6">
             {/* Pill Label */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-white rounded-full text-xs font-semibold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-white rounded-full text-xs font-semibold tracking-wider">
               <span className="text-[#F5A623] font-bold">✦</span>
               Non-life Insurance · Philippines
             </div>
             
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-none">
-              Protection you can trust.
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight">
+              Coverage That Goes the Extra Mile.
             </h1>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#F5A623] tracking-tight leading-none">
-              Service you can count on.
-            </h2>
             
             <p className="text-base sm:text-lg text-white/80 max-w-xl leading-relaxed">
-              From motorcar and fire insurance to surety bonds and engineering cover, Supremogen helps Filipinos and Philippine businesses protect what matters most.
+              At Supremogen Insurance Services, we don't just issue policies—we help you protect one of your biggest investments.
             </p>
             
             <div className="flex flex-wrap gap-4 pt-2">
@@ -261,25 +268,25 @@ export default function HomePage() {
               </Link>
             </div>
             
-            {/* Checked items row */}
-            <div className="flex flex-wrap gap-x-6 gap-y-3 pt-6 text-sm text-white/90">
-              <div className="flex items-center gap-2">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-[#F5A623] text-[#4A0E17]">
-                  <Check className="h-3 w-3 stroke-[3]" />
-                </span>
-                <span>Accredited underwriters</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-[#F5A623] text-[#4A0E17]">
-                  <Check className="h-3 w-3 stroke-[3]" />
-                </span>
-                <span>24/7 claims hotline</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-[#F5A623] text-[#4A0E17]">
-                  <Check className="h-3 w-3 stroke-[3]" />
-                </span>
-                <span>Nationwide service</span>
+            {/* Checked items card/container */}
+            <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-xl p-5 max-w-xl shadow-lg">
+              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3.5 text-sm text-white/90">
+                {[
+                  'Fast Quotation',
+                  'Competitive Premium Rates',
+                  'Flexible Payment Terms',
+                  'Trusted Insurance Partners',
+                  'Nationwide Support',
+                  'Dedicated After-Sales Assistance',
+                  'Claims Guidance from Start to Finish'
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5">
+                    <span className="grid h-5 w-5 shrink-0 mt-0.5 place-items-center rounded-full bg-[#F5A623] text-[#4A0E17]">
+                      <Check className="h-3 w-3 stroke-[3]" />
+                    </span>
+                    <span className="leading-tight font-medium text-white/95">{item}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -388,26 +395,135 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Comprehensive Car Insurance Coverage Highlights Section */}
+      <section className="section-y bg-white border-b border-slate-100">
+        <div className="container-page text-center space-y-4">
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#F5A623]">Coverage Details</div>
+          <h2 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">
+            What does Comprehensive Car Insurance cover?
+          </h2>
+          <p className="text-slate-500 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
+            Protect your vehicle against unexpected events, including:
+          </p>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-8 text-left max-w-5xl mx-auto">
+            {/* Card 1: Own Damage */}
+            <div className="bg-slate-50/50 border border-slate-100/80 rounded-2xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between space-y-4">
+              <div className="space-y-4">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#F5A623]/10 text-[#E2951B]">
+                  <Car className="h-6 w-6 stroke-[2]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-slate-900 text-lg">Own Damage</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Repairs for damage caused by accidents or collisions.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Acts of Nature */}
+            <div className="bg-slate-50/50 border border-slate-100/80 rounded-2xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between space-y-4">
+              <div className="space-y-4">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#F5A623]/10 text-[#E2951B]">
+                  <CloudLightning className="h-6 w-6 stroke-[2]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-slate-900 text-lg">Acts of Nature</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Coverage for floods, typhoons, earthquakes, and other natural disasters.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Theft */}
+            <div className="bg-slate-50/50 border border-slate-100/80 rounded-2xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between space-y-4">
+              <div className="space-y-4">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#F5A623]/10 text-[#E2951B]">
+                  <ShieldAlert className="h-6 w-6 stroke-[2]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-slate-900 text-lg">Theft</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Protection if your vehicle is stolen.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Third-Party Liability */}
+            <div className="bg-slate-50/50 border border-slate-100/80 rounded-2xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between space-y-4">
+              <div className="space-y-4">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#F5A623]/10 text-[#E2951B]">
+                  <Users className="h-6 w-6 stroke-[2]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-slate-900 text-lg">Third-Party Liability</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Coverage for injuries or property damage caused to others.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 5: Personal Accident */}
+            <div className="bg-slate-50/50 border border-slate-100/80 rounded-2xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between space-y-4">
+              <div className="space-y-4">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#F5A623]/10 text-[#E2951B]">
+                  <HeartPulse className="h-6 w-6 stroke-[2]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-slate-900 text-lg">Personal Accident</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Protection for the driver and passengers.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 6: Get Quote CTA Card */}
+            <div className="bg-gradient-to-br from-[#4A0E17] to-[#3A0B12] text-white rounded-2xl p-6 shadow-md flex flex-col justify-between hover:shadow-lg transition-all duration-300 space-y-6">
+              <div className="space-y-2">
+                <h3 className="font-extrabold text-lg text-white">Protect Your Investment</h3>
+                <p className="text-xs text-white/80 leading-relaxed">
+                  Get a personalized, comprehensive car insurance quotation tailored specifically to your vehicle’s make and model.
+                </p>
+              </div>
+              <Link
+                to="/inquiry?product=motor"
+                className="inline-flex items-center justify-center rounded-xl bg-[#F5A623] hover:bg-[#E2951B] text-[#4A0E17] px-5 py-3 text-sm font-bold transition-all shadow-sm gap-2 self-start"
+              >
+                Get a Quote
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Why Choose Us Section */}
-      <section className="section-y bg-white">
+      <section className="section-y bg-slate-50 border-b border-slate-100">
         <div className="container-page text-center space-y-4">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#F5A623]">Why Choose Us</div>
           <h2 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">
-            A partner that puts policyholders first
+            Why Thousands of Car Owners Choose Us
           </h2>
           
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 pt-8 text-left">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-8 text-left max-w-6xl mx-auto">
             {features.map((feat, idx) => (
               <div
                 key={idx}
-                className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow space-y-4 flex flex-col justify-between"
+                className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between"
               >
                 <div className="space-y-4">
-                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-slate-50">
+                  <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#F5A623]/10 text-[#E2951B]">
                     {feat.icon}
                   </div>
-                  <h3 className="font-bold text-slate-900 text-base">{feat.title}</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">{feat.desc}</p>
+                  <div className="space-y-1">
+                    <h3 className="font-extrabold text-slate-900 text-base">{feat.title}</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">{feat.desc}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -416,7 +532,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="section-y bg-slate-50 border-y border-slate-100">
+      <section className="section-y bg-white border-b border-slate-100">
         <div className="container-page text-center space-y-4">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#F5A623]">How It Works</div>
           <h2 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">
@@ -430,7 +546,7 @@ export default function HomePage() {
             {steps.map((step, idx) => (
               <div
                 key={idx}
-                className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm flex flex-col space-y-3"
+                className="bg-slate-50 border border-slate-100 rounded-xl p-6 shadow-sm flex flex-col space-y-3"
               >
                 <span className="text-xs font-bold text-[#F5A623]">{step.number}</span>
                 <h3 className="font-bold text-slate-900 text-base">{step.title}</h3>
@@ -442,7 +558,7 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials (Client Stories) Section */}
-      <section className="section-y bg-white">
+      <section className="section-y bg-slate-50 border-b border-slate-100">
         <div className="container-page text-center space-y-4">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#F5A623]">Client Stories</div>
           <h2 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">

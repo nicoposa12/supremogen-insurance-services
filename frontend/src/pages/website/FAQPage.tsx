@@ -19,17 +19,17 @@ export default function FAQPage() {
       {
         id: 'gen-1',
         q: 'Who is Supremogen Insurance Services?',
-        a: 'Supremogen Insurance Services is a Philippine-based non-life insurance agency offering motor, fire, marine, personal accident, liability, engineering, and surety bond products from reputable underwriters.'
+        a: 'Supremogen Insurance Services is a Philippine-based non-life insurance agency offering motor, fire, marine, personal accident, liability, engineering, and surety bond products from reputable underwriters. We focus on a problem-solving approach to simplify insurance and provide efficient services for our clients.'
       },
       {
         id: 'gen-2',
         q: 'Where is your office located?',
-        a: 'Our principal office is located in Pasig City, Metro Manila. We serve clients nationwide through digital channels and accredited partners.'
+        a: 'Our office is located at Vill State Corp Building, 2nd Flr Unit F&H Brgy. Commonwealth, Quezon City, Philippines, 1121.'
       },
       {
         id: 'gen-3',
         q: 'What are your business hours?',
-        a: 'Monday to Friday, 9:00 AM – 6:00 PM. Saturdays by appointment. Emergency claims hotline is available 24/7.'
+        a: 'Monday to Friday, 9:00 AM – 6:00 PM.'
       }
     ],
     'insurance-products': [
@@ -42,6 +42,16 @@ export default function FAQPage() {
         id: 'prod-2',
         q: 'Can I bundle multiple policies?',
         a: 'Yes. Bundled policies often qualify for preferential premium rates — request a quote and our advisor will tailor a package for you.'
+      },
+      {
+        id: 'prod-3',
+        q: 'Is Comprehensive Insurance required?',
+        a: 'While not always legally required, it\'s highly recommended to protect your vehicle from unexpected financial losses.'
+      },
+      {
+        id: 'prod-4',
+        q: 'Does it cover floods?',
+        a: 'Yes, when your policy includes Acts of Nature coverage.'
       }
     ],
     claims: [
@@ -66,6 +76,11 @@ export default function FAQPage() {
         id: 'policy-2',
         q: 'Can I make changes to my policy mid-term?',
         a: 'Yes, through an endorsement. Common changes include change of address, additional vehicles, or increase in sum insured.'
+      },
+      {
+        id: 'policy-3',
+        q: 'How long does processing take?',
+        a: 'Most quotations are prepared quickly, and policy issuance is completed as soon as requirements are complete.'
       }
     ],
     payments: [
@@ -76,8 +91,8 @@ export default function FAQPage() {
       },
       {
         id: 'pay-2',
-        q: 'Do you offer installment plans?',
-        a: 'Selected products allow quarterly or semi-annual installments. Ask your account officer for details.'
+        q: 'Can I pay in installments?',
+        a: 'Yes! We offer flexible payment options, including eligible 0% interest installment plans.'
       }
     ],
     renewals: [

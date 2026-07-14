@@ -168,12 +168,24 @@ export default function ProductsPage() {
       ],
       faqs: [
         {
-          q: 'How soon can I file a claim after an accident?',
-          a: 'You should notify us immediately or within 24 hours of the incident. Our emergency claims support is active 24/7 to guide you through towing and documentation.'
+          q: 'Is Comprehensive Insurance required?',
+          a: 'While not always legally required, it\'s highly recommended to protect your vehicle from unexpected financial losses.'
         },
         {
-          q: 'Is Acts of Nature coverage included?',
-          a: 'Yes. Our comprehensive package includes full coverage for Acts of Nature such as typhoon, flood, earthquake, and volcanic eruption.'
+          q: 'Does it cover floods?',
+          a: 'Yes, when your policy includes Acts of Nature coverage.'
+        },
+        {
+          q: 'Can I pay in installments?',
+          a: 'Yes! We offer flexible payment options, including eligible 0% interest installment plans.'
+        },
+        {
+          q: 'How long does processing take?',
+          a: 'Most quotations are prepared quickly, and policy issuance is completed as soon as requirements are complete.'
+        },
+        {
+          q: 'How soon can I file a claim after an accident?',
+          a: 'You should notify us immediately or within 24 hours of the incident. Our emergency claims support is active 24/7 to guide you through towing and documentation.'
         }
       ]
     },
