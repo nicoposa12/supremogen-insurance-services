@@ -12,8 +12,9 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::call(function () {
-    Log::info('Running payment reminder cron scheduler...');
+Artisan::command('reminders:send', function () {
+    Log::info('Running manual/automated payment reminder command...');
+    $this->info('Running payment reminder command...');
     
     // Find all invoices that are sent or partial (active and unpaid or partially paid)
     $invoices = Invoice::whereIn('status', ['sent', 'partial'])
@@ -26,7 +27,11 @@ Schedule::call(function () {
 
     foreach ($invoices as $invoice) {
         $customer = $invoice->customer;
-        if (!$customer || !$customer->email || !$customer->inception_date) {
+        if (!$customer) {
+            continue;
+        }
+        
+        if (!$customer->email || !$customer->inception_date) {
             continue;
         }
 
@@ -39,16 +44,16 @@ Schedule::call(function () {
         $nextInstallmentIndex = $paidInstallments + 1;
 
         if ($nextInstallmentIndex > $terms) {
-            continue; // Already paid in full based on terms calculation
+            continue;
         }
 
         $inception = \Carbon\Carbon::parse($customer->inception_date);
         $dueDate = $inception->copy()->addMonths($nextInstallmentIndex - 1)->startOfDay();
 
-        // Check if the due date is exactly 3 days from today
+        // Check if the due date is exactly 1 day from today (day before payment)
         $daysDiff = $today->diffInDays($dueDate, false);
         
-        if ($daysDiff === 3) {
+        if ((int)$daysDiff === 1) {
             $dueDateFormatted = $dueDate->format('M d, Y');
             $ordinals = [1 => '1st', 2 => '2nd', 3 => '3rd', 4 => '4th', 5 => '5th', 6 => '6th'];
             $installmentOrdinal = $ordinals[$nextInstallmentIndex] ?? ($nextInstallmentIndex . 'th');
@@ -69,11 +74,16 @@ Schedule::call(function () {
                 );
                 $sentCount++;
                 Log::info("Sent auto payment reminder to {$customer->email} for invoice {$invoice->invoice_number}, installment {$installmentOrdinal}");
+                $this->info("Sent auto payment reminder to {$customer->email} for invoice {$invoice->invoice_number}, installment {$installmentOrdinal}");
             } catch (\Exception $e) {
                 Log::error("Failed to send auto payment reminder for invoice {$invoice->invoice_number}: " . $e->getMessage());
+                $this->error("Failed to send auto payment reminder for invoice {$invoice->invoice_number}: " . $e->getMessage());
             }
         }
     }
 
-    Log::info("Completed payment reminder cron scheduler. Sent {$sentCount} reminders.");
-})->daily();
+    Log::info("Completed payment reminder command. Sent {$sentCount} reminders.");
+    $this->info("Completed payment reminder command. Sent {$sentCount} reminders.");
+})->purpose('Send automated payment reminders to clients 1 day before due date');
+
+Schedule::command('reminders:send')->daily();
