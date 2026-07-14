@@ -79,6 +79,18 @@ Artisan::command('reminders:send', function () {
                 $sentCount++;
                 Log::info("Sent auto payment reminder to {$customer->email} for invoice {$invoice->invoice_number}, installment {$installmentOrdinal}");
                 $this->info("Sent auto payment reminder to {$customer->email} for invoice {$invoice->invoice_number}, installment {$installmentOrdinal}");
+
+                // Notify all Collection officers
+                $collectionOfficers = \App\Models\User::role('Collection')->get();
+                foreach ($collectionOfficers as $officer) {
+                    \App\Models\Notification::create([
+                        'user_id' => $officer->id,
+                        'title' => 'Payment Reminder Sent',
+                        'message' => "A payment reminder for the {$installmentOrdinal} installment of ₱" . number_format($installmentAmount, 2) . " was sent to {$customerName} for Invoice {$invoice->invoice_number}.",
+                        'type' => 'info',
+                        'read_at' => null,
+                    ]);
+                }
             } catch (\Exception $e) {
                 Log::error("Failed to send auto payment reminder for invoice {$invoice->invoice_number}: " . $e->getMessage());
                 $this->error("Failed to send auto payment reminder for invoice {$invoice->invoice_number}: " . $e->getMessage());
@@ -99,6 +111,18 @@ Artisan::command('reminders:send', function () {
                 $invoice->save();
                 Log::info("Sent auto policy cancellation warning to {$customer->email} for invoice {$invoice->invoice_number}");
                 $this->info("Sent auto policy cancellation warning to {$customer->email} for invoice {$invoice->invoice_number}");
+
+                // Notify all Collection officers
+                $collectionOfficers = \App\Models\User::role('Collection')->get();
+                foreach ($collectionOfficers as $officer) {
+                    \App\Models\Notification::create([
+                        'user_id' => $officer->id,
+                        'title' => 'Policy Cancellation Warning Sent',
+                        'message' => "A policy cancellation warning was sent to {$customerName} for Invoice {$invoice->invoice_number} (Policy: {$policyNumber}) as it is " . abs((int)$daysDiff) . " days overdue.",
+                        'type' => 'error',
+                        'read_at' => null,
+                    ]);
+                }
             } catch (\Exception $e) {
                 Log::error("Failed to send auto policy cancellation warning for invoice {$invoice->invoice_number}: " . $e->getMessage());
                 $this->error("Failed to send auto policy cancellation warning for invoice {$invoice->invoice_number}: " . $e->getMessage());

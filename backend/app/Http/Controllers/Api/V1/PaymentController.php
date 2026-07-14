@@ -118,7 +118,19 @@ class PaymentController extends Controller
                 \App\Models\Notification::create([
                     'user_id' => $invoice->customer->created_by,
                     'title' => 'Payment Received',
-                    'message' => "A payment of " . number_format($payment->amount, 2) . " has been successfully recorded for Invoice {$invoice->invoice_number}.",
+                    'message' => "A payment of ₱" . number_format($payment->amount, 2) . " has been successfully recorded for Invoice {$invoice->invoice_number}.",
+                    'type' => 'success',
+                    'read_at' => null,
+                ]);
+            }
+
+            // Notify all Collection officers
+            $collectionOfficers = \App\Models\User::role('Collection')->get();
+            foreach ($collectionOfficers as $officer) {
+                \App\Models\Notification::create([
+                    'user_id' => $officer->id,
+                    'title' => 'Payment Received',
+                    'message' => "A payment of ₱" . number_format($payment->amount, 2) . " has been successfully recorded for Invoice {$invoice->invoice_number}.",
                     'type' => 'success',
                     'read_at' => null,
                 ]);

@@ -71,6 +71,33 @@ class InvoiceController extends Controller
                         'unit_price' => $customer?->policy_premium ?? 0,
                         'amount' => $customer?->policy_premium ?? 0,
                     ]);
+
+                    // Notify the agent who owns this customer about the invoice
+                    try {
+                        if ($customer && $customer->created_by) {
+                            \App\Models\Notification::create([
+                                'user_id' => $customer->created_by,
+                                'title' => 'Invoice Issued',
+                                'message' => "A new invoice {$invoice->invoice_number} has been generated for " . ($customer ? ($customer->first_name . ' ' . $customer->last_name) : 'Customer') . " with balance ₱" . number_format($invoice->balance, 2) . ".",
+                                'type' => 'info',
+                                'read_at' => null,
+                            ]);
+                        }
+
+                        // Notify all Collection officers
+                        $collectionOfficers = \App\Models\User::role('Collection')->get();
+                        foreach ($collectionOfficers as $officer) {
+                            \App\Models\Notification::create([
+                                'user_id' => $officer->id,
+                                'title' => 'Invoice Issued',
+                                'message' => "A new invoice {$invoice->invoice_number} has been generated for " . ($customer ? ($customer->first_name . ' ' . $customer->last_name) : 'Customer') . " with balance ₱" . number_format($invoice->balance, 2) . ".",
+                                'type' => 'info',
+                                'read_at' => null,
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Failed to send auto-heal invoice creation notification: ' . $e->getMessage());
+                    }
                 }
             });
         }
@@ -154,6 +181,18 @@ class InvoiceController extends Controller
             if ($invoice->customer && $invoice->customer->created_by) {
                 \App\Models\Notification::create([
                     'user_id' => $invoice->customer->created_by,
+                    'title' => 'Invoice Issued',
+                    'message' => "A new invoice {$invoice->invoice_number} has been generated for " . ($invoice->customer ? ($invoice->customer->first_name . ' ' . $invoice->customer->last_name) : 'Customer') . " with balance ₱" . number_format($invoice->balance, 2) . ".",
+                    'type' => 'info',
+                    'read_at' => null,
+                ]);
+            }
+
+            // Notify all Collection officers
+            $collectionOfficers = \App\Models\User::role('Collection')->get();
+            foreach ($collectionOfficers as $officer) {
+                \App\Models\Notification::create([
+                    'user_id' => $officer->id,
                     'title' => 'Invoice Issued',
                     'message' => "A new invoice {$invoice->invoice_number} has been generated for " . ($invoice->customer ? ($invoice->customer->first_name . ' ' . $invoice->customer->last_name) : 'Customer') . " with balance ₱" . number_format($invoice->balance, 2) . ".",
                     'type' => 'info',

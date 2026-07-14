@@ -343,8 +343,9 @@ class QuotationController extends Controller
         }
 
         $action = $request->input('action');
+        $invoice = null;
 
-        DB::transaction(function () use ($quotation, $action, $request) {
+        DB::transaction(function () use ($quotation, $action, $request, &$invoice) {
             $quotation->update([
                 'status' => $action === 'approve' ? 'approved' : 'rejected',
                 'reviewed_by' => $request->user()->id,
@@ -419,6 +420,20 @@ class QuotationController extends Controller
                     'type' => $action === 'approve' ? 'success' : 'error',
                     'read_at' => null,
                 ]);
+            }
+
+            // If approved, also notify all Collection officers about the generated invoice
+            if ($action === 'approve' && $invoice) {
+                $collectionOfficers = \App\Models\User::role('Collection')->get();
+                foreach ($collectionOfficers as $officer) {
+                    \App\Models\Notification::create([
+                        'user_id' => $officer->id,
+                        'title' => 'Invoice Issued',
+                        'message' => "A new invoice {$invoice->invoice_number} has been generated for " . ($quotation->customer ? ($quotation->customer->first_name . ' ' . $quotation->customer->last_name) : 'Customer') . " with balance ₱" . number_format($invoice->balance, 2) . ".",
+                        'type' => 'info',
+                        'read_at' => null,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to send quotation review notification: ' . $e->getMessage());

@@ -1488,7 +1488,7 @@ export default function CollectionLedgerPage() {
                            <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 5 : 1} onClick={(e) => e.stopPropagation()}>
                              <div className="flex flex-col items-center gap-2">
                                <button
-                                 onClick={() => setViewingReceiptInvoice(row)}
+                                 onClick={() => printReceiptHtml(row)}
                                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
                                >
                                  <FileText className="h-3 w-3" /> Receipt
