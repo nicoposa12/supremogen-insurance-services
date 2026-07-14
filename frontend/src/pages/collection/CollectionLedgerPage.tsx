@@ -226,7 +226,7 @@ export default function CollectionLedgerPage() {
     }
     .header-line {
       height: 5px;
-      background: linear-gradient(to right, #8B0000 40%, #DAA520 40%);
+      background: linear-gradient(to right, #8B0000 50%, #DAA520 50%);
       margin: 10px 0 12px 0;
       border: none;
     }
@@ -837,7 +837,7 @@ export default function CollectionLedgerPage() {
                 </div>
               </div>
 
-              <div className="h-[4px] bg-gradient-to-r from-[#8B0000] via-[#8B0000] to-[#DAA520] my-4"></div>
+              <div className="h-[4px] my-4" style={{ background: 'linear-gradient(to right, #8B0000 50%, #DAA520 50%)' }}></div>
 
               <h1 className="text-center text-xl md:text-2xl font-black tracking-wide text-black mb-1">ACKNOWLEDGEMENT RECEIPT</h1>
               <p className="text-center text-[10px] md:text-[11px] text-slate-800 mb-4">
