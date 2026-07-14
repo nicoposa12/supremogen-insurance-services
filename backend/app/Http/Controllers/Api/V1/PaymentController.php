@@ -23,7 +23,7 @@ class PaymentController extends Controller
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
         $payments = Payment::with([
-                'invoice:id,invoice_number,total_amount,balance',
+                'invoice:id,invoice_number,customer_id,total_amount,balance',
                 'invoice.customer:id,customer_code,first_name,last_name',
                 'receivedBy:id,name',
             ])
