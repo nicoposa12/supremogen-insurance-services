@@ -94,7 +94,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Supremogen Insurance</h1>
+            <h1>Supremogen Insurance Services</h1>
         </div>
         <div class="content">
             <div class="greeting">Hello Sir/Ma'am,</div>
