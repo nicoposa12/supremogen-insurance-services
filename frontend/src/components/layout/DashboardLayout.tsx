@@ -320,6 +320,24 @@ export default function DashboardLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   // Track which role groups are open (all expanded by default)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(
     () => Object.fromEntries(adminNavGroups.map((g) => [g.roleLabel, true]))
@@ -650,7 +668,7 @@ export default function DashboardLayout() {
               </button>
 
               {/* Notifications */}
-              <div className="relative">
+              <div className="relative" ref={notificationsRef}>
                 <button
                   onClick={() => {
                     setNotificationsOpen(!notificationsOpen);
@@ -756,9 +774,12 @@ export default function DashboardLayout() {
               </div>
 
               {/* User menu */}
-              <div className="relative ml-1">
+              <div className="relative ml-1" ref={userMenuRef}>
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  onClick={() => {
+                    setUserMenuOpen(!userMenuOpen);
+                    setNotificationsOpen(false);
+                  }}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition"
                 >
                   {user?.profile_photo_url ? (
@@ -782,32 +803,29 @@ export default function DashboardLayout() {
                 </button>
 
                 {userMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                      <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 animate-scale-in">
-                        <div className="px-4 py-3 border-b border-slate-100">
-                          <p className="text-sm font-medium text-slate-800">{user?.name}</p>
-                          <p className="text-xs text-slate-500">{user?.email}</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setUserMenuOpen(false);
-                            navigate('/dashboard/settings');
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
-                        >
-                          <Settings className="h-4 w-4" />
-                          Settings
-                        </button>
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-slate-50 transition"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          Sign Out
-                        </button>
-                      </div>
-                  </>
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 animate-scale-in">
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <p className="text-sm font-medium text-slate-800">{user?.name}</p>
+                      <p className="text-xs text-slate-500">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        navigate('/dashboard/settings');
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Settings
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-slate-50 transition"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
