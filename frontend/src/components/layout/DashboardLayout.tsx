@@ -407,10 +407,15 @@ export default function DashboardLayout() {
   useEffect(() => {
     const isAgent = roles?.includes('Sales Agent') || roles?.includes('Team Renewal');
     const isCollection = roles?.includes('Collection');
-    if (isAgent && location.pathname === '/dashboard') {
-      navigate('/dashboard/customers', { replace: true });
-    } else if (isCollection && location.pathname === '/dashboard') {
-      navigate('/dashboard/collection', { replace: true });
+    const isAdministrator = roles?.includes('Administrator');
+    const isAccounting = roles?.includes('Accounting Officer');
+
+    if (!isAdministrator && !isAccounting) {
+      if (isAgent && location.pathname === '/dashboard') {
+        navigate('/dashboard/customers', { replace: true });
+      } else if (isCollection && location.pathname === '/dashboard') {
+        navigate('/dashboard/collection', { replace: true });
+      }
     }
   }, [roles, location.pathname, navigate]);
 
@@ -805,7 +810,13 @@ export default function DashboardLayout() {
                     <p className="text-sm font-medium text-slate-700 truncate max-w-[120px]">
                       {user?.name ?? 'User'}
                     </p>
-                    <p className="text-[11px] text-slate-400">{roles[0] ?? 'Staff'}</p>
+                    <p className="text-[11px] text-slate-400">
+                      {roles?.includes('Administrator')
+                        ? 'Administrator'
+                        : (roles?.includes('Accounting Officer')
+                          ? 'Accounting Officer'
+                          : (roles?.[0] ?? 'Staff'))}
+                    </p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-slate-400 hidden sm:block" />
                 </button>
