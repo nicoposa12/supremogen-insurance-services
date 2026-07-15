@@ -954,7 +954,8 @@ export default function SettingsPage() {
                   <select 
                     value={userFormRole} 
                     onChange={(e) => setUserFormRole(e.target.value)} 
-                    className={inputClass}
+                    className={`${inputClass} ${selectedUser?.email === 'admin@supremogen.com' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    disabled={selectedUser?.email === 'admin@supremogen.com'}
                   >
                     {Object.entries(roleLabels)
                       .filter(([val]) => !(roles?.includes('Underwriter') && val === 'Administrator'))
@@ -962,6 +963,11 @@ export default function SettingsPage() {
                         <option key={val} value={val}>{label}</option>
                       ))}
                   </select>
+                  {selectedUser?.email === 'admin@supremogen.com' && (
+                    <p className="text-[10px] text-amber-600 font-medium mt-1.5">
+                      The primary administrator's role cannot be changed.
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -141,6 +141,14 @@ class UserController extends Controller
             ], 403);
         }
 
+        // Prevent changing the primary administrator's role
+        if ($user->email === 'admin@supremogen.com' && $request->input('role') !== 'Administrator') {
+            return response()->json([
+                'success' => false,
+                'message' => 'The primary administrator account role cannot be changed.',
+            ], 422);
+        }
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
