@@ -516,7 +516,11 @@ export default function SettingsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <h4 className="text-lg font-bold text-slate-800 leading-tight">{user?.name}</h4>
                     <span className="self-center sm:self-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-[#4A0E17]/10 text-[#4A0E17] border border-[#4A0E17]/20 uppercase tracking-wide">
-                      {roles[0] ?? 'Staff'}
+                      {roles?.includes('Administrator')
+                        ? 'Administrator'
+                        : (roles?.includes('Accounting Officer')
+                          ? 'Accounting Officer'
+                          : (roles?.[0] ?? 'Staff'))}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 font-medium">PNG, JPG, or GIF. Max 2MB.</p>
