@@ -25,14 +25,6 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::get('/auth/restore-admin-role', function () {
-        $user = \App\Models\User::where('email', 'admin@supremogen.com')->first();
-        if ($user) {
-            $user->syncRoles(['Administrator']);
-            return response()->json(['success' => true, 'message' => 'Administrator role restored successfully.']);
-        }
-        return response()->json(['success' => false, 'message' => 'Admin user not found.']);
-    });
     // Stream notifications (authenticated via query param token or bearer token)
     Route::get('/notifications/stream', [NotificationController::class, 'stream'])
         ->middleware(['auth:sanctum']);
