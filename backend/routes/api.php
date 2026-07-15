@@ -105,6 +105,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/attachments', [AttachmentController::class, 'index']);
         Route::post('/attachments', [AttachmentController::class, 'store']);
         Route::get('/attachments/{id}/download', [AttachmentController::class, 'download']);
+        Route::get('/attachments/{id}/preview', [AttachmentController::class, 'preview']);
         Route::delete('/attachments/{id}', [AttachmentController::class, 'destroy']);
     });
 });

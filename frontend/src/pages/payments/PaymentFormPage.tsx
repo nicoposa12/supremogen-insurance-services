@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
+import { ArrowLeft, CreditCard, Loader2, Paperclip } from 'lucide-react';
 
 import { useToast } from '../../components/ui/Toast';
 import { getInvoices } from '../../services/invoiceApi';
@@ -21,6 +21,7 @@ export default function PaymentFormPage({ invoiceId: propInvoiceId, balance: pro
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [notes, setNotes] = useState('');
+  const [proof, setProof] = useState<File | null>(null);
 
   // Pre-fill from query params or props
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function PaymentFormPage({ invoiceId: propInvoiceId, balance: pro
       payment_date: paymentDate,
       reference_number: referenceNumber || undefined,
       notes: notes || undefined,
+      proof: proof || undefined,
     };
 
     recordMut.mutate(data);
@@ -171,6 +173,19 @@ export default function PaymentFormPage({ invoiceId: propInvoiceId, balance: pro
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Notes</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={inputClass} placeholder="Optional payment notes..." />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Proof of Payment (Optional)</label>
+            <input 
+              type="file" 
+              accept="image/*,application/pdf"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  setProof(e.target.files[0]);
+                }
+              }}
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-250"
+            />
           </div>
         </div>
       </div>

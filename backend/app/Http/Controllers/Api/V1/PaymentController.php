@@ -26,6 +26,7 @@ class PaymentController extends Controller
                 'invoice:id,invoice_number,customer_id,total_amount,balance',
                 'invoice.customer:id,customer_code,first_name,last_name',
                 'receivedBy:id,name',
+                'attachments',
             ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
@@ -49,6 +50,7 @@ class PaymentController extends Controller
             'payment_date' => 'required|date',
             'reference_number' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
+            'proof' => 'nullable|file|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -67,17 +69,39 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        $payment = Payment::create([
-            'payment_number' => Payment::generateNumber(),
-            'invoice_id' => $request->input('invoice_id'),
-            'received_by' => $request->user()->id,
-            'amount' => $request->input('amount'),
-            'payment_method' => $request->input('payment_method'),
-            'payment_date' => $request->input('payment_date'),
-            'reference_number' => $request->input('reference_number'),
-            'notes' => $request->input('notes'),
-            'status' => 'completed',
-        ]);
+        $payment = \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+            $payment = Payment::create([
+                'payment_number' => Payment::generateNumber(),
+                'invoice_id' => $request->input('invoice_id'),
+                'received_by' => $request->user()->id,
+                'amount' => $request->input('amount'),
+                'payment_method' => $request->input('payment_method'),
+                'payment_date' => $request->input('payment_date'),
+                'reference_number' => $request->input('reference_number'),
+                'notes' => $request->input('notes'),
+                'status' => 'completed',
+            ]);
+
+            if ($request->hasFile('proof')) {
+                $file = $request->file('proof');
+                $originalName = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $safeName = \Illuminate\Support\Str::uuid() . '.' . $extension;
+                $disk = config('filesystems.default');
+                $path = $file->storeAs("attachments/payment", $safeName, $disk);
+
+                $payment->attachments()->create([
+                    'file_name' => $originalName,
+                    'file_path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'document_type' => 'receipt',
+                    'uploaded_by' => $request->user()?->id,
+                ]);
+            }
+
+            return $payment;
+        });
 
         // Recalculate invoice totals & status
         $invoice->recalculate();
@@ -142,7 +166,7 @@ class PaymentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Payment recorded successfully.',
-            'data' => $payment->load(['invoice.customer', 'receivedBy']),
+            'data' => $payment->load(['invoice.customer', 'receivedBy', 'attachments']),
         ], 201);
     }
 
@@ -154,6 +178,7 @@ class PaymentController extends Controller
         $payment = Payment::with([
             'invoice.customer', 'invoice.policy:id,policy_number',
             'receivedBy:id,name,email',
+            'attachments',
         ])->find($id);
 
         if (!$payment) {
@@ -177,6 +202,7 @@ class PaymentController extends Controller
             'payment_date' => 'required|date',
             'reference_number' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
+            'proof' => 'nullable|file|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -186,13 +212,43 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        $payment->update([
-            'amount' => $request->amount,
-            'payment_method' => $request->payment_method,
-            'payment_date' => $request->payment_date,
-            'reference_number' => $request->reference_number,
-            'notes' => $request->notes,
-        ]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $payment) {
+            $payment->update([
+                'amount' => $request->amount,
+                'payment_method' => $request->payment_method,
+                'payment_date' => $request->payment_date,
+                'reference_number' => $request->reference_number,
+                'notes' => $request->notes,
+            ]);
+
+            if ($request->hasFile('proof')) {
+                // Delete existing attachments if any
+                foreach ($payment->attachments as $oldAttachment) {
+                    $disk = config('filesystems.default');
+                    if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($oldAttachment->file_path)) {
+                        \Illuminate\Support\Facades\Storage::disk($disk)->delete($oldAttachment->file_path);
+                    }
+                    $oldAttachment->delete();
+                }
+
+                // Add new attachment
+                $file = $request->file('proof');
+                $originalName = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $safeName = \Illuminate\Support\Str::uuid() . '.' . $extension;
+                $disk = config('filesystems.default');
+                $path = $file->storeAs("attachments/payment", $safeName, $disk);
+
+                $payment->attachments()->create([
+                    'file_name' => $originalName,
+                    'file_path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'document_type' => 'receipt',
+                    'uploaded_by' => $request->user()?->id,
+                ]);
+            }
+        });
 
         // Recalculate invoice
         $payment->invoice->recalculate();
@@ -200,7 +256,7 @@ class PaymentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Payment updated successfully.',
-            'data' => $payment->fresh(['invoice']),
+            'data' => $payment->fresh(['invoice', 'attachments']),
         ]);
     }
 

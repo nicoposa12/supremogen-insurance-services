@@ -113,7 +113,7 @@ class InvoiceController extends Controller
                 'customer',
                 'policy:id,policy_number',
                 'createdBy:id,name',
-                'payments',
+                'payments.attachments',
             ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
@@ -217,7 +217,7 @@ class InvoiceController extends Controller
     {
         $invoice = Invoice::with([
             'customer', 'policy:id,policy_number,status',
-            'items', 'payments.receivedBy:id,name', 'createdBy:id,name,email',
+            'items', 'payments.receivedBy:id,name', 'payments.attachments', 'createdBy:id,name,email',
         ])->find($id);
 
         if (!$invoice) {

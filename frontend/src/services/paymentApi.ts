@@ -15,8 +15,27 @@ export async function getPayment(id: number): Promise<SingleResponse<Payment>> {
 }
 
 export async function recordPayment(formData: PaymentFormData): Promise<SingleResponse<Payment>> {
-  const { data } = await axios.post<SingleResponse<Payment>>(BASE, formData);
-  return data;
+  const data = new FormData();
+  data.append('invoice_id', String(formData.invoice_id));
+  data.append('amount', String(formData.amount));
+  data.append('payment_method', formData.payment_method);
+  data.append('payment_date', formData.payment_date);
+  if (formData.reference_number) {
+    data.append('reference_number', formData.reference_number);
+  }
+  if (formData.notes) {
+    data.append('notes', formData.notes);
+  }
+  if (formData.proof) {
+    data.append('proof', formData.proof);
+  }
+
+  const { data: responseData } = await axios.post<SingleResponse<Payment>>(BASE, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return responseData;
 }
 
 export async function voidPayment(id: number): Promise<SingleResponse<Payment>> {
@@ -25,6 +44,26 @@ export async function voidPayment(id: number): Promise<SingleResponse<Payment>> 
 }
 
 export async function updatePayment(id: number, formData: PaymentFormData): Promise<SingleResponse<Payment>> {
-  const { data } = await axios.put<SingleResponse<Payment>>(`${BASE}/${id}`, formData);
-  return data;
+  const data = new FormData();
+  data.append('_method', 'PUT'); // Method spoofing for Laravel PUT with multipart/form-data
+  data.append('invoice_id', String(formData.invoice_id));
+  data.append('amount', String(formData.amount));
+  data.append('payment_method', formData.payment_method);
+  data.append('payment_date', formData.payment_date);
+  if (formData.reference_number) {
+    data.append('reference_number', formData.reference_number);
+  }
+  if (formData.notes) {
+    data.append('notes', formData.notes);
+  }
+  if (formData.proof) {
+    data.append('proof', formData.proof);
+  }
+
+  const { data: responseData } = await axios.post<SingleResponse<Payment>>(`${BASE}/${id}`, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return responseData;
 }

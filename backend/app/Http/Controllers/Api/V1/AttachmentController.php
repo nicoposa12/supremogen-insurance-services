@@ -17,6 +17,7 @@ class AttachmentController extends Controller
         'policy' => \App\Models\Policy::class,
         'invoice' => \App\Models\Invoice::class,
         'claim' => \App\Models\Claim::class,
+        'payment' => \App\Models\Payment::class,
     ];
 
     /**
@@ -25,7 +26,7 @@ class AttachmentController extends Controller
     public function index(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim',
+            'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim,payment',
             'attachable_id' => 'required|integer',
         ]);
 
@@ -60,7 +61,7 @@ class AttachmentController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim',
+            'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim,payment',
             'attachable_id' => 'required|integer',
             'file' => 'required|file|max:10240', // 10MB max
             'document_type' => 'nullable|string|max:100',
@@ -109,9 +110,6 @@ class AttachmentController extends Controller
         ], 210); // 210 Created
     }
 
-    /**
-     * Securely download/stream the attachment file.
-     */
     public function download(string $id)
     {
         $attachment = Attachment::find($id);
@@ -127,6 +125,30 @@ class AttachmentController extends Controller
         }
 
         return Storage::disk($disk)->download($attachment->file_path, $attachment->file_name);
+    }
+
+    /**
+     * Preview/stream the attachment file.
+     */
+    public function preview(string $id)
+    {
+        $attachment = Attachment::find($id);
+
+        if (!$attachment) {
+            abort(404, 'Attachment not found.');
+        }
+
+        $disk = config('filesystems.default');
+
+        if (!Storage::disk($disk)->exists($attachment->file_path)) {
+            abort(404, 'File not found on storage.');
+        }
+
+        $filePath = Storage::disk($disk)->path($attachment->file_path);
+        return response()->file($filePath, [
+            'Content-Type' => $attachment->mime_type,
+            'Content-Disposition' => 'inline; filename="' . $attachment->file_name . '"'
+        ]);
     }
 
     /**

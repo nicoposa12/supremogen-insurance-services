@@ -67,6 +67,7 @@ export interface Payment {
       last_name: string;
     };
   };
+  attachments?: any[];
 }
 
 // ─── List / Form Params ───────────────────────
@@ -106,6 +107,7 @@ export interface PaymentFormData {
   payment_date: string;
   reference_number?: string;
   notes?: string;
+  proof?: File;
 }
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {

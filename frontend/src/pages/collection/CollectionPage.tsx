@@ -17,7 +17,9 @@ import {
   Plus,
   Pencil,
   AlertTriangle,
-  Mail
+  Mail,
+  Paperclip,
+  Download
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -27,6 +29,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
 import { getInvoices, sendInvoiceReminder } from '../../services/invoiceApi';
 import { getPayments, recordPayment, updatePayment } from '../../services/paymentApi';
+import { downloadAttachment, getAttachmentPreview } from '../../services/attachmentApi';
 import { getReportSummary } from '../../services/reportApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
 import type { Invoice, Payment, PaymentMethod, PaymentFormData } from '../../types/AccountingTypes';
@@ -65,6 +68,25 @@ export default function CollectionPage() {
   const [collectReference, setCollectReference] = useState('');
   const [collectNotes, setCollectNotes] = useState('');
   const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
+  const [collectProof, setCollectProof] = useState<File | null>(null);
+
+  const [previewAttachment, setPreviewAttachment] = useState<any | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+  const handleViewProof = async (att: any) => {
+    setPreviewAttachment(att);
+    setIsPreviewLoading(true);
+    try {
+      const blob = await getAttachmentPreview(att.id);
+      const url = window.URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch (err) {
+      showToast('Failed to load attachment preview.', 'error');
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
 
   // Debounce search inputs
   useEffect(() => {
@@ -181,6 +203,7 @@ export default function CollectionPage() {
     setCollectReference('');
     setCollectNotes('');
     setEditingPaymentId(null);
+    setCollectProof(null);
   };
 
   const handleOpenCollection = (invoice: Invoice) => {
@@ -213,6 +236,7 @@ export default function CollectionPage() {
       payment_date: collectDate,
       reference_number: collectReference || undefined,
       notes: collectNotes || undefined,
+      proof: collectProof || undefined,
     };
 
     if (editingPaymentId !== null) {
@@ -934,6 +958,36 @@ export default function CollectionPage() {
                           );
                         })}
                       </tr>
+
+                      {/* Row 5: Proof */}
+                      <tr className="bg-pink-50/10">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 bg-pink-50/20 text-left">Proof</td>
+                        {[1, 2, 3, 4, 5, 6].map((idx) => {
+                          const isActive = idx <= terms;
+                          const payment = isActive ? payments[idx - 1] : null;
+                          const proofFile = payment?.attachments?.[0];
+                          return (
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
+                              !isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-700'
+                            }`}>
+                              {proofFile ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewProof(proofFile)}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-[9px] font-bold rounded transition cursor-pointer"
+                                  title={`Download proof of payment for installment ${idx}`}
+                                >
+                                  <Paperclip className="h-2.5 w-2.5" /> View Proof
+                                </button>
+                              ) : isActive && payment ? (
+                                <span className="text-slate-400">No Proof</span>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -1037,6 +1091,28 @@ export default function CollectionPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                    Proof of Payment (Optional)
+                  </label>
+                  <input 
+                    key={collectProof ? 'file-loaded' : 'file-empty'}
+                    type="file" 
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setCollectProof(e.target.files[0]);
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                  />
+                  {editingPaymentId && selectedInvoice.payments?.find(p => p.id === editingPaymentId)?.attachments?.[0] && (
+                    <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                      Current: {selectedInvoice.payments.find(p => p.id === editingPaymentId)?.attachments?.[0].file_name} (Uploading a new file will replace it)
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
                     Collection Notes
                   </label>
                   <textarea 
@@ -1079,6 +1155,103 @@ export default function CollectionPage() {
           </div>
         );
       })()}
+
+      {/* Proof Preview Modal */}
+      {previewAttachment && (
+        <div className="fixed inset-0 z-[10005] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
+            onClick={() => {
+              if (previewUrl) window.URL.revokeObjectURL(previewUrl);
+              setPreviewUrl(null);
+              setPreviewAttachment(null);
+            }}
+          />
+          <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-3xl w-full p-6 border border-slate-100 dark:border-slate-800 animate-scale-in max-h-[90vh] flex flex-col">
+            <button
+              onClick={() => {
+                if (previewUrl) window.URL.revokeObjectURL(previewUrl);
+                setPreviewUrl(null);
+                setPreviewAttachment(null);
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+                <Paperclip className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 truncate pr-8" title={previewAttachment.file_name}>
+                  {previewAttachment.file_name}
+                </h3>
+                <p className="text-xs text-slate-500">Proof of Payment Attachment</p>
+              </div>
+            </div>
+
+            <div className="flex-1 flex items-center justify-center min-h-[300px] bg-slate-50 dark:bg-slate-950 rounded-2xl p-4 overflow-hidden">
+              {isPreviewLoading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#4A0E17]" />
+                  <span className="text-xs text-slate-400">Loading preview...</span>
+                </div>
+              ) : previewUrl ? (
+                previewAttachment.mime_type.startsWith('image/') ? (
+                  <img 
+                    src={previewUrl} 
+                    alt={previewAttachment.file_name} 
+                    className="max-h-[55vh] max-w-full rounded-xl object-contain shadow-sm border border-slate-200/50 bg-white" 
+                  />
+                ) : previewAttachment.mime_type === 'application/pdf' ? (
+                  <iframe 
+                    src={previewUrl} 
+                    className="w-full h-[55vh] rounded-xl border border-slate-200 bg-white" 
+                    title="PDF Proof Preview"
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-16 w-16 text-slate-350 mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Preview not available</p>
+                    <p className="text-xs text-slate-400 mt-1">This file format cannot be displayed in-browser. Please download it below.</p>
+                  </div>
+                )
+              ) : (
+                <div className="text-center text-rose-600 text-xs">Failed to load preview.</div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  if (previewUrl) window.URL.revokeObjectURL(previewUrl);
+                  setPreviewUrl(null);
+                  setPreviewAttachment(null);
+                }}
+                className="px-5 py-2.5 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await downloadAttachment(previewAttachment.id, previewAttachment.file_name);
+                    showToast('Download started.', 'success');
+                  } catch (err) {
+                    showToast('Failed to download file.', 'error');
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer"
+              >
+                <Download className="h-4 w-4" /> Download File
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -37,6 +37,11 @@ class Payment extends Model
         return $this->belongsTo(User::class, 'received_by');
     }
 
+    public function attachments(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
     // ── Scopes ────────────────────────────
 
     public function scopeSearch($query, ?string $term)

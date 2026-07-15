@@ -35,7 +35,7 @@ export interface SingleAttachmentResponse {
  * List all attachments for a specific model instance.
  */
 export async function getAttachments(
-  attachableType: 'customer' | 'quotation' | 'policy' | 'invoice' | 'claim',
+  attachableType: 'customer' | 'quotation' | 'policy' | 'invoice' | 'claim' | 'payment',
   attachableId: number
 ): Promise<AttachmentResponse> {
   const { data } = await axios.get<AttachmentResponse>(BASE, {
@@ -48,7 +48,7 @@ export async function getAttachments(
  * Upload a new file as an attachment.
  */
 export async function uploadAttachment(
-  attachableType: 'customer' | 'quotation' | 'policy' | 'invoice' | 'claim',
+  attachableType: 'customer' | 'quotation' | 'policy' | 'invoice' | 'claim' | 'payment',
   attachableId: number,
   file: File,
   documentType?: string
@@ -80,6 +80,16 @@ export async function downloadAttachment(id: number, fileName: string): Promise<
   link.click();
   link.remove();
   window.URL.revokeObjectURL(url);
+}
+
+/**
+ * Fetch a blob for inline preview.
+ */
+export async function getAttachmentPreview(id: number): Promise<Blob> {
+  const { data } = await axios.get(`${BASE}/${id}/preview`, {
+    responseType: 'blob',
+  });
+  return data;
 }
 
 /**
