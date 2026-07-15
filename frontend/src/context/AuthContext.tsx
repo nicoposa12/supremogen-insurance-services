@@ -45,6 +45,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Set default header
       axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+
+      // Asynchronously sync user roles and permissions from backend in case they changed
+      axios.get('/api/v1/auth/profile')
+        .then(response => {
+          if (response.data.success) {
+            const { user: userData, roles: userRoles, permissions: userPermissions } = response.data.data;
+            setUser(userData);
+            setRoles(userRoles);
+            setPermissions(userPermissions);
+            localStorage.setItem('supremogen_user', JSON.stringify(userData));
+            localStorage.setItem('supremogen_roles', JSON.stringify(userRoles));
+            localStorage.setItem('supremogen_permissions', JSON.stringify(userPermissions));
+          }
+        })
+        .catch(err => {
+          console.error('Failed to sync profile roles on startup:', err);
+        });
     }
     setLoading(false);
   }, []);
