@@ -484,6 +484,7 @@ export default function CollectionPage() {
   ];
 
   const needsReference = ['bank_transfer_pbcom', 'bank_transfer_security_bank', 'post_dated_checks', 'split_payment'].includes(collectMethod);
+  const isTrackerMethod = ['jt', 'jrs', 'lbc'].includes(collectMethod);
 
   return (
     <div className="space-y-6 text-slate-700">
@@ -960,6 +961,44 @@ export default function CollectionPage() {
                         })}
                       </tr>
 
+                      {/* Row 4.5: Ref / Check / Tracking No. */}
+                      <tr className="bg-pink-50/10">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 bg-pink-50/20 text-left">Ref / Check / Tracking No.</td>
+                        {[1, 2, 3, 4, 5, 6].map((idx) => {
+                          const isActive = idx <= terms;
+                          const payment = isActive ? payments[idx - 1] : null;
+                          if (!isActive) {
+                            return (
+                              <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono bg-slate-50 text-slate-350">
+                                —
+                              </td>
+                            );
+                          }
+                          if (!payment) {
+                            return (
+                              <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-slate-400">
+                                —
+                              </td>
+                            );
+                          }
+                          const isTracker = ['jt', 'jrs', 'lbc'].includes(payment.payment_method);
+                          const isCheck = payment.payment_method === 'post_dated_checks';
+                          const labelType = isTracker ? 'Track No' : (isCheck ? 'Check No' : 'Ref');
+                          return (
+                            <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-slate-700 text-xs font-semibold">
+                              {payment.reference_number ? (
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[9px] text-slate-400 uppercase font-bold">{labelType}</span>
+                                  <span className="truncate max-w-[100px] block font-semibold" title={payment.reference_number}>{payment.reference_number}</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">No Ref</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+
                       {/* Row 5: Proof */}
                       <tr className="bg-pink-50/10">
                         <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 bg-pink-50/20 text-left">Proof</td>
@@ -1064,7 +1103,7 @@ export default function CollectionPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                      Date Collected *
+                      {collectMethod === 'post_dated_checks' ? 'Date of Check *' : 'Date Collected *'}
                     </label>
                     <input 
                       type="date" 
@@ -1078,12 +1117,24 @@ export default function CollectionPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                    Reference Number {needsReference ? '*' : '(Optional)'}
+                    {isTrackerMethod 
+                      ? 'Tracking Number *' 
+                      : (collectMethod === 'post_dated_checks' 
+                        ? 'Check Number *' 
+                        : (needsReference 
+                          ? 'Reference Number *' 
+                          : 'Reference Number (Optional)'))}
                   </label>
                   <input 
                     type="text" 
-                    required={needsReference}
-                    placeholder={needsReference ? "Enter transaction reference code..." : "e.g. check no., deposit slip id..."}
+                    required={needsReference || isTrackerMethod}
+                    placeholder={isTrackerMethod 
+                      ? "Enter tracking number..." 
+                      : (collectMethod === 'post_dated_checks' 
+                        ? "Enter check number..." 
+                        : (needsReference 
+                          ? "Enter transaction reference code..." 
+                          : "e.g. check no., deposit slip id..."))}
                     value={collectReference}
                     onChange={(e) => setCollectReference(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"

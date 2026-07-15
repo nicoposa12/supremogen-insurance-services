@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  DollarSign, 
-  Search, 
-  Filter, 
-  X, 
-  Receipt, 
-  CheckCircle2, 
-  AlertCircle, 
-  TrendingUp, 
-  CreditCard, 
-  Loader2, 
+import {
+  DollarSign,
+  Search,
+  Filter,
+  X,
+  Receipt,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+  CreditCard,
+  Loader2,
   Info,
   Clock,
   ArrowLeft,
@@ -138,7 +138,7 @@ export default function CollectionLedgerPage() {
     const refDate = firstPayment ? new Date(firstPayment.payment_date) : new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
     const receiptDate = `${refDate.getMonth() + 1}${pad(refDate.getDate())}${refDate.getFullYear()}`;
-    const paymentMethodLabel = firstPayment 
+    const paymentMethodLabel = firstPayment
       ? (PAYMENT_METHOD_LABELS[firstPayment.payment_method] || firstPayment.payment_method).toUpperCase()
       : 'WALK IN';
 
@@ -510,7 +510,7 @@ export default function CollectionLedgerPage() {
     iframe.style.height = '0';
     iframe.style.border = '0';
     document.body.appendChild(iframe);
-    
+
     const doc = iframe.contentWindow?.document || iframe.contentDocument;
     if (doc) {
       doc.write(receiptHtml);
@@ -522,7 +522,7 @@ export default function CollectionLedgerPage() {
       }, 500);
     }
   };
-  
+
   // Record Collection Form State
   const [collectAmount, setCollectAmount] = useState<string>('');
   const [collectMethod, setCollectMethod] = useState<PaymentMethod>('walk_in');
@@ -590,7 +590,7 @@ export default function CollectionLedgerPage() {
     const rawList = invoicesRes?.data?.data ?? [];
     return rawList.filter((row: Invoice) => {
       const customer = row.customer;
-      
+
       // Agent filter
       if (agentFilter) {
         const agent = (customer?.agent || '').toLowerCase();
@@ -598,7 +598,7 @@ export default function CollectionLedgerPage() {
           return false;
         }
       }
-      
+
       // Type filter
       if (typeFilter && typeFilter !== '') {
         const reqType = (customer?.request_type || '').toUpperCase();
@@ -606,7 +606,7 @@ export default function CollectionLedgerPage() {
           return false;
         }
       }
-      
+
       // Assured Name filter
       if (nameFilter) {
         const fullName = `${customer?.first_name || ''} ${customer?.last_name || ''}`.toLowerCase();
@@ -614,7 +614,7 @@ export default function CollectionLedgerPage() {
           return false;
         }
       }
-      
+
       // Plate Number filter
       if (plateFilter) {
         const plate = (customer?.plate_no || '').toLowerCase();
@@ -638,7 +638,7 @@ export default function CollectionLedgerPage() {
           return false;
         }
       }
-      
+
       return true;
     });
   }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter, termFilter]);
@@ -758,7 +758,7 @@ export default function CollectionLedgerPage() {
     const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
     return monthNames[new Date().getMonth()];
   }, []);
-  
+
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
   // Helper to calculate active due amount for this month
@@ -772,7 +772,7 @@ export default function CollectionLedgerPage() {
     const installmentAmount = totalAmount / terms;
     const inceptionDateStr = invoice.customer?.inception_date;
     if (!inceptionDateStr) return 0;
-    
+
     const inceptionDate = new Date(inceptionDateStr);
     if (isNaN(inceptionDate.getTime())) return 0;
 
@@ -808,6 +808,7 @@ export default function CollectionLedgerPage() {
   };
 
   const needsReference = ['bank_transfer_pbcom', 'bank_transfer_security_bank', 'post_dated_checks', 'split_payment'].includes(collectMethod);
+  const isTrackerMethod = ['jt', 'jrs', 'lbc'].includes(collectMethod);
 
   if (viewingReceiptInvoice) {
     return (
@@ -860,7 +861,7 @@ export default function CollectionLedgerPage() {
                         (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
                       );
                       const firstPayment = payments[0];
-                      return firstPayment 
+                      return firstPayment
                         ? (PAYMENT_METHOD_LABELS[firstPayment.payment_method] || firstPayment.payment_method).toUpperCase()
                         : 'WALK IN';
                     })()}
@@ -919,8 +920,8 @@ export default function CollectionLedgerPage() {
                   <tr>
                     <td className="font-bold py-1 w-[120px]">Receiver's Name:</td>
                     <td className="py-1">
-                      {viewingReceiptInvoice.customer?.receiver_name || 
-                       (viewingReceiptInvoice.customer ? `${viewingReceiptInvoice.customer.first_name} ${viewingReceiptInvoice.customer.last_name}`.toUpperCase() : '—')}
+                      {viewingReceiptInvoice.customer?.receiver_name ||
+                        (viewingReceiptInvoice.customer ? `${viewingReceiptInvoice.customer.first_name} ${viewingReceiptInvoice.customer.last_name}`.toUpperCase() : '—')}
                     </td>
                   </tr>
                   <tr>
@@ -938,9 +939,9 @@ export default function CollectionLedgerPage() {
                   <tr>
                     <td className="font-bold py-1">Back up Number:</td>
                     <td className="py-1">
-                      {viewingReceiptInvoice.customer?.backup_phone || 
-                       viewingReceiptInvoice.customer?.mobile || 
-                       viewingReceiptInvoice.customer?.phone || '—'}
+                      {viewingReceiptInvoice.customer?.backup_phone ||
+                        viewingReceiptInvoice.customer?.mobile ||
+                        viewingReceiptInvoice.customer?.phone || '—'}
                     </td>
                   </tr>
                 </tbody>
@@ -1145,7 +1146,7 @@ export default function CollectionLedgerPage() {
           </div>
           <div className="mt-4">
             <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-              <div 
+              <div
                 className="bg-cyan-500 h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(collectionMetrics.collectionRate, 100)}%` }}
               />
@@ -1160,15 +1161,15 @@ export default function CollectionLedgerPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search by assured name, plate, invoice number..."
-              value={searchInput} 
+              value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition" 
+              className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition"
             />
             {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter) && (
-              <button 
+              <button
                 onClick={handleClearSearchAndFilters}
                 title="Clear all search and column filters"
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer"
@@ -1213,9 +1214,9 @@ export default function CollectionLedgerPage() {
                     <th className="px-3 py-2.5 border-r border-slate-200 min-w-[140px]">
                       <div className="flex flex-col gap-1.5">
                         <span>Agent</span>
-                        <input 
-                          type="text" 
-                          placeholder="Filter Agent..." 
+                        <input
+                          type="text"
+                          placeholder="Filter Agent..."
                           value={agentFilter}
                           onChange={(e) => setAgentFilter(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
@@ -1247,9 +1248,9 @@ export default function CollectionLedgerPage() {
                     <th className="px-4 py-2.5 border-r border-slate-200 min-w-[210px]">
                       <div className="flex flex-col gap-1.5">
                         <span>Assured Name</span>
-                        <input 
-                          type="text" 
-                          placeholder="Filter Name..." 
+                        <input
+                          type="text"
+                          placeholder="Filter Name..."
                           value={nameFilter}
                           onChange={(e) => setNameFilter(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
@@ -1260,9 +1261,9 @@ export default function CollectionLedgerPage() {
                     <th className="px-3 py-2.5 border-r border-slate-200 min-w-[140px]">
                       <div className="flex flex-col gap-1.5">
                         <span>Policy Number</span>
-                        <input 
-                          type="text" 
-                          placeholder="Filter Policy..." 
+                        <input
+                          type="text"
+                          placeholder="Filter Policy..."
                           value={policyFilter}
                           onChange={(e) => setPolicyFilter(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
@@ -1273,9 +1274,9 @@ export default function CollectionLedgerPage() {
                     <th className="px-3 py-2.5 border-r border-slate-200 min-w-[130px]">
                       <div className="flex flex-col gap-1.5">
                         <span>Plate Number</span>
-                        <input 
-                          type="text" 
-                          placeholder="Filter Plate..." 
+                        <input
+                          type="text"
+                          placeholder="Filter Plate..."
                           value={plateFilter}
                           onChange={(e) => setPlateFilter(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
@@ -1342,130 +1343,128 @@ export default function CollectionLedgerPage() {
                   ) : (
                     filteredInvoices.map((row: Invoice) => {
                       const customer = row.customer;
-                    const terms = Number(customer?.payment_terms || 1);
-                    const totalPremium = Number(row.total_amount);
-                    const amountPaid = Number(row.amount_paid);
-                    const installmentAmount = totalPremium / terms;
-                    
-                    // Sort payments sequentially by date
-                    const payments = [...(row.payments || [])].sort(
-                      (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
-                    );
-                    
-                    // Generate schedule dates list
-                    const inceptionDateStr = customer?.inception_date;
-                    let installmentMonths: { monthName: string; year: number; index: number; formattedDate: string }[] = [];
-                    if (inceptionDateStr) {
-                      const date = new Date(inceptionDateStr);
-                      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                      for (let i = 0; i < 6; i++) {
-                        const d = new Date(date.getFullYear(), date.getMonth() + i, date.getDate());
-                        installmentMonths.push({
-                          index: i + 1,
-                          monthName: monthNames[d.getMonth()],
-                          year: d.getFullYear(),
-                          formattedDate: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                        });
-                      }
-                    }
+                      const terms = Number(customer?.payment_terms || 1);
+                      const totalPremium = Number(row.total_amount);
+                      const amountPaid = Number(row.amount_paid);
+                      const installmentAmount = totalPremium / terms;
 
-                    const dueAmount = calculateDueAmount(row);
-                    const isExpanded = !!expandedInvoiceIds[row.id];
+                      // Sort payments sequentially by date
+                      const payments = [...(row.payments || [])].sort(
+                        (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
+                      );
 
-                    // Calculate first active due installment index (the first one not fully paid)
-                    const currentInstallmentIndex = (() => {
-                      for (let i = 1; i <= terms; i++) {
-                        const pay = payments[i - 1];
-                        if (!pay || Number(pay.amount) < (installmentAmount - 0.05)) {
-                          return i;
+                      // Generate schedule dates list
+                      const inceptionDateStr = customer?.inception_date;
+                      let installmentMonths: { monthName: string; year: number; index: number; formattedDate: string }[] = [];
+                      if (inceptionDateStr) {
+                        const date = new Date(inceptionDateStr);
+                        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                        for (let i = 0; i < 6; i++) {
+                          const d = new Date(date.getFullYear(), date.getMonth() + i, date.getDate());
+                          installmentMonths.push({
+                            index: i + 1,
+                            monthName: monthNames[d.getMonth()],
+                            year: d.getFullYear(),
+                            formattedDate: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                          });
                         }
                       }
-                      return terms + 1; // All paid
-                    })();
 
-                    // Grace period check for highlighting (3-6 terms, 3 day grace period)
-                    let isHighlighted = false;
-                    if (Number(row.balance) > 0 && terms >= 3 && terms <= 6 && inceptionDateStr && currentInstallmentIndex <= terms) {
-                      const inDate = new Date(inceptionDateStr);
-                      const unpaidDueDate = new Date(inDate.getFullYear(), inDate.getMonth() + (currentInstallmentIndex - 1), inDate.getDate());
-                      const today = new Date();
-                      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                      const dueMidnight = new Date(unpaidDueDate.getFullYear(), unpaidDueDate.getMonth(), unpaidDueDate.getDate());
-                      
-                      const diffTime = todayMidnight.getTime() - dueMidnight.getTime();
-                      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                      if (diffDays > 3) {
-                        isHighlighted = true;
+                      const dueAmount = calculateDueAmount(row);
+                      const isExpanded = !!expandedInvoiceIds[row.id];
+
+                      // Calculate first active due installment index (the first one not fully paid)
+                      const currentInstallmentIndex = (() => {
+                        for (let i = 1; i <= terms; i++) {
+                          const pay = payments[i - 1];
+                          if (!pay || Number(pay.amount) < (installmentAmount - 0.05)) {
+                            return i;
+                          }
+                        }
+                        return terms + 1; // All paid
+                      })();
+
+                      // Grace period check for highlighting (3-6 terms, 3 day grace period)
+                      let isHighlighted = false;
+                      if (Number(row.balance) > 0 && terms >= 3 && terms <= 6 && inceptionDateStr && currentInstallmentIndex <= terms) {
+                        const inDate = new Date(inceptionDateStr);
+                        const unpaidDueDate = new Date(inDate.getFullYear(), inDate.getMonth() + (currentInstallmentIndex - 1), inDate.getDate());
+                        const today = new Date();
+                        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const dueMidnight = new Date(unpaidDueDate.getFullYear(), unpaidDueDate.getMonth(), unpaidDueDate.getDate());
+
+                        const diffTime = todayMidnight.getTime() - dueMidnight.getTime();
+                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays > 3) {
+                          isHighlighted = true;
+                        }
                       }
-                    }
 
-                    return (
-                      <span key={row.id} className="contents">
-                        {/* Row 1: Header row / General Details */}
-                        <tr 
-                          onClick={() => handleOpenCollection(row)}
-                          className={`transition-colors font-bold cursor-pointer ${
-                            isHighlighted 
-                              ? 'bg-rose-50/90 hover:bg-rose-100 text-rose-950' 
-                              : 'bg-slate-50/50 hover:bg-slate-100 text-slate-800 hover:text-slate-900'
-                          }`}
-                        >
-                          <td className="px-3 py-3 border-r border-slate-200 text-slate-700">
-                            <div className="flex items-center gap-1.5">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleExpand(row.id);
-                                }}
-                                className="p-1 rounded hover:bg-slate-250 text-slate-400 hover:text-slate-700 transition cursor-pointer"
-                              >
-                                {isExpanded ? (
-                                  <ChevronDown className="h-3.5 w-3.5 text-[#4A0E17]" />
-                                ) : (
-                                  <ChevronRight className="h-3.5 w-3.5" />
-                                )}
-                              </button>
-                              <span>{customer?.agent || '—'}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
-                            {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                          </td>
-                          <td className="px-3 py-3 border-r border-slate-200">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider ${
-                              customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
-                            }`}>
-                              {customer?.request_type || '—'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 border-r border-slate-200 font-black uppercase text-slate-900 tracking-tight">
-                            <div>{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
-                            {customer && (
-                              <div className="text-[10px] text-slate-500 font-normal normal-case mt-0.5 space-y-0.5">
-                                <p>{customer.mobile || customer.phone || 'No contact'}</p>
-                                <p className="truncate max-w-[180px]">{customer.email || 'No email'}</p>
+                      return (
+                        <span key={row.id} className="contents">
+                          {/* Row 1: Header row / General Details */}
+                          <tr
+                            onClick={() => handleOpenCollection(row)}
+                            className={`transition-colors font-bold cursor-pointer ${isHighlighted
+                                ? 'bg-rose-50/90 hover:bg-rose-100 text-rose-950'
+                                : 'bg-slate-50/50 hover:bg-slate-100 text-slate-800 hover:text-slate-900'
+                              }`}
+                          >
+                            <td className="px-3 py-3 border-r border-slate-200 text-slate-700">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleExpand(row.id);
+                                  }}
+                                  className="p-1 rounded hover:bg-slate-250 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-3.5 w-3.5 text-[#4A0E17]" />
+                                  ) : (
+                                    <ChevronRight className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                                <span>{customer?.agent || '—'}</span>
                               </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-800 uppercase">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-600 uppercase">{customer?.plate_no || '—'}</td>
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
-                            {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                          </td>
-                          <td className="px-3 py-3 border-r border-slate-200 font-mono font-extrabold text-slate-700">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                          <td className="px-2 py-3 border-r border-slate-200 text-center font-mono font-extrabold text-slate-600">{terms}</td>
-                           <td className="px-3 py-3 border-r border-slate-200 font-mono text-slate-650 font-bold">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                           
-                           {[1, 2, 3, 4, 5, 6].map((idx) => {
+                            </td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
+                              {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </td>
+                            <td className="px-3 py-3 border-r border-slate-200">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+                                }`}>
+                                {customer?.request_type || '—'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 border-r border-slate-200 font-black uppercase text-slate-900 tracking-tight">
+                              <div>{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
+                              {customer && (
+                                <div className="text-[10px] text-slate-500 font-normal normal-case mt-0.5 space-y-0.5">
+                                  <p>{customer.mobile || customer.phone || 'No contact'}</p>
+                                  <p className="truncate max-w-[180px]">{customer.email || 'No email'}</p>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-800 uppercase">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-600 uppercase">{customer?.plate_no || '—'}</td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
+                              {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-extrabold text-slate-700">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-2 py-3 border-r border-slate-200 text-center font-mono font-extrabold text-slate-600">{terms}</td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-slate-650 font-bold">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+
+                            {[1, 2, 3, 4, 5, 6].map((idx) => {
                               const monthInfo = installmentMonths[idx - 1];
                               const isActive = idx <= terms;
                               const payment = isActive ? payments[idx - 1] : null;
-                              
+
                               const isInvoicePaid = Number(row.balance) <= 0;
                               const isPaid = isActive && (isInvoicePaid || (payment && Number(payment.amount) >= (installmentAmount - 0.05)));
                               const isPartial = isActive && !isInvoicePaid && payment && Number(payment.amount) > 0 && Number(payment.amount) < (installmentAmount - 0.05);
                               const isDue = isActive && !isInvoicePaid && !isPaid && idx === currentInstallmentIndex;
-                              
+
                               const cellDueDate = inceptionDateStr ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + idx - 1, new Date(inceptionDateStr).getDate()) : null;
                               const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && (() => {
                                 const today = new Date();
@@ -1478,40 +1477,37 @@ export default function CollectionLedgerPage() {
                               const suffix = idx === 1 ? 'ST' : idx === 2 ? 'ND' : idx === 3 ? 'RD' : 'TH';
 
                               return (
-                                <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center transition-all ${
-                                  !isActive 
-                                    ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650' 
-                                    : isPaid 
-                                      ? 'bg-emerald-50/50 dark:bg-emerald-950/20' 
+                                <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center transition-all ${!isActive
+                                    ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650'
+                                    : isPaid
+                                      ? 'bg-emerald-50/50 dark:bg-emerald-950/20'
                                       : isPartial
                                         ? 'bg-amber-50/50 dark:bg-amber-950/20'
-                                        : isDue 
-                                          ? 'bg-rose-50/40 dark:bg-rose-950/20' 
+                                        : isDue
+                                          ? 'bg-rose-50/40 dark:bg-rose-950/20'
                                           : 'dark:bg-slate-900/10'
-                                }`}>
+                                  }`}>
                                   {isActive ? (
                                     <div className="flex flex-col items-center justify-center gap-0.5">
                                       <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-none">{idx}{suffix} ({monthInfo?.monthName})</span>
-                                      <span className={`text-[10px] font-mono font-bold mt-0.5 leading-none ${
-                                        isPaid 
-                                          ? 'text-emerald-700 dark:text-emerald-400' 
+                                      <span className={`text-[10px] font-mono font-bold mt-0.5 leading-none ${isPaid
+                                          ? 'text-emerald-700 dark:text-emerald-400'
                                           : isPartial
                                             ? 'text-amber-700 dark:text-amber-400 font-bold'
-                                            : isDue 
-                                              ? 'text-rose-700 dark:text-rose-400' 
+                                            : isDue
+                                              ? 'text-rose-700 dark:text-rose-400'
                                               : 'text-slate-655 dark:text-slate-350'
-                                      }`}>
+                                        }`}>
                                         ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                       </span>
-                                      <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 border border-transparent ${
-                                        isPaid 
-                                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30' 
+                                      <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 border border-transparent ${isPaid
+                                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30'
                                           : isPartial
                                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/30 animate-pulse'
-                                            : isDue 
-                                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse' 
+                                            : isDue
+                                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse'
                                               : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700/50'
-                                      }`}>
+                                        }`}>
                                         <span>{isPaid ? 'Paid' : isPartial ? 'Partial' : isDue ? 'Due' : 'Unpaid'}</span>
                                         {isCellOverdue && (
                                           <span title="Overdue by more than 3 days!">
@@ -1526,160 +1522,204 @@ export default function CollectionLedgerPage() {
                                 </td>
                               );
                             })}
-                           <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                           <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
-                             {dueAmount > 0 ? (
-                               <span className="px-2 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-350 rounded-lg text-[11px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
-                                 ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                               </span>
-                             ) : (
-                               <span className="text-slate-400 dark:text-slate-500">—</span>
-                             )}
-                           </td>
-                           <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 6 : 1} onClick={(e) => e.stopPropagation()}>
-                             <div className="flex flex-col items-center gap-2">
-                               <button
-                                 onClick={() => printReceiptHtml(row)}
-                                 className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
-                               >
-                                 <FileText className="h-3 w-3" /> Receipt
-                               </button>
-                             </div>
-                           </td>
-                         </tr>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
+                              {dueAmount > 0 ? (
+                                <span className="px-2 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-350 rounded-lg text-[11px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
+                                  ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 dark:text-slate-500">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 6 : 1} onClick={(e) => e.stopPropagation()}>
+                              <div className="flex flex-col items-center gap-2">
+                                <button
+                                  onClick={() => printReceiptHtml(row)}
+                                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
+                                >
+                                  <FileText className="h-3 w-3" /> Receipt
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
 
-                        {isExpanded && (
-                          <>
+                          {isExpanded && (
+                            <>
+                              {/* Row 2: Schedule of Payment */}
+                              <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
+                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">automatic</td>
+                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">Schedule of Payment</td>
+                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">automatic</td>
+                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Installment Due Dates</td>
 
-                        {/* Row 2: schedule of payment */}
-                        <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">automatic</td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">schedule of payment</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">automatic</td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Installment Due Dates</td>
-                          
-                          {[1, 2, 3, 4, 5, 6].map((idx) => {
-                            const monthInfo = installmentMonths[idx - 1];
-                            const isActive = idx <= terms;
-                            return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
-                                {isActive ? monthInfo?.formattedDate : '—'}
-                              </td>
-                            );
-                          })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                        </tr>
+                                {[1, 2, 3, 4, 5, 6].map((idx) => {
+                                  const monthInfo = installmentMonths[idx - 1];
+                                  const isActive = idx <= terms;
+                                  return (
+                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
+                                      {isActive ? monthInfo?.formattedDate : '—'}
+                                    </td>
+                                  );
+                                })}
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                              </tr>
 
-                        {/* Row 3: amount of payment */}
-                        <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">automatic</td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">amount of payment</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">automatic</td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Target Amount Per Installment</td>
-                          
-                          {[1, 2, 3, 4, 5, 6].map((idx) => {
-                            const isActive = idx <= terms;
-                            return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
-                                {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
-                              </td>
-                            );
-                          })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                        </tr>
+                              {/* Row 3: Amount of Payment */}
+                              <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
+                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">Automatic</td>
+                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">Amount of Payment</td>
+                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">Automatic</td>
+                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Target Amount Per Installment</td>
 
-                        {/* Row 4: actual payment date */}
-                        <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">actual payment date</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300">Recorded Dates Collected</td>
-                          
-                          {[1, 2, 3, 4, 5, 6].map((idx) => {
-                            const isActive = idx <= terms;
-                            const payment = isActive ? payments[idx - 1] : null;
-                            return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
-                                {payment ? new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                              </td>
-                            );
-                          })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
-                            {row.balance <= 0 ? 'PAID IN FULL' : 'PARTIAL'}
-                          </td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                        </tr>
+                                {[1, 2, 3, 4, 5, 6].map((idx) => {
+                                  const isActive = idx <= terms;
+                                  return (
+                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
+                                      {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                                    </td>
+                                  );
+                                })}
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                              </tr>
 
-                        {/* Row 5: actual amount payment */}
-                        <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">actual amount payment</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Amount Paid & Method</td>
-                          
-                          {[1, 2, 3, 4, 5, 6].map((idx) => {
-                            const isActive = idx <= terms;
-                            const payment = isActive ? payments[idx - 1] : null;
-                            return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25' : 'text-slate-400 dark:text-slate-500'}`}>
-                                {payment ? (
-                                  <div className="flex flex-col items-center">
-                                    <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                    <span className="text-[8px] font-extrabold text-pink-700 bg-pink-100/60 dark:bg-pink-950 dark:text-pink-400 border border-transparent dark:border-pink-900/30 px-1 rounded mt-0.5 uppercase tracking-wide">
-                                      {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
-                                    </span>
-                                  </div>
-                                ) : '—'}
-                              </td>
-                            );
-                          })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-emerald-800 dark:text-emerald-400 font-mono">
-                            ₱{amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                        </tr>
+                              {/* Row 4: Actual Payment Date */}
+                              <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
+                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
+                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">Actual Payment Date</td>
+                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
+                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300">Recorded Dates Collected</td>
 
-                        {/* Row 6: actual payment proof */}
-                        <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400 border-b-2 border-slate-200 dark:border-slate-800">
-                          <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
-                          <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">actual payment proof</td>
-                          <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
-                          <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Proof of Payment</td>
-                          
-                          {[1, 2, 3, 4, 5, 6].map((idx) => {
-                            const isActive = idx <= terms;
-                            const payment = isActive ? payments[idx - 1] : null;
-                            const proofFile = payment?.attachments?.[0];
-                            return (
-                              <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25' : 'text-slate-400 dark:text-slate-500'}`}>
-                                {proofFile ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleViewProof(proofFile)}
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 text-[9px] font-bold rounded transition cursor-pointer"
-                                  >
-                                    <Paperclip className="h-2.5 w-2.5" /> View Proof
-                                  </button>
-                                ) : isActive && payment ? (
-                                  <span className="text-slate-400 text-[9px]">No Proof</span>
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                            );
-                          })}
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
-                          </td>
-                          <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                        </tr>
-                          </>
-                        )}
-                      </span>
-                    );
-                  })
-                )}
+                                {[1, 2, 3, 4, 5, 6].map((idx) => {
+                                  const isActive = idx <= terms;
+                                  const payment = isActive ? payments[idx - 1] : null;
+                                  return (
+                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650' : payment ? 'text-pink-955 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
+                                      {payment ? new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                    </td>
+                                  );
+                                })}
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
+                                  {row.balance <= 0 ? 'PAID IN FULL' : 'PARTIAL'}
+                                </td>
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                              </tr>
+
+                              {/* Row 5: Actual Amount Payment */}
+                              <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
+                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
+                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">Actual Amount Payment</td>
+                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
+                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Amount Paid & Method</td>
+
+                                {[1, 2, 3, 4, 5, 6].map((idx) => {
+                                  const isActive = idx <= terms;
+                                  const payment = isActive ? payments[idx - 1] : null;
+                                  return (
+                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25' : 'text-slate-400 dark:text-slate-500'}`}>
+                                      {payment ? (
+                                        <div className="flex flex-col items-center">
+                                          <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                          <span className="text-[8px] font-extrabold text-pink-700 bg-pink-100/60 dark:bg-pink-950 dark:text-pink-400 border border-transparent dark:border-pink-900/30 px-1 rounded mt-0.5 uppercase tracking-wide">
+                                            {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
+                                          </span>
+                                        </div>
+                                      ) : '—'}
+                                    </td>
+                                  );
+                                })}
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-emerald-800 dark:text-emerald-400 font-mono">
+                                  ₱{amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                              </tr>
+
+                              {/* Row 5.5: Actual Reference / Check / Tracker */}
+                              <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
+                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
+                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">Actual Reference / Check / Tracker</td>
+                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
+                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Ref / Check / Tracking No.</td>
+
+                                {[1, 2, 3, 4, 5, 6].map((idx) => {
+                                  const isActive = idx <= terms;
+                                  const payment = isActive ? payments[idx - 1] : null;
+                                  if (!isActive) {
+                                    return (
+                                      <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650">
+                                        —
+                                      </td>
+                                    );
+                                  }
+                                  if (!payment) {
+                                    return (
+                                      <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                                        —
+                                      </td>
+                                    );
+                                  }
+                                  const isTracker = ['jt', 'jrs', 'lbc'].includes(payment.payment_method);
+                                  const isCheck = payment.payment_method === 'post_dated_checks';
+                                  const labelType = isTracker ? 'Track No' : (isCheck ? 'Check No' : 'Ref');
+                                  return (
+                                    <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-pink-50/40 dark:bg-pink-950/25">
+                                      {payment.reference_number ? (
+                                        <div className="flex flex-col items-center">
+                                          <span className="text-[8px] text-slate-400 dark:text-slate-500 uppercase font-bold">{labelType}</span>
+                                          <span className="truncate max-w-[100px] block font-semibold" title={payment.reference_number}>{payment.reference_number}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-slate-400 dark:text-slate-500">No Ref</span>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
+                                </td>
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                              </tr>
+
+                              {/* Row 6: Actual Payment Proof */}
+                              <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400 border-b-2 border-slate-200 dark:border-slate-800">
+                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
+                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">Actual Payment Proof</td>
+                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
+                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Proof of Payment</td>
+
+                                {[1, 2, 3, 4, 5, 6].map((idx) => {
+                                  const isActive = idx <= terms;
+                                  const payment = isActive ? payments[idx - 1] : null;
+                                  const proofFile = payment?.attachments?.[0];
+                                  return (
+                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25' : 'text-slate-400 dark:text-slate-500'}`}>
+                                      {proofFile ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleViewProof(proofFile)}
+                                          className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 text-[9px] font-bold rounded transition cursor-pointer"
+                                        >
+                                          <Paperclip className="h-2.5 w-2.5" /> View Proof
+                                        </button>
+                                      ) : isActive && payment ? (
+                                        <span className="text-slate-400 text-[9px]">No Proof</span>
+                                      ) : (
+                                        '—'
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
+                                </td>
+                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                              </tr>
+                            </>
+                          )}
+                        </span>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1710,7 +1750,7 @@ export default function CollectionLedgerPage() {
         const totalPremium = Number(selectedInvoice.total_amount);
         const installmentAmount = totalPremium / terms;
         const inceptionDateStr = customer?.inception_date;
-        
+
         // Sort payments sequentially by date
         const payments = [...(selectedInvoice.payments || [])].sort(
           (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
@@ -1727,7 +1767,7 @@ export default function CollectionLedgerPage() {
         return (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             {/* Backdrop */}
-            <div 
+            <div
               className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
               onClick={() => setCollectionModalOpen(false)}
             />
@@ -1779,9 +1819,8 @@ export default function CollectionLedgerPage() {
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-emerald-950 dark:text-emerald-300 font-semibold'
-                            }`}>
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-emerald-950 dark:text-emerald-300 font-semibold'
+                              }`}>
                               {isActive ? getExpectedDateStr(idx) : '—'}
                             </td>
                           );
@@ -1794,9 +1833,8 @@ export default function CollectionLedgerPage() {
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-emerald-950 dark:text-emerald-300 font-bold'
-                            }`}>
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-emerald-950 dark:text-emerald-300 font-bold'
+                              }`}>
                               {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
                             </td>
                           );
@@ -1810,9 +1848,8 @@ export default function CollectionLedgerPage() {
                           const isActive = idx <= terms;
                           const payment = isActive ? payments[idx - 1] : null;
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'
-                            }`}>
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'
+                              }`}>
                               {payment ? (
                                 new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                               ) : isActive ? (
@@ -1847,9 +1884,8 @@ export default function CollectionLedgerPage() {
                           const isActive = idx <= terms;
                           const payment = isActive ? payments[idx - 1] : null;
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'
-                            }`}>
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'
+                              }`}>
                               {payment ? (
                                 <div className="flex flex-col items-center group relative">
                                   <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -1902,6 +1938,44 @@ export default function CollectionLedgerPage() {
                         })}
                       </tr>
 
+                      {/* Row 4.5: Ref / Check / Tracking No. */}
+                      <tr className="bg-pink-50/10 dark:bg-pink-950/5">
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 dark:text-pink-400 bg-pink-50/20 dark:bg-pink-950/15 text-left">Ref / Check / Tracking No.</td>
+                        {[1, 2, 3, 4, 5, 6].map((idx) => {
+                          const isActive = idx <= terms;
+                          const payment = isActive ? payments[idx - 1] : null;
+                          if (!isActive) {
+                            return (
+                              <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600">
+                                —
+                              </td>
+                            );
+                          }
+                          if (!payment) {
+                            return (
+                              <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-slate-400">
+                                —
+                              </td>
+                            );
+                          }
+                          const isTracker = ['jt', 'jrs', 'lbc'].includes(payment.payment_method);
+                          const isCheck = payment.payment_method === 'post_dated_checks';
+                          const labelType = isTracker ? 'Track No' : (isCheck ? 'Check No' : 'Ref');
+                          return (
+                            <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-slate-700 dark:text-slate-200 text-xs font-semibold">
+                              {payment.reference_number ? (
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-bold">{labelType}</span>
+                                  <span className="truncate max-w-[100px] block font-semibold" title={payment.reference_number}>{payment.reference_number}</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 dark:text-slate-500">No Ref</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+
                       {/* Row 5: Proof */}
                       <tr className="bg-pink-50/10 dark:bg-pink-950/5">
                         <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 dark:text-pink-400 bg-pink-50/20 dark:bg-pink-950/15 text-left">Proof</td>
@@ -1910,9 +1984,8 @@ export default function CollectionLedgerPage() {
                           const payment = isActive ? payments[idx - 1] : null;
                           const proofFile = payment?.attachments?.[0];
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${
-                              !isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'
-                            }`}>
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'
+                              }`}>
                               {proofFile ? (
                                 <button
                                   type="button"
@@ -1937,7 +2010,7 @@ export default function CollectionLedgerPage() {
               </div>
 
               <form onSubmit={handleRecordCollection} className="space-y-4">
-                 {/* Selected Invoice Details Box */}
+                {/* Selected Invoice Details Box */}
                 <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
                   <div>
                     <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Client</span>
@@ -1982,10 +2055,10 @@ export default function CollectionLedgerPage() {
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
                     Collection Amount (₱) *
                   </label>
-                  <input 
+                  <input
                     id="collection-form-amount"
-                    type="number" 
-                    step="0.01" 
+                    type="number"
+                    step="0.01"
                     required
                     placeholder="Enter amount collected..."
                     value={collectAmount}
@@ -2012,10 +2085,10 @@ export default function CollectionLedgerPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                      Date Collected *
+                      {collectMethod === 'post_dated_checks' ? 'Date of Check *' : 'Date Collected *'}
                     </label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       required
                       value={collectDate}
                       onChange={(e) => setCollectDate(e.target.value)}
@@ -2026,12 +2099,24 @@ export default function CollectionLedgerPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
-                    Reference Number {needsReference ? '*' : '(Optional)'}
+                    {isTrackerMethod
+                      ? 'Tracking Number *'
+                      : (collectMethod === 'post_dated_checks'
+                        ? 'Check Number *'
+                        : (needsReference
+                          ? 'Reference Number *'
+                          : 'Reference Number (Optional)'))}
                   </label>
-                  <input 
-                    type="text" 
-                    required={needsReference}
-                    placeholder={needsReference ? "Enter transaction reference code..." : "e.g. check no., deposit slip id..."}
+                  <input
+                    type="text"
+                    required={needsReference || isTrackerMethod}
+                    placeholder={isTrackerMethod
+                      ? "Enter tracking number..."
+                      : (collectMethod === 'post_dated_checks'
+                        ? "Enter check number..."
+                        : (needsReference
+                          ? "Enter transaction reference code..."
+                          : "e.g. check no., deposit slip id..."))}
                     value={collectReference}
                     onChange={(e) => setCollectReference(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
@@ -2042,9 +2127,9 @@ export default function CollectionLedgerPage() {
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
                     Proof of Payment (Optional)
                   </label>
-                  <input 
+                  <input
                     key={collectProof ? 'file-loaded' : 'file-empty'}
-                    type="file" 
+                    type="file"
                     accept="image/*,application/pdf"
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
@@ -2064,7 +2149,7 @@ export default function CollectionLedgerPage() {
                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
                     Collection Notes
                   </label>
-                  <textarea 
+                  <textarea
                     rows={2}
                     placeholder="Record additional payment notes..."
                     value={collectNotes}
@@ -2108,7 +2193,7 @@ export default function CollectionLedgerPage() {
       {/* Proof Preview Modal */}
       {previewAttachment && (
         <div className="fixed inset-0 z-[10005] flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
             onClick={() => {
               if (previewUrl) window.URL.revokeObjectURL(previewUrl);
@@ -2148,15 +2233,15 @@ export default function CollectionLedgerPage() {
                 </div>
               ) : previewUrl ? (
                 previewAttachment.mime_type.startsWith('image/') ? (
-                  <img 
-                    src={previewUrl} 
-                    alt={previewAttachment.file_name} 
-                    className="max-h-[55vh] max-w-full rounded-xl object-contain shadow-sm border border-slate-200/50 bg-white" 
+                  <img
+                    src={previewUrl}
+                    alt={previewAttachment.file_name}
+                    className="max-h-[55vh] max-w-full rounded-xl object-contain shadow-sm border border-slate-200/50 bg-white"
                   />
                 ) : previewAttachment.mime_type === 'application/pdf' ? (
-                  <iframe 
-                    src={previewUrl} 
-                    className="w-full h-[55vh] rounded-xl border border-slate-200 bg-white" 
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-[55vh] rounded-xl border border-slate-200 bg-white"
                     title="PDF Proof Preview"
                   />
                 ) : (

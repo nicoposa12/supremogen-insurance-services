@@ -40,7 +40,7 @@ export interface Invoice {
 // ─── Payment ──────────────────────────────────
 
 export type PaymentMethod = 
-  | 'jt' | 'jrs' | 'cod' | 'walk_in' | 'bank_transfer_pbcom' | 'bank_transfer_security_bank' | 'post_dated_checks' | 'split_payment';
+  | 'jt' | 'jrs' | 'lbc' | 'cod' | 'walk_in' | 'bank_transfer_pbcom' | 'bank_transfer_security_bank' | 'post_dated_checks' | 'split_payment';
 
 export interface Payment {
   id: number;
@@ -113,6 +113,7 @@ export interface PaymentFormData {
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   jt: 'J&T',
   jrs: 'JRS',
+  lbc: 'LBC',
   cod: 'COD',
   walk_in: 'WALK IN',
   bank_transfer_pbcom: 'BANK TRANSFER PBCOM',

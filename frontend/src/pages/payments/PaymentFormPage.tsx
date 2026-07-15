@@ -80,6 +80,7 @@ export default function PaymentFormPage({ invoiceId: propInvoiceId, balance: pro
   const inputClass = 'w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition';
 
   const needsReference = ['bank_transfer_pbcom', 'bank_transfer_security_bank', 'post_dated_checks', 'split_payment'].includes(paymentMethod);
+  const isTrackerMethod = ['jt', 'jrs', 'lbc'].includes(paymentMethod);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -143,7 +144,7 @@ export default function PaymentFormPage({ invoiceId: propInvoiceId, balance: pro
               className={inputClass} placeholder="0.00" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Payment Date *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{paymentMethod === 'post_dated_checks' ? 'Date of Check *' : 'Payment Date *'}</label>
             <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={inputClass} />
           </div>
           <div className="md:col-span-2">
@@ -161,13 +162,17 @@ export default function PaymentFormPage({ invoiceId: propInvoiceId, balance: pro
               ))}
             </div>
           </div>
-          {needsReference && (
+          {(needsReference || isTrackerMethod) && (
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                {paymentMethod === 'post_dated_checks' ? 'Check Number' : 'Reference / Transaction ID'}
+                {isTrackerMethod 
+                  ? 'Tracking Number *' 
+                  : (paymentMethod === 'post_dated_checks' 
+                    ? 'Check Number *' 
+                    : 'Reference / Transaction ID *')}
               </label>
-              <input type="text" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)}
-                className={inputClass} placeholder={paymentMethod === 'post_dated_checks' ? 'Enter check number...' : 'Enter reference number...'} />
+              <input type="text" required={needsReference || isTrackerMethod} value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)}
+                className={inputClass} placeholder={isTrackerMethod ? 'Enter tracking number...' : (paymentMethod === 'post_dated_checks' ? 'Enter check number...' : 'Enter reference number...')} />
             </div>
           )}
           <div className="md:col-span-2">

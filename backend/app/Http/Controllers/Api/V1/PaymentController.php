@@ -46,9 +46,9 @@ class PaymentController extends Controller
         $validator = Validator::make($request->all(), [
             'invoice_id' => 'required|exists:invoices,id',
             'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:jt,jrs,cod,walk_in,bank_transfer_pbcom,bank_transfer_security_bank,post_dated_checks,split_payment',
+            'payment_method' => 'required|in:jt,jrs,lbc,cod,walk_in,bank_transfer_pbcom,bank_transfer_security_bank,post_dated_checks,split_payment',
             'payment_date' => 'required|date',
-            'reference_number' => 'nullable|string|max:100',
+            'reference_number' => 'required_if:payment_method,jt,jrs,lbc|nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
             'proof' => 'nullable|file|max:10240',
         ]);
@@ -198,9 +198,9 @@ class PaymentController extends Controller
 
         $validator = Validator::make($request->all(), [
             'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:jt,jrs,cod,walk_in,bank_transfer_pbcom,bank_transfer_security_bank,post_dated_checks,split_payment',
+            'payment_method' => 'required|in:jt,jrs,lbc,cod,walk_in,bank_transfer_pbcom,bank_transfer_security_bank,post_dated_checks,split_payment',
             'payment_date' => 'required|date',
-            'reference_number' => 'nullable|string|max:100',
+            'reference_number' => 'required_if:payment_method,jt,jrs,lbc|nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
             'proof' => 'nullable|file|max:10240',
         ]);
