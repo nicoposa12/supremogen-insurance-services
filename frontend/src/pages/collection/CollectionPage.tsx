@@ -19,7 +19,8 @@ import {
   AlertTriangle,
   Mail,
   Paperclip,
-  Download
+  Download,
+  FileText
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
