@@ -276,6 +276,28 @@ function SidebarDivider({ label, collapsed }: { label: string; collapsed: boolea
 
 function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const { roles } = useAuth();
+
+  // Administrators and Owners can see all nav items — never filter them out
+  const isAdminUser = roles.includes('Administrator') || roles.includes('Owner');
+  if (isAdminUser) {
+    // Render all items without restriction
+    return (
+      <NavLink
+        to={item.path}
+        end={item.path === '/dashboard' || item.path === '/dashboard/collection'}
+        className={({ isActive }) =>
+          `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
+            ? 'bg-gradient-to-r from-[#8A1C2E] to-[#5C0612] text-white shadow-md shadow-[#8A1C2E]/20 active-nav-item'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/40'
+          } ${collapsed ? 'justify-center' : ''}`
+        }
+      >
+        <item.icon className="h-5 w-5 shrink-0 text-zinc-400 group-hover:text-zinc-200 group-[.active-nav-item]:text-white transition-colors" />
+        {!collapsed && <span className="truncate">{item.label}</span>}
+      </NavLink>
+    );
+  }
+
   const isAgent = roles.includes('Sales Agent') || roles.includes('Team Renewal');
   const isUnderwriter = roles.includes('Underwriter');
   const isCollection = roles.includes('Collection');
