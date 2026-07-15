@@ -94,7 +94,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ $message->embed(public_path('images/supremogen_logo.jpg')) }}" alt="Supremogen Logo" style="height: 64px; width: 64px; border-radius: 12px; object-fit: contain; margin-bottom: 12px; background-color: #ffffff; padding: 4px; display: inline-block;">
+            <img src="{{ asset('images/supremogen_logo.jpg') }}" alt="Supremogen Logo" style="height: 64px; width: 64px; border-radius: 12px; object-fit: contain; margin-bottom: 12px; background-color: #ffffff; padding: 4px; display: inline-block;">
             <h1>Supremogen Insurance Services</h1>
         </div>
         <div class="content">
