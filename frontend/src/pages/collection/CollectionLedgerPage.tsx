@@ -58,6 +58,9 @@ export default function CollectionLedgerPage() {
   const [plateFilter, setPlateFilter] = useState('');
   const [policyFilter, setPolicyFilter] = useState('');
   const [termFilter, setTermFilter] = useState('');
+  const [dueMonthFilter, setDueMonthFilter] = useState('');
+  const [dueYearFilter, setDueYearFilter] = useState('');
+  const [dueDayFilter, setDueDayFilter] = useState('');
 
   // Record Collection Modal State
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
@@ -85,6 +88,9 @@ export default function CollectionLedgerPage() {
     setPlateFilter('');
     setPolicyFilter('');
     setTermFilter('');
+    setDueMonthFilter('');
+    setDueYearFilter('');
+    setDueDayFilter('');
     setPage(1);
   };
 
@@ -639,9 +645,49 @@ export default function CollectionLedgerPage() {
         }
       }
 
+      // Due Date Month / Year / Day Filter
+      if (dueMonthFilter || dueYearFilter || dueDayFilter) {
+        const terms = Number(customer?.payment_terms || 1);
+        const inceptionDateStr = customer?.inception_date;
+        if (!inceptionDateStr) return false;
+
+        const inceptionDate = new Date(inceptionDateStr);
+        if (isNaN(inceptionDate.getTime())) return false;
+
+        // Check if any of the active installments match the month/year/day filter
+        let hasMatchingInstallment = false;
+        for (let i = 0; i < terms; i++) {
+          const d = new Date(inceptionDate.getFullYear(), inceptionDate.getMonth() + i, inceptionDate.getDate());
+          
+          let monthMatches = true;
+          if (dueMonthFilter) {
+            monthMatches = (d.getMonth() + 1) === Number(dueMonthFilter);
+          }
+
+          let yearMatches = true;
+          if (dueYearFilter) {
+            yearMatches = d.getFullYear() === Number(dueYearFilter);
+          }
+
+          let dayMatches = true;
+          if (dueDayFilter) {
+            dayMatches = d.getDate() === Number(dueDayFilter);
+          }
+
+          if (monthMatches && yearMatches && dayMatches) {
+            hasMatchingInstallment = true;
+            break;
+          }
+        }
+
+        if (!hasMatchingInstallment) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter, termFilter]);
+  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter, termFilter, dueMonthFilter, dueYearFilter, dueDayFilter]);
   // Mutation for recording a collection payment
   const recordCollectionMut = useMutation({
     mutationFn: (data: PaymentFormData) => recordPayment(data),
@@ -754,12 +800,20 @@ export default function CollectionLedgerPage() {
     };
   }, [reportSummaryRes]);
 
+  const viewingMonth = useMemo(() => {
+    return dueMonthFilter ? Number(dueMonthFilter) - 1 : new Date().getMonth();
+  }, [dueMonthFilter]);
+
+  const viewingYear = useMemo(() => {
+    return dueYearFilter ? Number(dueYearFilter) : new Date().getFullYear();
+  }, [dueYearFilter]);
+
   const currentMonthName = useMemo(() => {
     const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-    return monthNames[new Date().getMonth()];
-  }, []);
+    return monthNames[viewingMonth];
+  }, [viewingMonth]);
 
-  const currentYear = useMemo(() => new Date().getFullYear(), []);
+  const currentYear = viewingYear;
 
   // Helper to calculate active due amount for this month
   const calculateDueAmount = (invoice: Invoice) => {
@@ -776,22 +830,22 @@ export default function CollectionLedgerPage() {
     const inceptionDate = new Date(inceptionDateStr);
     if (isNaN(inceptionDate.getTime())) return 0;
 
-    const today = new Date();
-    const currentYr = today.getFullYear();
-    const currentMth = today.getMonth();
+    const targetYr = viewingYear;
+    const targetMth = viewingMonth;
 
     let currentInstallmentIndex = -1;
     for (let i = 0; i < terms; i++) {
       const targetDate = new Date(inceptionDate.getFullYear(), inceptionDate.getMonth() + i, 1);
-      if (targetDate.getFullYear() === currentYr && targetDate.getMonth() === currentMth) {
+      if (targetDate.getFullYear() === targetYr && targetDate.getMonth() === targetMth) {
         currentInstallmentIndex = i + 1;
         break;
       }
     }
 
     const firstInstDate = new Date(inceptionDate.getFullYear(), inceptionDate.getMonth(), 1);
-    if (today < firstInstDate) {
-      currentInstallmentIndex = 1;
+    const targetCompareDate = new Date(targetYr, targetMth, 1);
+    if (targetCompareDate < firstInstDate) {
+      return 0;
     }
 
     if (currentInstallmentIndex === -1) {
@@ -1168,7 +1222,7 @@ export default function CollectionLedgerPage() {
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition"
             />
-            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter) && (
+            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
               <button
                 onClick={handleClearSearchAndFilters}
                 title="Clear all search and column filters"
@@ -1178,24 +1232,88 @@ export default function CollectionLedgerPage() {
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Filter className="h-4 w-4 text-slate-400" />
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status:</span>
-            <select
-              value={invoiceStatus}
-              onChange={(e) => {
-                setInvoiceStatus(e.target.value);
-                setPage(1);
-              }}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
-            >
-              <option value="every">All Invoices</option>
-              <option value="all">All Outstanding</option>
-              <option value="sent">Sent (Unpaid)</option>
-              <option value="partial">Partially Paid</option>
-              <option value="overdue">Overdue</option>
-              <option value="paid">Paid</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <Filter className="h-4 w-4 text-slate-400" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status:</span>
+              <select
+                value={invoiceStatus}
+                onChange={(e) => {
+                  setInvoiceStatus(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
+              >
+                <option value="every">All Invoices</option>
+                <option value="all">All Outstanding</option>
+                <option value="sent">Sent (Unpaid)</option>
+                <option value="partial">Partially Paid</option>
+                <option value="overdue">Overdue</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Due Month:</span>
+              <select
+                value={dueMonthFilter}
+                onChange={(e) => {
+                  setDueMonthFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
+              >
+                <option value="">All Months</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Due Day:</span>
+              <select
+                value={dueDayFilter}
+                onChange={(e) => {
+                  setDueDayFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
+              >
+                <option value="">All Days</option>
+                {Array.from({ length: 31 }, (_, i) => String(i + 1)).map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Due Year:</span>
+              <select
+                value={dueYearFilter}
+                onChange={(e) => {
+                  setDueYearFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
+              >
+                <option value="">All Years</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -1406,8 +1524,8 @@ export default function CollectionLedgerPage() {
                           <tr
                             onClick={() => handleOpenCollection(row)}
                             className={`transition-colors font-bold cursor-pointer ${isHighlighted
-                                ? 'bg-rose-50/90 hover:bg-rose-100 text-rose-950'
-                                : 'bg-slate-50/50 hover:bg-slate-100 text-slate-800 hover:text-slate-900'
+                              ? 'bg-rose-50/90 hover:bg-rose-100 text-rose-950'
+                              : 'bg-slate-50/50 hover:bg-slate-100 text-slate-800 hover:text-slate-900'
                               }`}
                           >
                             <td className="px-3 py-3 border-r border-slate-200 text-slate-700">
@@ -1478,35 +1596,35 @@ export default function CollectionLedgerPage() {
 
                               return (
                                 <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center transition-all ${!isActive
-                                    ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650'
-                                    : isPaid
-                                      ? 'bg-emerald-50/50 dark:bg-emerald-950/20'
-                                      : isPartial
-                                        ? 'bg-amber-50/50 dark:bg-amber-950/20'
-                                        : isDue
-                                          ? 'bg-rose-50/40 dark:bg-rose-950/20'
-                                          : 'dark:bg-slate-900/10'
+                                  ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650'
+                                  : isPaid
+                                    ? 'bg-emerald-50/50 dark:bg-emerald-950/20'
+                                    : isPartial
+                                      ? 'bg-amber-50/50 dark:bg-amber-950/20'
+                                      : isDue
+                                        ? 'bg-rose-50/40 dark:bg-rose-950/20'
+                                        : 'dark:bg-slate-900/10'
                                   }`}>
                                   {isActive ? (
                                     <div className="flex flex-col items-center justify-center gap-0.5">
                                       <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-none">{idx}{suffix} ({monthInfo?.monthName})</span>
                                       <span className={`text-[10px] font-mono font-bold mt-0.5 leading-none ${isPaid
-                                          ? 'text-emerald-700 dark:text-emerald-400'
-                                          : isPartial
-                                            ? 'text-amber-700 dark:text-amber-400 font-bold'
-                                            : isDue
-                                              ? 'text-rose-700 dark:text-rose-400'
-                                              : 'text-slate-655 dark:text-slate-350'
+                                        ? 'text-emerald-700 dark:text-emerald-400'
+                                        : isPartial
+                                          ? 'text-amber-700 dark:text-amber-400 font-bold'
+                                          : isDue
+                                            ? 'text-rose-700 dark:text-rose-400'
+                                            : 'text-slate-655 dark:text-slate-350'
                                         }`}>
                                         ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                       </span>
                                       <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 border border-transparent ${isPaid
-                                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30'
-                                          : isPartial
-                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/30 animate-pulse'
-                                            : isDue
-                                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse'
-                                              : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700/50'
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30'
+                                        : isPartial
+                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/30 animate-pulse'
+                                          : isDue
+                                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse'
+                                            : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700/50'
                                         }`}>
                                         <span>{isPaid ? 'Paid' : isPartial ? 'Partial' : isDue ? 'Due' : 'Unpaid'}</span>
                                         {isCellOverdue && (
@@ -1548,9 +1666,9 @@ export default function CollectionLedgerPage() {
                             <>
                               {/* Row 2: Schedule of Payment */}
                               <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
-                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">automatic</td>
+                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">Automatic</td>
                                 <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">Schedule of Payment</td>
-                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">automatic</td>
+                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">Automatic</td>
                                 <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Installment Due Dates</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
