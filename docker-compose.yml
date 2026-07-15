@@ -60,14 +60,6 @@ services:
       - DB_USERNAME=supremogen_user
       - DB_PASSWORD=passroot
       - DB_SSLMODE=disable
-      # Production Neon settings for reference:
-      # - DB_HOST=ep-falling-resonance-ao0x4p8k-pooler.c-2.ap-southeast-1.aws.neon.tech
-      # - DB_PORT=5432
-      # - DB_DATABASE=neondb
-      # - DB_USERNAME=neondb_owner
-      # - DB_PASSWORD=npg_9tuwGAHs7XRe
-      # - DB_SSLMODE=require
-      # - DB_NEON_ENDPOINT=ep-falling-resonance-ao0x4p8k-pooler
     networks:
       - supremogen-network
 
