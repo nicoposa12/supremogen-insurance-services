@@ -53,6 +53,13 @@ const TTPD_REQUIREMENTS = [
   { key: 'tppd_6', label: '6. Adverse photos of damaged unit showing the plate number' },
 ];
 
+interface CustomAttachmentInput {
+  id: string;
+  label: string;
+  file: File | null;
+  note: string;
+}
+
 export default function ClaimNotificationsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -103,6 +110,7 @@ export default function ClaimNotificationsPage() {
   const [claimType, setClaimType] = useState('');
   const [requirementFiles, setRequirementFiles] = useState<Record<string, File>>({});
   const [requirementNotes, setRequirementNotes] = useState<Record<string, string>>({});
+  const [customAttachments, setCustomAttachments] = useState<CustomAttachmentInput[]>([]);
   const [viewAttachment, setViewAttachment] = useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -147,6 +155,7 @@ export default function ClaimNotificationsPage() {
     setClaimType('');
     setRequirementFiles({});
     setRequirementNotes({});
+    setCustomAttachments([]);
   };
 
   // Fetch suggestions for assured name
@@ -251,13 +260,15 @@ export default function ClaimNotificationsPage() {
   const submitMut = useMutation({
     mutationFn: (data: ClaimNotificationFormData) => createClaimNotification(data),
     onSuccess: async (res) => {
-      const fileCount = Object.keys(requirementFiles).length;
-      if (fileCount > 0) {
+      const standardCount = Object.keys(requirementFiles).length;
+      const customCount = customAttachments.filter((c) => c.file).length;
+      const totalCount = standardCount + customCount;
+      if (totalCount > 0) {
         setIsUploading(true);
-        showToast(`Uploading ${fileCount} requirement file(s)...`, 'info');
+        showToast(`Uploading ${totalCount} attachment(s)...`, 'info');
         try {
-          await Promise.all(
-            Object.entries(requirementFiles).map(([key, file]) => {
+          const promises = [
+            ...Object.entries(requirementFiles).map(([key, file]) => {
               let label = 'Requirement Document';
               if (key.startsWith('req_')) {
                 const req = OWN_DAMAGE_REQUIREMENTS.find((r) => r.key === key);
@@ -269,12 +280,20 @@ export default function ClaimNotificationsPage() {
               const note = requirementNotes[key];
               const docType = note ? `${label} | Note: ${note}` : label;
               return uploadAttachment('claim_notification', res.data.id, file, docType);
-            })
-          );
-          showToast('Requirements uploaded successfully!');
+            }),
+            ...customAttachments
+              .filter((c) => c.file)
+              .map((c) => {
+                const label = c.label.trim() || 'Additional Document';
+                const docType = c.note.trim() ? `${label} | Note: ${c.note.trim()}` : label;
+                return uploadAttachment('claim_notification', res.data.id, c.file!, docType);
+              })
+          ];
+          await Promise.all(promises);
+          showToast('Attachments uploaded successfully!');
         } catch (err) {
           console.error(err);
-          showToast('Failed to upload some requirements, but notification was submitted.', 'error');
+          showToast('Failed to upload some attachments, but notification was submitted.', 'error');
         } finally {
           setIsUploading(false);
         }
@@ -334,6 +353,68 @@ export default function ClaimNotificationsPage() {
     }
 
     submitMut.mutate(form);
+  };
+
+  const getDetailClaimType = (nature: string | undefined): string => {
+    if (!nature) return '';
+    const upper = nature.toUpperCase();
+    if (upper.includes('OWN DAMAGE CLAIM REQUIREMENTS') && upper.includes('THIRD PARTY (TTPD) CLAIM - REQUIREMENTS')) {
+      return 'OWN DAMAGE & TTPD';
+    }
+    if (upper.includes('OWN DAMAGE CLAIM REQUIREMENTS')) {
+      return 'OWN DAMAGE';
+    }
+    if (upper.includes('THIRD PARTY (TTPD) CLAIM - REQUIREMENTS')) {
+      return 'TPPD';
+    }
+    return '';
+  };
+
+  const handleDetailUpload = async () => {
+    if (!detailRecord) return;
+    const standardCount = Object.keys(requirementFiles).length;
+    const customCount = customAttachments.filter((c) => c.file).length;
+    const totalCount = standardCount + customCount;
+    if (totalCount === 0) return;
+
+    setIsUploading(true);
+    showToast(`Uploading ${totalCount} attachment(s)...`, 'info');
+    try {
+      const promises = [
+        ...Object.entries(requirementFiles).map(([key, file]) => {
+          let label = 'Requirement Document';
+          if (key.startsWith('req_')) {
+            const req = OWN_DAMAGE_REQUIREMENTS.find((r) => r.key === key);
+            label = req ? req.label : 'Requirement Document';
+          } else if (key.startsWith('tppd_')) {
+            const req = TTPD_REQUIREMENTS.find((r) => r.key === key);
+            label = req ? req.label : 'Requirement Document';
+          }
+          const note = requirementNotes[key];
+          const docType = note ? `${label} | Note: ${note}` : label;
+          return uploadAttachment('claim_notification', detailRecord.id, file, docType);
+        }),
+        ...customAttachments
+          .filter((c) => c.file)
+          .map((c) => {
+            const label = c.label.trim() || 'Additional Document';
+            const docType = c.note.trim() ? `${label} | Note: ${c.note.trim()}` : label;
+            return uploadAttachment('claim_notification', detailRecord.id, c.file!, docType);
+          })
+      ];
+      await Promise.all(promises);
+      showToast('Attachments uploaded successfully!');
+      setRequirementFiles({});
+      setRequirementNotes({});
+      setCustomAttachments([]);
+      queryClient.invalidateQueries({ queryKey: ['claim-notification', detailRecord.id] });
+      queryClient.invalidateQueries({ queryKey: ['claim-notifications'] });
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to upload some attachments.', 'error');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSort = (key: string) => {
@@ -541,6 +622,286 @@ export default function ClaimNotificationsPage() {
                 </div>
               </div>
             )}
+
+            {/* Upload form in Detail View for Acknowledged status and non-Claims-Officer */}
+            {selectedRecord && selectedRecord.status === 'acknowledged' && !isClaimsOfficer && (() => {
+              const detailClaimType = getDetailClaimType(detailRecord?.nature_of_claims);
+              return (
+                <div className="mt-8 pt-6 border-t border-slate-150 no-print space-y-6">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-[#4A0E17]" />
+                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Upload Claim Requirements</h4>
+                  </div>
+                  
+                  {/* Own Damage Requirements */}
+                  {(detailClaimType === 'OWN DAMAGE' || detailClaimType === 'OWN DAMAGE & TTPD') && (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                      <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Own Damage Claim Requirements (Upload Attachments)</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {OWN_DAMAGE_REQUIREMENTS.map((req) => (
+                          <div key={req.key} className="space-y-1">
+                            <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                id={`detail-file-${req.key}`}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setRequirementFiles((prev) => ({ ...prev, [req.key]: file }));
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`detail-file-${req.key}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                              >
+                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                <span>Choose File</span>
+                              </label>
+                              <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                                {requirementFiles[req.key]?.name || 'No file selected'}
+                              </span>
+                              {requirementFiles[req.key] && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRequirementFiles((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[req.key];
+                                      return copy;
+                                    });
+                                    setRequirementNotes((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[req.key];
+                                      return copy;
+                                    });
+                                  }}
+                                  className="text-slate-400 hover:text-red-500 transition"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                            {requirementFiles[req.key] && (
+                              <div className="mt-1">
+                                <input
+                                  type="text"
+                                  placeholder="Add a brief note for this file..."
+                                  value={requirementNotes[req.key] || ''}
+                                  onChange={(e) => {
+                                    setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                  }}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Third Party (TTPD) Requirements */}
+                  {(detailClaimType === 'TPPD' || detailClaimType === 'OWN DAMAGE & TTPD') && (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                      <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Third Party (TTPD) Claim Requirements (Upload Attachments)</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {TTPD_REQUIREMENTS.map((req) => (
+                          <div key={req.key} className="space-y-1">
+                            <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                id={`detail-file-${req.key}`}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setRequirementFiles((prev) => ({ ...prev, [req.key]: file }));
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`detail-file-${req.key}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                              >
+                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                <span>Choose File</span>
+                              </label>
+                              <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                                {requirementFiles[req.key]?.name || 'No file selected'}
+                              </span>
+                              {requirementFiles[req.key] && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRequirementFiles((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[req.key];
+                                      return copy;
+                                    });
+                                    setRequirementNotes((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[req.key];
+                                      return copy;
+                                    });
+                                  }}
+                                  className="text-slate-400 hover:text-red-500 transition"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                            {requirementFiles[req.key] && (
+                              <div className="mt-1">
+                                <input
+                                  type="text"
+                                  placeholder="Add a brief note for this file..."
+                                  value={requirementNotes[req.key] || ''}
+                                  onChange={(e) => {
+                                    setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                  }}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Custom Attachments */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="h-4 w-4 text-[#4A0E17]" />
+                        <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Additional Attachments</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomAttachments((prev) => [
+                            ...prev,
+                            {
+                              id: Math.random().toString(36).substring(2, 9),
+                              label: '',
+                              file: null,
+                              note: '',
+                            },
+                          ]);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#4A0E17]/30 hover:bg-[#4A0E17]/5 text-[#4A0E17] text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Add Attachment</span>
+                      </button>
+                    </div>
+
+                    {customAttachments.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {customAttachments.map((att) => (
+                          <div key={att.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomAttachments((prev) => prev.filter((c) => c.id !== att.id));
+                              }}
+                              className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition cursor-pointer"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+
+                            <div className="space-y-1">
+                              <label className="block text-[10px] font-bold text-slate-500">Document Label</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Excess Liability, Owner Photo..."
+                                value={att.label}
+                                onChange={(e) => {
+                                  setCustomAttachments((prev) =>
+                                    prev.map((c) => (c.id === att.id ? { ...c, label: e.target.value } : c))
+                                  );
+                                }}
+                                className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="block text-[10px] font-bold text-slate-500">File Attachment</label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="file"
+                                  id={`detail-custom-file-${att.id}`}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0] || null;
+                                    setCustomAttachments((prev) =>
+                                      prev.map((c) => (c.id === att.id ? { ...c, file } : c))
+                                    );
+                                  }}
+                                  className="hidden"
+                                />
+                                <label
+                                  htmlFor={`detail-custom-file-${att.id}`}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                                >
+                                  <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                  <span>Choose File</span>
+                                </label>
+                                <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                                  {att.file?.name || 'No file selected'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {att.file && (
+                              <div className="space-y-1">
+                                <label className="block text-[10px] font-bold text-slate-500">Attachment Note</label>
+                                <input
+                                  type="text"
+                                  placeholder="Add a brief note for this file..."
+                                  value={att.note}
+                                  onChange={(e) => {
+                                    setCustomAttachments((prev) =>
+                                      prev.map((c) => (c.id === att.id ? { ...c, note: e.target.value } : c))
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">No additional attachments added. Click the button above to upload extra files.</p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={handleDetailUpload}
+                      disabled={isUploading || (Object.keys(requirementFiles).length === 0 && customAttachments.filter(c => c.file).length === 0)}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#4A0E17] rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Uploading Files...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          <span>Upload Attachments</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -847,147 +1208,8 @@ export default function ClaimNotificationsPage() {
                       rows={8} className={getInputClass('nature_of_claims')}
                       placeholder="Describe the nature of the claim or requirements..." />
                   </div>
-                  
-                  {/* Own Damage Requirements */}
-                  {(claimType === 'OWN DAMAGE' || claimType === 'OWN DAMAGE & TTPD') && (
-                    <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                      <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Own Damage Claim Requirements (Upload Attachments)</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {OWN_DAMAGE_REQUIREMENTS.map((req) => (
-                          <div key={req.key} className="space-y-1">
-                            <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="file"
-                                id={`file-${req.key}`}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setRequirementFiles((prev) => ({ ...prev, [req.key]: file }));
-                                  }
-                                }}
-                                className="hidden"
-                              />
-                              <label
-                                htmlFor={`file-${req.key}`}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                              >
-                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                                <span>Choose File</span>
-                              </label>
-                              <span className="text-xs text-slate-500 truncate max-w-[150px]">
-                                {requirementFiles[req.key]?.name || 'No file selected'}
-                              </span>
-                              {requirementFiles[req.key] && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRequirementFiles((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[req.key];
-                                      return copy;
-                                    });
-                                    setRequirementNotes((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[req.key];
-                                      return copy;
-                                    });
-                                  }}
-                                  className="text-slate-400 hover:text-red-500 transition"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              )}
-                            </div>
-                            {requirementFiles[req.key] && (
-                              <div className="mt-1">
-                                <input
-                                  type="text"
-                                  placeholder="Add a brief note for this file..."
-                                  value={requirementNotes[req.key] || ''}
-                                  onChange={(e) => {
-                                    setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
-                                  }}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Third Party (TTPD) Requirements */}
-                  {(claimType === 'TPPD' || claimType === 'OWN DAMAGE & TTPD') && (
-                    <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                      <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Third Party (TTPD) Claim Requirements (Upload Attachments)</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {TTPD_REQUIREMENTS.map((req) => (
-                          <div key={req.key} className="space-y-1">
-                            <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="file"
-                                id={`file-${req.key}`}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setRequirementFiles((prev) => ({ ...prev, [req.key]: file }));
-                                  }
-                                }}
-                                className="hidden"
-                              />
-                              <label
-                                htmlFor={`file-${req.key}`}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                              >
-                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                                <span>Choose File</span>
-                              </label>
-                              <span className="text-xs text-slate-500 truncate max-w-[150px]">
-                                {requirementFiles[req.key]?.name || 'No file selected'}
-                              </span>
-                              {requirementFiles[req.key] && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRequirementFiles((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[req.key];
-                                      return copy;
-                                    });
-                                    setRequirementNotes((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[req.key];
-                                      return copy;
-                                    });
-                                  }}
-                                  className="text-slate-400 hover:text-red-500 transition"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              )}
-                            </div>
-                            {requirementFiles[req.key] && (
-                              <div className="mt-1">
-                                <input
-                                  type="text"
-                                  placeholder="Add a brief note for this file..."
-                                  value={requirementNotes[req.key] || ''}
-                                  onChange={(e) => {
-                                    setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
-                                  }}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
+
                 <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">NOTE:</label>
                   <textarea value={form.notes}
