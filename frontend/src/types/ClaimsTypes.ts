@@ -115,6 +115,7 @@ export interface ClaimNotification {
   status: 'pending' | 'acknowledged' | 'returned';
   acknowledged_by: number | { id: number; name: string; email?: string } | null;
   acknowledged_at: string | null;
+  attachments?: any[];
   created_at: string;
   updated_at: string;
 }

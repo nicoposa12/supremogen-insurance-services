@@ -5,6 +5,7 @@ import {
   Search, Plus, Eye, CheckCircle2, Filter, Loader2, X,
   Send, FileText, Phone, Mail, Car, Shield, Calendar,
   AlertTriangle, User, ChevronLeft, Printer, RotateCcw, ChevronDown,
+  Paperclip, Download,
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -19,7 +20,9 @@ import {
   createClaimNotification,
   acknowledgeClaimNotification,
   returnClaimNotification,
+  getClaimNotification,
 } from '../../services/claimNotificationApi';
+import { uploadAttachment } from '../../services/attachmentApi';
 import type {
   ClaimNotification,
   ClaimNotificationFormData,
@@ -29,10 +32,22 @@ import logoImg from '../../assets/image/supremogen_logo.jpg';
 import { getCustomers } from '../../services/customerApi';
 import type { Customer } from '../../types/CustomerTypes';
 
+const OWN_DAMAGE_REQUIREMENTS = [
+  { key: 'req_1', label: '1. Original Police Report OR Notarized Affidavit' },
+  { key: 'req_2', label: '2. Readable copy of ORCR' },
+  { key: 'req_3', label: '3. Clear copy of Drivers license (Back and Front) with copy of OR' },
+  { key: 'req_4', label: '4. Clear Pictures of Damages of the vehicle' },
+  { key: 'req_5', label: '5. (4 Sides) Clear Pictures of the Vehicle Isometric View' },
+  { key: 'req_6', label: '6. Repair Estimate with Contact number' },
+  { key: 'req_7', label: '7. Picture of Odometer Reading' },
+  { key: 'req_8', label: '8. Picture of Stencil or Vin plate' },
+  { key: 'req_9', label: '• Authorization letter and valid ID from assured (if driven by authorized driver)' },
+];
+
 export default function ClaimNotificationsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { roles, user } = useAuth();
+  const { roles, user, token } = useAuth();
   const isClaimsOfficer = roles.includes('Claims Officer');
   const isAdmin = roles.includes('Administrator');
   const canSubmit = roles.includes('Sales Agent') || roles.includes('Team Renewal') || isAdmin;
@@ -76,6 +91,10 @@ export default function ClaimNotificationsPage() {
   const [acknowledgeTarget, setAcknowledgeTarget] = useState<ClaimNotification | null>(null);
   const [returnTarget, setReturnTarget] = useState<ClaimNotification | null>(null);
   const [returnReason, setReturnReason] = useState('');
+  const [claimType, setClaimType] = useState('');
+  const [requirementFiles, setRequirementFiles] = useState<Record<string, File>>({});
+  const [viewAttachment, setViewAttachment] = useState<any | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // ─── Form State ─────────────────────────────
   const [form, setForm] = useState<ClaimNotificationFormData>({
@@ -115,6 +134,8 @@ export default function ClaimNotificationsPage() {
     setShowNameSuggestions(false);
     setShowPlateSuggestions(false);
     setValidationErrors({});
+    setClaimType('');
+    setRequirementFiles({});
   };
 
   // Fetch suggestions for assured name
@@ -212,9 +233,37 @@ export default function ClaimNotificationsPage() {
   const records = response?.data?.data ?? [];
   const pagination = response?.data;
 
+  const { data: detailResponse, isLoading: isDetailLoading } = useQuery({
+    queryKey: ['claim-notification', selectedRecord?.id],
+    queryFn: () => getClaimNotification(selectedRecord!.id),
+    enabled: !!selectedRecord?.id,
+  });
+
+  const detailRecord = detailResponse?.data ?? selectedRecord;
+
   const submitMut = useMutation({
     mutationFn: (data: ClaimNotificationFormData) => createClaimNotification(data),
-    onSuccess: () => {
+    onSuccess: async (res) => {
+      const fileCount = Object.keys(requirementFiles).length;
+      if (fileCount > 0) {
+        setIsUploading(true);
+        showToast(`Uploading ${fileCount} requirement file(s)...`, 'info');
+        try {
+          await Promise.all(
+            Object.entries(requirementFiles).map(([key, file]) => {
+              const req = OWN_DAMAGE_REQUIREMENTS.find((r) => r.key === key);
+              const label = req ? req.label : 'Requirement Document';
+              return uploadAttachment('claim_notification', res.data.id, file, label);
+            })
+          );
+          showToast('Requirements uploaded successfully!');
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to upload some requirements, but notification was submitted.', 'error');
+        } finally {
+          setIsUploading(false);
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['claim-notifications'] });
       showToast('Claim notification submitted successfully.');
       resetForm();
@@ -424,6 +473,46 @@ export default function ClaimNotificationsPage() {
                 )}
               </div>
             </div>
+
+            {/* Uploaded Attachments / Requirements */}
+            {detailRecord && detailRecord.attachments && detailRecord.attachments.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-slate-100 no-print">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Uploaded Requirements</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {detailRecord.attachments.map((att: any) => (
+                    <div key={att.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <FileText className="h-5 w-5 text-[#4A0E17] shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-700 truncate">{att.document_type || att.file_name}</p>
+                          <p className="text-[10px] text-slate-450 mt-0.5 truncate">
+                            {att.file_name} ({(att.file_size / 1024).toFixed(1)} KB)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => setViewAttachment(att)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-150 transition cursor-pointer"
+                          title="View Attachment"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <a
+                          href={`/api/v1/attachments/${att.id}/download?token=${token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-150 transition"
+                          title="Download"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -455,6 +544,56 @@ export default function ClaimNotificationsPage() {
             onCancel={() => setAcknowledgeTarget(null)}
             loading={acknowledgeMut.isPending}
           />
+        )}
+
+        {viewAttachment && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print">
+            <div className="bg-white rounded-2xl border border-slate-205 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
+              <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="text-white font-bold text-base">{viewAttachment.document_type || 'Attachment Viewer'}</h3>
+                  <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[500px]">{viewAttachment.file_name}</p>
+                </div>
+                <button
+                  onClick={() => setViewAttachment(null)}
+                  className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
+                {viewAttachment.mime_type.startsWith('image/') ? (
+                  <img
+                    src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                    alt={viewAttachment.document_type || 'Attachment'}
+                    className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
+                  />
+                ) : viewAttachment.mime_type === 'application/pdf' ? (
+                  <iframe
+                    src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                    title={viewAttachment.document_type || 'Attachment'}
+                    className="w-full h-[60vh] rounded-lg border border-slate-200"
+                  />
+                ) : (
+                  <div className="text-center space-y-4 p-8">
+                    <FileText className="h-16 w-16 text-slate-400 mx-auto" />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
+                      <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
+                    </div>
+                    <a
+                      href={`/api/v1/attachments/${viewAttachment.id}/download?token=${token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition"
+                    >
+                      <Download className="h-4 w-4" /> Download File
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );
@@ -618,17 +757,102 @@ export default function ClaimNotificationsPage() {
                     max={new Date().toISOString().split('T')[0]}
                     className={getInputClass('accident_date')} />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nature of Claims *</label>
-                  <textarea value={form.nature_of_claims}
-                    onChange={(e) => {
-                      setForm({ ...form, nature_of_claims: e.target.value });
-                      if (validationErrors.nature_of_claims) {
-                        setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
-                      }
-                    }}
-                    rows={3} className={getInputClass('nature_of_claims')}
-                    placeholder="Describe the nature of the claim (e.g. Collision, Theft, Fire, Acts of Nature...)" />
+                <div className="md:col-span-2 space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type of Claim *</label>
+                    <select
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setClaimType(val);
+                        if (val === 'own_damage') {
+                          const reqs = `OWN DAMAGE CLAIM REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.`;
+                          setForm((prev) => ({ ...prev, nature_of_claims: reqs }));
+                          if (validationErrors.nature_of_claims) {
+                            setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
+                          }
+                        } else if (val === 'tppd') {
+                          setForm((prev) => ({ ...prev, nature_of_claims: 'THIRD PARTY PROPERTY DAMAGE (TPPD)' }));
+                        } else if (val === 'bodily_injury') {
+                          setForm((prev) => ({ ...prev, nature_of_claims: 'BODURY INJURY / EXCESS LIABILITY' }));
+                        } else if (val === 'theft') {
+                          setForm((prev) => ({ ...prev, nature_of_claims: 'THEFT / CARNAP' }));
+                        } else {
+                          setForm((prev) => ({ ...prev, nature_of_claims: '' }));
+                        }
+                      }}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
+                    >
+                      <option value="">Select Type of Claim</option>
+                      <option value="own_damage">Own Damage</option>
+                      <option value="tppd">Third Party Property Damage (TPPD)</option>
+                      <option value="bodily_injury">Bodily Injury (BI)</option>
+                      <option value="theft">Theft / Carnap</option>
+                      <option value="other">Other / Custom Description</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nature of Claims / Details *</label>
+                    <textarea value={form.nature_of_claims}
+                      onChange={(e) => {
+                        setForm({ ...form, nature_of_claims: e.target.value });
+                        if (validationErrors.nature_of_claims) {
+                          setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
+                        }
+                      }}
+                      rows={8} className={getInputClass('nature_of_claims')}
+                      placeholder="Describe the nature of the claim or requirements..." />
+                  </div>
+                  
+                  {claimType === 'own_damage' && (
+                    <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                      <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Own Damage Claim Requirements (Upload Attachments)</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {OWN_DAMAGE_REQUIREMENTS.map((req) => (
+                          <div key={req.key} className="space-y-1">
+                            <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                id={`file-${req.key}`}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setRequirementFiles((prev) => ({ ...prev, [req.key]: file }));
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`file-${req.key}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                              >
+                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                <span>Choose File</span>
+                              </label>
+                              <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                                {requirementFiles[req.key]?.name || 'No file selected'}
+                              </span>
+                              {requirementFiles[req.key] && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRequirementFiles((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[req.key];
+                                      return copy;
+                                    });
+                                  }}
+                                  className="text-slate-400 hover:text-red-505 transition"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">NOTE:</label>
@@ -641,10 +865,19 @@ export default function ClaimNotificationsPage() {
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button onClick={() => { setActiveView('list'); resetForm(); }}
                   className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition cursor-pointer">Cancel</button>
-                <button onClick={handleSubmit} disabled={submitMut.isPending}
+                <button onClick={handleSubmit} disabled={submitMut.isPending || isUploading}
                   className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#4A0E17] rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer">
-                  {submitMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Submit Notification
+                  {submitMut.isPending || isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{isUploading ? 'Uploading Files...' : 'Submitting...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      <span>Submit Notification</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -948,6 +1181,56 @@ export default function ClaimNotificationsPage() {
                 {returnMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                 <span>Return Claim</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewAttachment && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
+            <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-white font-bold text-base">{viewAttachment.document_type || 'Attachment Viewer'}</h3>
+                <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[500px]">{viewAttachment.file_name}</p>
+              </div>
+              <button
+                onClick={() => setViewAttachment(null)}
+                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
+              {viewAttachment.mime_type.startsWith('image/') ? (
+                <img
+                  src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                  alt={viewAttachment.document_type || 'Attachment'}
+                  className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
+                />
+              ) : viewAttachment.mime_type === 'application/pdf' ? (
+                <iframe
+                  src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                  title={viewAttachment.document_type || 'Attachment'}
+                  className="w-full h-[60vh] rounded-lg border border-slate-200"
+                />
+              ) : (
+                <div className="text-center space-y-4 p-8">
+                  <FileText className="h-16 w-16 text-slate-400 mx-auto" />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
+                    <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
+                  </div>
+                  <a
+                    href={`/api/v1/attachments/${viewAttachment.id}/download?token=${token}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition"
+                  >
+                    <Download className="h-4 w-4" /> Download File
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

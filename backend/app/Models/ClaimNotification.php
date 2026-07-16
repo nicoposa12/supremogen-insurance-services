@@ -89,4 +89,12 @@ class ClaimNotification extends Model
 
         return sprintf('CLN-%s-%05d', $year, $next);
     }
+
+    /**
+     * Get all of the claim notification's attachments.
+     */
+    public function attachments(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
 }

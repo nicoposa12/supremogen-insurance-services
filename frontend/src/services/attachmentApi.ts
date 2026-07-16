@@ -35,7 +35,7 @@ export interface SingleAttachmentResponse {
  * List all attachments for a specific model instance.
  */
 export async function getAttachments(
-  attachableType: 'customer' | 'quotation' | 'policy' | 'invoice' | 'claim' | 'payment',
+  attachableType: 'customer' | 'quotation' | 'policy' | 'invoice' | 'claim' | 'payment' | 'claim_notification',
   attachableId: number
 ): Promise<AttachmentResponse> {
   const { data } = await axios.get<AttachmentResponse>(BASE, {
@@ -48,7 +48,7 @@ export async function getAttachments(
  * Upload a new file as an attachment.
  */
 export async function uploadAttachment(
-  attachableType: 'customer' | 'quotation' | 'policy' | 'invoice' | 'claim' | 'payment',
+  attachableType: 'customer' | 'quotation' | 'policy' | 'invoice' | 'claim' | 'payment' | 'claim_notification',
   attachableId: number,
   file: File,
   documentType?: string

@@ -18,6 +18,7 @@ class AttachmentController extends Controller
         'invoice' => \App\Models\Invoice::class,
         'claim' => \App\Models\Claim::class,
         'payment' => \App\Models\Payment::class,
+        'claim_notification' => \App\Models\ClaimNotification::class,
     ];
 
     /**
@@ -26,7 +27,7 @@ class AttachmentController extends Controller
     public function index(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim,payment',
+            'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim,payment,claim_notification',
             'attachable_id' => 'required|integer',
         ]);
 
@@ -61,7 +62,7 @@ class AttachmentController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim,payment',
+            'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim,payment,claim_notification',
             'attachable_id' => 'required|integer',
             'file' => 'required|file|max:10240', // 10MB max
             'document_type' => 'nullable|string|max:100',

@@ -188,6 +188,7 @@ class ClaimNotificationController extends Controller
         $record = ClaimNotification::with([
             'submittedBy:id,name,email',
             'acknowledgedBy:id,name,email',
+            'attachments.uploadedBy:id,name',
         ])->find($id);
 
         if (!$record) {
