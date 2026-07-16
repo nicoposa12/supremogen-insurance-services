@@ -111,6 +111,7 @@ export interface ClaimNotification {
   accident_date: string;
   nature_of_claims: string;
   notes: string | null;
+  claim_count?: string | null;
   submitted_by: number | { id: number; name: string; email?: string };
   status: 'pending' | 'acknowledged' | 'returned';
   acknowledged_by: number | { id: number; name: string; email?: string } | null;
@@ -131,6 +132,7 @@ export interface ClaimNotificationFormData {
   accident_date: string;
   nature_of_claims: string;
   notes: string;
+  claim_count: string;
 }
 
 export interface ClaimNotificationListParams {

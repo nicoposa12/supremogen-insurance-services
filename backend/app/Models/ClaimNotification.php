@@ -20,6 +20,7 @@ class ClaimNotification extends Model
         'accident_date',
         'nature_of_claims',
         'notes',
+        'claim_count',
         'submitted_by',
         'status',
         'acknowledged_by',

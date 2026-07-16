@@ -126,6 +126,7 @@ export default function ClaimNotificationsPage() {
     accident_date: '',
     nature_of_claims: '',
     notes: '',
+    claim_count: '',
   });
 
   const [nameSuggestions, setNameSuggestions] = useState<Customer[]>([]);
@@ -146,6 +147,7 @@ export default function ClaimNotificationsPage() {
       accident_date: '',
       nature_of_claims: '',
       notes: '',
+      claim_count: '',
     });
     setNameSuggestions([]);
     setPlateSuggestions([]);
@@ -227,6 +229,7 @@ export default function ClaimNotificationsPage() {
       accident_date: form.accident_date,
       nature_of_claims: form.nature_of_claims,
       notes: form.notes,
+      claim_count: form.claim_count,
     });
 
     setNameSuggestions([]);
@@ -514,6 +517,7 @@ export default function ClaimNotificationsPage() {
                     { label: 'Policy Number', value: selectedRecord.policy_number },
                     { label: 'Inception Date', value: selectedRecord.inception_date ? new Date(selectedRecord.inception_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
                     { label: 'Accident Date', value: new Date(selectedRecord.accident_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
+                    { label: 'Claim Count', value: selectedRecord.claim_count || '—' },
                   ].map((row, idx) => (
                     <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
                       <td className="px-5 py-3 font-semibold text-slate-500 w-1/3">{row.label}</td>
@@ -1197,6 +1201,21 @@ export default function ClaimNotificationsPage() {
                     </select>
                   </div>
                   <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Claim Count</label>
+                    <select
+                      value={form.claim_count}
+                      onChange={(e) => setForm({ ...form, claim_count: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
+                    >
+                      <option value="">Select Claim Count (e.g. 1st, 2nd...)</option>
+                      <option value="1st Claim">1st Claim</option>
+                      <option value="2nd Claim">2nd Claim</option>
+                      <option value="3rd Claim">3rd Claim</option>
+                      <option value="4th Claim">4th Claim</option>
+                      <option value="5th Claim">5th Claim</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nature of Claims / Details *</label>
                     <textarea value={form.nature_of_claims}
                       onChange={(e) => {
@@ -1355,6 +1374,12 @@ export default function ClaimNotificationsPage() {
       key: 'insurance_provider', label: 'Provider', className: 'hidden lg:table-cell',
       render: (r: ClaimNotification) => (
         <span className="text-sm text-slate-600">{r.insurance_provider}</span>
+      ),
+    },
+    {
+      key: 'claim_count', label: 'Claim Count', className: 'hidden xl:table-cell',
+      render: (r: ClaimNotification) => (
+        <span className="text-xs text-slate-605">{r.claim_count || '—'}</span>
       ),
     },
     {
