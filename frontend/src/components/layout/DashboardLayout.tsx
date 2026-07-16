@@ -454,27 +454,59 @@ export default function DashboardLayout() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const knownNotificationIds = useRef<Set<number>>(new Set());
+  const [sseActive, setSseActive] = useState(true);
+  const isFirstLoad = useRef(true);
 
   // Fetch notifications (include user?.id in queryKey to reset cache on login/logout)
   const { data: notificationsRes } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: getNotifications,
-    refetchInterval: false, // Disable polling in favor of real-time SSE
+    refetchInterval: sseActive ? false : 8000, // Fallback to 8s polling if SSE fails
     enabled: !!user,
   });
 
-  // Populate known notification IDs on initial fetch
+  // Monitor notifications change (handles both SSE cache updates and polling refetches)
   useEffect(() => {
-    if (notificationsRes?.data) {
-      notificationsRes.data.forEach((n) => {
+    if (!notificationsRes?.data) return;
+
+    const data = notificationsRes.data;
+
+    if (isFirstLoad.current) {
+      // On first load, just remember existing notifications without showing toasts
+      data.forEach((n) => {
         knownNotificationIds.current.add(n.id);
       });
+      isFirstLoad.current = false;
+      return;
     }
-  }, [notificationsRes]);
+
+    // On subsequent updates, find new unread notifications
+    const newNotifications = data.filter(
+      (n) => !knownNotificationIds.current.has(n.id) && !n.read_at
+    );
+
+    if (newNotifications.length > 0) {
+      newNotifications.forEach((n) => {
+        let variant: 'success' | 'error' | 'info' = 'info';
+        if (n.type === 'success') variant = 'success';
+        if (n.type === 'error') variant = 'error';
+
+        showToast(`${n.title}: ${n.message}`, variant);
+        knownNotificationIds.current.add(n.id);
+      });
+
+      // Automatically refresh active queries in real-time
+      queryClient.invalidateQueries({ queryKey: ['claim-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['claim-notification'] });
+      queryClient.invalidateQueries({ queryKey: ['claims'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['insurance-requests'] });
+    }
+  }, [notificationsRes, showToast, queryClient]);
 
   // Listen for real-time notifications via SSE
   useEffect(() => {
-    if (!user || !token) return;
+    if (!user || !token || !sseActive) return;
 
     // Use query parameter to pass auth token to EventSource
     const url = `/api/v1/notifications/stream?token=${encodeURIComponent(token)}`;
@@ -483,24 +515,6 @@ export default function DashboardLayout() {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as SystemNotification[];
-
-        // Find new notifications that we haven't seen before and are unread
-        const newNotifications = data.filter(
-          (n) => !knownNotificationIds.current.has(n.id) && !n.read_at
-        );
-
-        if (newNotifications.length > 0) {
-          newNotifications.forEach((n) => {
-            // Map notification type to toast variant: 'success' | 'error' | 'info'
-            let variant: 'success' | 'error' | 'info' = 'info';
-            if (n.type === 'success') variant = 'success';
-            if (n.type === 'error') variant = 'error';
-
-            showToast(`${n.title}: ${n.message}`, variant);
-            knownNotificationIds.current.add(n.id);
-          });
-        }
-
         // Direct cache update in TanStack Query
         queryClient.setQueryData(['notifications', user.id], { data });
       } catch (error) {
@@ -509,13 +523,15 @@ export default function DashboardLayout() {
     };
 
     eventSource.onerror = (error) => {
-      console.error('SSE Connection Error:', error);
+      console.error('SSE Connection Error, falling back to polling:', error);
+      setSseActive(false);
+      eventSource.close();
     };
 
     return () => {
       eventSource.close();
     };
-  }, [user, token, queryClient, showToast]);
+  }, [user, token, sseActive, queryClient]);
 
   const notifications = notificationsRes?.data ?? [];
   const unreadCount = notifications.filter((n) => !n.read_at).length;
