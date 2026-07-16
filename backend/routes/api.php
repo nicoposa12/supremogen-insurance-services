@@ -94,6 +94,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/claim-notifications/{id}', [ClaimNotificationController::class, 'show']);
         Route::post('/claim-notifications/{id}/acknowledge', [ClaimNotificationController::class, 'acknowledge']);
         Route::post('/claim-notifications/{id}/return', [ClaimNotificationController::class, 'returnToAgent']);
+        Route::put('/claim-notifications/{id}', [ClaimNotificationController::class, 'update']);
 
         // Renewals
         Route::get('/renewals', [RenewalController::class, 'index']);

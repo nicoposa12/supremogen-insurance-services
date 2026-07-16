@@ -113,7 +113,7 @@ export interface ClaimNotification {
   notes: string | null;
   claim_count?: string | null;
   submitted_by: number | { id: number; name: string; email?: string };
-  status: 'pending' | 'acknowledged' | 'returned';
+  status: 'pending' | 'acknowledged' | 'returned' | 'resubmitted';
   acknowledged_by: number | { id: number; name: string; email?: string } | null;
   acknowledged_at: string | null;
   attachments?: any[];

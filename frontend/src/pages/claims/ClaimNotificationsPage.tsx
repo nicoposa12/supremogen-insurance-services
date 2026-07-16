@@ -5,7 +5,7 @@ import {
   Search, Plus, Eye, CheckCircle2, Filter, Loader2, X,
   Send, FileText, Phone, Mail, Car, Shield, Calendar,
   AlertTriangle, User, ChevronLeft, Printer, RotateCcw, ChevronDown,
-  Paperclip, Download,
+  Paperclip, Download, Edit,
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -21,6 +21,7 @@ import {
   acknowledgeClaimNotification,
   returnClaimNotification,
   getClaimNotification,
+  updateClaimNotification,
 } from '../../services/claimNotificationApi';
 import { uploadAttachment } from '../../services/attachmentApi';
 import type {
@@ -114,11 +115,51 @@ export default function ClaimNotificationsPage() {
   const [returnTarget, setReturnTarget] = useState<ClaimNotification | null>(null);
   const [returnReason, setReturnReason] = useState('');
   const [claimType, setClaimType] = useState('');
-  const [requirementFiles, setRequirementFiles] = useState<Record<string, File>>({});
+  const [requirementFiles, setRequirementFiles] = useState<Record<string, File[]>>({});
   const [requirementNotes, setRequirementNotes] = useState<Record<string, string>>({});
   const [customAttachments, setCustomAttachments] = useState<CustomAttachmentInput[]>([]);
   const [viewAttachment, setViewAttachment] = useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<ClaimNotification | null>(null);
+
+  // Helper to determine claim type from nature_of_claims on edit
+  const determineClaimType = (nature: string | undefined): string => {
+    if (!nature) return '';
+    const upper = nature.toUpperCase();
+    if (upper.includes('OWN DAMAGE CLAIM REQUIREMENTS') && upper.includes('THIRD PARTY (TTPD) CLAIM - REQUIREMENTS')) {
+      return 'OWN DAMAGE & TTPD';
+    }
+    if (upper.includes('OWN DAMAGE CLAIM REQUIREMENTS')) {
+      return 'OWN DAMAGE';
+    }
+    if (upper.includes('THIRD PARTY (TTPD) CLAIM - REQUIREMENTS')) {
+      return 'TPPD';
+    }
+    return '';
+  };
+
+  const handleEdit = (record: ClaimNotification) => {
+    setEditingRecord(record);
+    const formatDate = (dateStr: string | null | undefined) => {
+      if (!dateStr) return '';
+      return dateStr.split('T')[0].split(' ')[0];
+    };
+    setForm({
+      assured_name: record.assured_name,
+      contact_number: record.contact_number || '',
+      email_address: record.email_address || '',
+      insurance_provider: record.insurance_provider,
+      plate_number: record.plate_number || '',
+      policy_number: record.policy_number,
+      inception_date: formatDate(record.inception_date),
+      accident_date: formatDate(record.accident_date),
+      nature_of_claims: record.nature_of_claims,
+      notes: record.notes || '',
+      claim_count: record.claim_count || '',
+    });
+    setClaimType(determineClaimType(record.nature_of_claims));
+    setActiveView('form');
+  };
 
   // ─── Form State ─────────────────────────────
   const [form, setForm] = useState<ClaimNotificationFormData>({
@@ -155,6 +196,7 @@ export default function ClaimNotificationsPage() {
       notes: '',
       claim_count: '',
     });
+    setEditingRecord(null);
     setNameSuggestions([]);
     setPlateSuggestions([]);
     setShowNameSuggestions(false);
@@ -267,9 +309,12 @@ export default function ClaimNotificationsPage() {
   const detailRecord = detailResponse?.data ?? selectedRecord;
 
   const submitMut = useMutation({
-    mutationFn: (data: ClaimNotificationFormData) => createClaimNotification(data),
+    mutationFn: (data: ClaimNotificationFormData) =>
+      editingRecord
+        ? updateClaimNotification(editingRecord.id, data)
+        : createClaimNotification(data),
     onSuccess: async (res) => {
-      const standardCount = Object.keys(requirementFiles).length;
+      const standardCount = Object.values(requirementFiles).reduce((acc, list) => acc + list.length, 0);
       const customCount = customAttachments.filter((c) => c.file).length;
       const totalCount = standardCount + customCount;
       if (totalCount > 0) {
@@ -277,7 +322,7 @@ export default function ClaimNotificationsPage() {
         showToast(`Uploading ${totalCount} attachment(s)...`, 'info');
         try {
           const promises = [
-            ...Object.entries(requirementFiles).map(([key, file]) => {
+            ...Object.entries(requirementFiles).flatMap(([key, files]) => {
               let label = 'Requirement Document';
               if (key.startsWith('req_')) {
                 const req = OWN_DAMAGE_REQUIREMENTS.find((r) => r.key === key);
@@ -288,7 +333,7 @@ export default function ClaimNotificationsPage() {
               }
               const note = requirementNotes[key];
               const docType = note ? `${label} | Note: ${note}` : label;
-              return uploadAttachment('claim_notification', res.data.id, file, docType);
+              return files.map((file) => uploadAttachment('claim_notification', res.data.id, file, docType));
             }),
             ...customAttachments
               .filter((c) => c.file)
@@ -308,7 +353,7 @@ export default function ClaimNotificationsPage() {
         }
       }
       queryClient.invalidateQueries({ queryKey: ['claim-notifications'] });
-      showToast('Claim notification submitted successfully.');
+      showToast(editingRecord ? 'Claim notification resubmitted successfully.' : 'Claim notification submitted successfully.');
       resetForm();
       setActiveView('list');
     },
@@ -381,7 +426,7 @@ export default function ClaimNotificationsPage() {
 
   const handleDetailUpload = async () => {
     if (!detailRecord) return;
-    const standardCount = Object.keys(requirementFiles).length;
+    const standardCount = Object.values(requirementFiles).reduce((acc, list) => acc + list.length, 0);
     const customCount = customAttachments.filter((c) => c.file).length;
     const totalCount = standardCount + customCount;
     if (totalCount === 0) return;
@@ -390,7 +435,7 @@ export default function ClaimNotificationsPage() {
     showToast(`Uploading ${totalCount} attachment(s)...`, 'info');
     try {
       const promises = [
-        ...Object.entries(requirementFiles).map(([key, file]) => {
+        ...Object.entries(requirementFiles).flatMap(([key, files]) => {
           let label = 'Requirement Document';
           if (key.startsWith('req_')) {
             const req = OWN_DAMAGE_REQUIREMENTS.find((r) => r.key === key);
@@ -401,7 +446,7 @@ export default function ClaimNotificationsPage() {
           }
           const note = requirementNotes[key];
           const docType = note ? `${label} | Note: ${note}` : label;
-          return uploadAttachment('claim_notification', detailRecord.id, file, docType);
+          return files.map((file) => uploadAttachment('claim_notification', detailRecord.id, file, docType));
         }),
         ...customAttachments
           .filter((c) => c.file)
@@ -651,50 +696,65 @@ export default function ClaimNotificationsPage() {
                         {OWN_DAMAGE_REQUIREMENTS.map((req) => (
                           <div key={req.key} className="space-y-1">
                             <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="file"
-                                id={`detail-file-${req.key}`}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setRequirementFiles((prev) => ({ ...prev, [req.key]: file }));
-                                  }
-                                }}
-                                className="hidden"
-                              />
-                              <label
-                                htmlFor={`detail-file-${req.key}`}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                              >
-                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                                <span>Choose File</span>
-                              </label>
-                              <span className="text-xs text-slate-500 truncate max-w-[150px]">
-                                {requirementFiles[req.key]?.name || 'No file selected'}
-                              </span>
-                              {requirementFiles[req.key] && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRequirementFiles((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[req.key];
-                                      return copy;
-                                    });
-                                    setRequirementNotes((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[req.key];
-                                      return copy;
-                                    });
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="file"
+                                  id={`detail-file-${req.key}`}
+                                  multiple
+                                  onChange={(e) => {
+                                    const files = Array.from(e.target.files || []);
+                                    if (files.length > 0) {
+                                      setRequirementFiles((prev) => ({
+                                        ...prev,
+                                        [req.key]: [...(prev[req.key] || []), ...files],
+                                      }));
+                                    }
                                   }}
-                                  className="text-slate-400 hover:text-red-500 transition"
+                                  className="hidden"
+                                />
+                                <label
+                                  htmlFor={`detail-file-${req.key}`}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
                                 >
-                                  <X className="h-4 w-4" />
-                                </button>
+                                  <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                  <span>Choose File</span>
+                                </label>
+                                {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                                  <span className="text-xs text-slate-400 italic">No files selected</span>
+                                )}
+                              </div>
+
+                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {requirementFiles[req.key].map((file, idx) => (
+                                    <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
+                                      <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
+                                      <span className="truncate max-w-[120px]">{file.name}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setRequirementFiles((prev) => {
+                                            const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                            const copy = { ...prev };
+                                            if (list.length === 0) {
+                                              delete copy[req.key];
+                                            } else {
+                                              copy[req.key] = list;
+                                            }
+                                            return copy;
+                                          });
+                                        }}
+                                        className="text-slate-450 hover:text-red-500 transition cursor-pointer"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
-                            {requirementFiles[req.key] && (
+                            {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
                               <div className="mt-1">
                                 <input
                                   type="text"
@@ -721,50 +781,65 @@ export default function ClaimNotificationsPage() {
                         {TTPD_REQUIREMENTS.map((req) => (
                           <div key={req.key} className="space-y-1">
                             <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="file"
-                                id={`detail-file-${req.key}`}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setRequirementFiles((prev) => ({ ...prev, [req.key]: file }));
-                                  }
-                                }}
-                                className="hidden"
-                              />
-                              <label
-                                htmlFor={`detail-file-${req.key}`}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                              >
-                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                                <span>Choose File</span>
-                              </label>
-                              <span className="text-xs text-slate-500 truncate max-w-[150px]">
-                                {requirementFiles[req.key]?.name || 'No file selected'}
-                              </span>
-                              {requirementFiles[req.key] && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRequirementFiles((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[req.key];
-                                      return copy;
-                                    });
-                                    setRequirementNotes((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[req.key];
-                                      return copy;
-                                    });
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="file"
+                                  id={`detail-file-${req.key}`}
+                                  multiple
+                                  onChange={(e) => {
+                                    const files = Array.from(e.target.files || []);
+                                    if (files.length > 0) {
+                                      setRequirementFiles((prev) => ({
+                                        ...prev,
+                                        [req.key]: [...(prev[req.key] || []), ...files],
+                                      }));
+                                    }
                                   }}
-                                  className="text-slate-400 hover:text-red-500 transition"
+                                  className="hidden"
+                                />
+                                <label
+                                  htmlFor={`detail-file-${req.key}`}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
                                 >
-                                  <X className="h-4 w-4" />
-                                </button>
+                                  <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                  <span>Choose File</span>
+                                </label>
+                                {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                                  <span className="text-xs text-slate-400 italic">No files selected</span>
+                                )}
+                              </div>
+
+                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {requirementFiles[req.key].map((file, idx) => (
+                                    <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
+                                      <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
+                                      <span className="truncate max-w-[120px]">{file.name}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setRequirementFiles((prev) => {
+                                            const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                            const copy = { ...prev };
+                                            if (list.length === 0) {
+                                              delete copy[req.key];
+                                            } else {
+                                              copy[req.key] = list;
+                                            }
+                                            return copy;
+                                          });
+                                        }}
+                                        className="text-slate-455 hover:text-red-500 transition cursor-pointer"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
-                            {requirementFiles[req.key] && (
+                            {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
                               <div className="mt-1">
                                 <input
                                   type="text"
@@ -916,7 +991,7 @@ export default function ClaimNotificationsPage() {
         </div>
 
         {/* Action buttons */}
-        {isClaimsOfficer && selectedRecord.status === 'pending' && (
+        {isClaimsOfficer && (selectedRecord.status === 'pending' || selectedRecord.status === 'resubmitted') && (
           <div className="flex justify-end gap-3 pt-4 no-print">
             <button
               onClick={() => setReturnTarget(selectedRecord)}
@@ -933,6 +1008,17 @@ export default function ClaimNotificationsPage() {
           </div>
         )}
 
+        {canSubmit && selectedRecord.status === 'returned' && (
+          <div className="flex justify-end gap-3 pt-4 no-print">
+            <button
+              onClick={() => handleEdit(selectedRecord)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-medium rounded-xl shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
+            >
+              <Edit className="h-4 w-4" /> Edit & Resubmit
+            </button>
+          </div>
+        )}
+
         {acknowledgeTarget && (
           <ConfirmModal
             open={!!acknowledgeTarget}
@@ -943,6 +1029,50 @@ export default function ClaimNotificationsPage() {
             onCancel={() => setAcknowledgeTarget(null)}
             loading={acknowledgeMut.isPending}
           />
+        )}
+
+        {returnTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden animate-scale-in">
+              <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between">
+                <h3 className="text-white font-bold text-base">Return Claim Notification</h3>
+                <button onClick={() => { setReturnTarget(null); setReturnReason(''); }} className="text-white/80 hover:text-white">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-slate-650">
+                  Provide an explanation/reason for returning claim notification <span className="font-semibold text-slate-800">{returnTarget.reference_number}</span> back to the agent.
+                </p>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Return Reason *</label>
+                  <textarea
+                    value={returnReason}
+                    onChange={(e) => setReturnReason(e.target.value)}
+                    rows={4}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition resize-none"
+                    placeholder="Enter the reason why this claim is being returned..."
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-slate-50 flex items-center justify-end gap-3 border-t border-slate-100">
+                <button
+                  onClick={() => { setReturnTarget(null); setReturnReason(''); }}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => returnMut.mutate({ id: returnTarget.id, reason: returnReason })}
+                  disabled={returnMut.isPending || !returnReason.trim()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-xl hover:bg-rose-700 disabled:opacity-50 transition cursor-pointer"
+                >
+                  {returnMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                  <span>Return Claim</span>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {viewAttachment && (() => {
@@ -1013,8 +1143,12 @@ export default function ClaimNotificationsPage() {
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Submit Claim Notification</h1>
-            <p className="text-sm text-slate-500">Send a claim notification to the Claims Officer</p>
+            <h1 className="text-xl font-bold text-slate-800">
+              {editingRecord ? `Edit Claim Notification ${editingRecord.reference_number}` : 'Submit Claim Notification'}
+            </h1>
+            <p className="text-sm text-slate-500">
+              {editingRecord ? 'Modify and resubmit the returned claim notification' : 'Send a claim notification to the Claims Officer'}
+            </p>
           </div>
         </div>
 
@@ -1164,6 +1298,7 @@ export default function ClaimNotificationsPage() {
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type of Claim *</label>
                     <select
+                      value={claimType}
                       onChange={(e) => {
                         const val = e.target.value;
                         setClaimType(val);
@@ -1256,7 +1391,7 @@ export default function ClaimNotificationsPage() {
                   ) : (
                     <>
                       <Send className="h-4 w-4" />
-                      <span>Submit Notification</span>
+                      <span>{editingRecord ? 'Resubmit Notification' : 'Submit Notification'}</span>
                     </>
                   )}
                 </button>
@@ -1284,8 +1419,12 @@ export default function ClaimNotificationsPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Draft Preview</p>
-                    <p className="text-xs font-bold text-slate-600 mt-0.5">CLN-2026-XXXXX</p>
+                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                      {editingRecord ? 'Revision Preview' : 'Draft Preview'}
+                    </p>
+                    <p className="text-xs font-bold text-slate-650 mt-0.5">
+                      {editingRecord ? editingRecord.reference_number : 'CLN-2026-XXXXX'}
+                    </p>
                   </div>
                 </div>
 
@@ -1491,6 +1630,7 @@ export default function ClaimNotificationsPage() {
             >
               <option value="all">All Statuses</option>
               <option value="pending">Pending</option>
+              <option value="resubmitted">Resubmitted</option>
               <option value="returned">Returned</option>
               <option value="acknowledged">Acknowledged</option>
             </select>

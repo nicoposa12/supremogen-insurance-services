@@ -48,3 +48,11 @@ export async function returnClaimNotification(
   );
   return data;
 }
+
+export async function updateClaimNotification(
+  id: number,
+  formData: ClaimNotificationFormData
+): Promise<SingleResponse<ClaimNotification>> {
+  const { data } = await axios.put<SingleResponse<ClaimNotification>>(`${BASE}/${id}`, formData);
+  return data;
+}

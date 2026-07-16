@@ -112,6 +112,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     label: 'Returned',
     className: 'bg-rose-50 text-rose-700 ring-rose-600/20',
   },
+  resubmitted: {
+    label: 'Resubmitted',
+    className: 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
+  },
 };
 
 const defaultConfig = {
