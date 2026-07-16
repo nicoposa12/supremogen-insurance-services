@@ -1556,11 +1556,7 @@ export default function ClaimNotificationsPage() {
       key: 'actions', label: '', className: 'text-right',
       render: (r: ClaimNotification) => (
         <div className="flex items-center justify-end gap-1">
-          <button onClick={(e) => { e.stopPropagation(); setSelectedRecord(r); setActiveView('detail'); }}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition" title="View">
-            <Eye className="h-4 w-4 text-[#4A0E17]" />
-          </button>
-          {isClaimsOfficer && r.status === 'pending' && (
+          {isClaimsOfficer && (r.status === 'pending' || r.status === 'resubmitted') && (
             <>
               <button onClick={(e) => { e.stopPropagation(); setReturnTarget(r); }}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Return to Agent">
