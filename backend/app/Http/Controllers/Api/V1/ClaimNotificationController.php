@@ -33,6 +33,10 @@ class ClaimNotificationController extends Controller
             $query->where('claim_count', $request->input('claim_count'));
         }
 
+        if ($request->filled('created_date')) {
+            $query->whereDate('created_at', $request->input('created_date'));
+        }
+
         // Non-admin, non-claims-officer users see only their own submissions
         $user  = $request->user();
         $roles = $user->getRoleNames()->toArray();

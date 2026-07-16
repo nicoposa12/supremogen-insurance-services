@@ -78,6 +78,7 @@ export default function ClaimNotificationsPage() {
     search: querySearch,
     status: searchParams.get('status') || 'all',
     claim_count: searchParams.get('claim_count') || undefined,
+    created_date: searchParams.get('created_date') || undefined,
     sort_by: searchParams.get('sort_by') || 'created_at',
     sort_dir: (searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc',
   });
@@ -1527,6 +1528,29 @@ export default function ClaimNotificationsPage() {
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-505">
               <ChevronDown className="h-4 w-4" />
             </div>
+          </div>
+
+          <div className="relative w-full sm:w-48 shrink-0">
+            <input
+              type="date"
+              value={params.created_date || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setParams((p) => ({ ...p, created_date: val || undefined, page: 1 }));
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  if (val) {
+                    next.set('created_date', val);
+                  } else {
+                    next.delete('created_date');
+                  }
+                  next.set('page', '1');
+                  return next;
+                }, { replace: true });
+              }}
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer font-medium"
+              title="Filter by Date"
+            />
           </div>
         </div>
 

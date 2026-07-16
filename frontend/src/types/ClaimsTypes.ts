@@ -141,6 +141,7 @@ export interface ClaimNotificationListParams {
   search?: string;
   status?: string;
   claim_count?: string;
+  created_date?: string;
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';
 }
