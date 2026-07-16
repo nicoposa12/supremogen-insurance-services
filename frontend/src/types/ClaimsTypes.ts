@@ -140,6 +140,7 @@ export interface ClaimNotificationListParams {
   per_page?: number;
   search?: string;
   status?: string;
+  claim_count?: string;
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';
 }

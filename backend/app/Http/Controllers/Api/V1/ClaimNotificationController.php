@@ -29,6 +29,10 @@ class ClaimNotificationController extends Controller
             ->search($request->input('search'))
             ->ofStatus($request->input('status'));
 
+        if ($request->filled('claim_count')) {
+            $query->where('claim_count', $request->input('claim_count'));
+        }
+
         // Non-admin, non-claims-officer users see only their own submissions
         $user  = $request->user();
         $roles = $user->getRoleNames()->toArray();

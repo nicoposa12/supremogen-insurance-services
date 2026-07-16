@@ -73,8 +73,13 @@ export default function ClaimNotificationsPage() {
 
   // ─── List State ─────────────────────────────
   const [params, setParams] = useState<ClaimNotificationListParams>({
-    page: 1, per_page: 15, search: querySearch, status: 'all',
-    sort_by: 'created_at', sort_dir: 'desc',
+    page: Number(searchParams.get('page')) || 1,
+    per_page: 15,
+    search: querySearch,
+    status: searchParams.get('status') || 'all',
+    claim_count: searchParams.get('claim_count') || undefined,
+    sort_by: searchParams.get('sort_by') || 'created_at',
+    sort_dir: (searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc',
   });
   const [searchInput, setSearchInput] = useState(querySearch);
 
@@ -1467,13 +1472,57 @@ export default function ClaimNotificationsPage() {
           <div className="relative w-full sm:w-48 shrink-0">
             <select
               value={params.status || 'all'}
-              onChange={(e) => setParams((p) => ({ ...p, status: e.target.value === 'all' ? undefined : e.target.value, page: 1 }))}
+              onChange={(e) => {
+                const val = e.target.value;
+                setParams((p) => ({ ...p, status: val === 'all' ? undefined : val, page: 1 }));
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  if (val && val !== 'all') {
+                    next.set('status', val);
+                  } else {
+                    next.delete('status');
+                  }
+                  next.set('page', '1');
+                  return next;
+                }, { replace: true });
+              }}
               className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition appearance-none cursor-pointer font-medium"
             >
               <option value="all">All Statuses</option>
               <option value="pending">Pending</option>
               <option value="returned">Returned</option>
               <option value="acknowledged">Acknowledged</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-505">
+              <ChevronDown className="h-4 w-4" />
+            </div>
+          </div>
+
+          <div className="relative w-full sm:w-48 shrink-0">
+            <select
+              value={params.claim_count || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setParams((p) => ({ ...p, claim_count: val || undefined, page: 1 }));
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  if (val) {
+                    next.set('claim_count', val);
+                  } else {
+                    next.delete('claim_count');
+                  }
+                  next.set('page', '1');
+                  return next;
+                }, { replace: true });
+              }}
+              className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition appearance-none cursor-pointer font-medium"
+            >
+              <option value="">All Claims</option>
+              <option value="1st Claim">1st Claim</option>
+              <option value="2nd Claim">2nd Claim</option>
+              <option value="3rd Claim">3rd Claim</option>
+              <option value="4th Claim">4th Claim</option>
+              <option value="5th Claim">5th Claim</option>
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-505">
               <ChevronDown className="h-4 w-4" />
