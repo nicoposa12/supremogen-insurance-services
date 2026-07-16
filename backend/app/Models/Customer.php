@@ -212,7 +212,9 @@ class Customer extends Model
               ->orWhere('phone', 'like', "%{$term}%")
               ->orWhere('mobile', 'like', "%{$term}%")
               ->orWhere('customer_code', 'like', "%{$term}%")
-              ->orWhere('company_name', 'like', "%{$term}%");
+              ->orWhere('company_name', 'like', "%{$term}%")
+              ->orWhere('plate_no', 'like', "%{$term}%")
+              ->orWhere('policy_no', 'like', "%{$term}%");
         });
     }
 

@@ -104,6 +104,14 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     label: 'Renewed',
     className: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
   },
+  acknowledged: {
+    label: 'Acknowledged',
+    className: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+  },
+  returned: {
+    label: 'Returned',
+    className: 'bg-rose-50 text-rose-700 ring-rose-600/20',
+  },
 };
 
 const defaultConfig = {

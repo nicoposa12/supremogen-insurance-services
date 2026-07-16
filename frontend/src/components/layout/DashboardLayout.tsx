@@ -34,6 +34,7 @@ import {
   RotateCcw,
   DollarSign,
   Shield,
+  AlertTriangle,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationApi';
@@ -64,6 +65,7 @@ const navItems: NavItem[] = [
   { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
   { label: 'Accounting', path: '/dashboard/invoices', icon: Receipt },
   { label: 'Claims', path: '/dashboard/claims', icon: ShieldHalf },
+  { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
   { label: 'Renewals', path: '/dashboard/renewals', icon: RefreshCw },
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
   { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
@@ -79,6 +81,7 @@ const adminNavGroups: NavGroup[] = [
     accent: '#3b82f6', // blue
     children: [
       { label: 'Policy Issuance Request', path: '/dashboard/quotations?role=Sales Agent', icon: FileText },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
     ],
   },
   {
@@ -95,6 +98,7 @@ const adminNavGroups: NavGroup[] = [
     accent: '#10b981', // emerald
     children: [
       { label: 'Policy Issuance Request', path: '/dashboard/quotations?role=Team Renewal', icon: FileText },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
     ],
   },
   {
@@ -110,7 +114,7 @@ const adminNavGroups: NavGroup[] = [
     icon: Shield,
     accent: '#ef4444', // red
     children: [
-      { label: 'Claims', path: '/dashboard/claims', icon: ShieldHalf },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
     ],
   },
   {
@@ -301,15 +305,18 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   const isAgent = roles.includes('Sales Agent') || roles.includes('Team Renewal');
   const isUnderwriter = roles.includes('Underwriter');
   const isCollection = roles.includes('Collection');
+  const isClaimsOfficer = roles.includes('Claims Officer');
 
   let isForbidden = false;
 
   if (isAgent) {
-    isForbidden = !['Customer Records', 'Policy Issuance Request'].includes(item.label);
+    isForbidden = !['Customer Records', 'Policy Issuance Request', 'Claim Notifications'].includes(item.label);
   } else if (isUnderwriter) {
     isForbidden = !['Dashboard', 'Insurance Requests', 'Customer Records', 'Summary', 'Reports'].includes(item.label);
   } else if (isCollection) {
     isForbidden = !['Collection Module', 'Collection Ledger'].includes(item.label);
+  } else if (isClaimsOfficer) {
+    isForbidden = !['Claim Notifications'].includes(item.label);
   }
 
   if (isForbidden) {
@@ -425,10 +432,11 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect Sales Agents, Team Renewal and Collection away from /dashboard to their specific landing pages
+  // Redirect Sales Agents, Team Renewal, Collection and Claims Officer away from /dashboard to their specific landing pages
   useEffect(() => {
     const isAgent = roles?.includes('Sales Agent') || roles?.includes('Team Renewal');
     const isCollection = roles?.includes('Collection');
+    const isClaimsOfficer = roles?.includes('Claims Officer');
     const isAdministrator = roles?.includes('Administrator');
     const isAccounting = roles?.includes('Accounting Officer');
 
@@ -437,6 +445,8 @@ export default function DashboardLayout() {
         navigate('/dashboard/customers', { replace: true });
       } else if (isCollection && location.pathname === '/dashboard') {
         navigate('/dashboard/collection', { replace: true });
+      } else if (isClaimsOfficer && location.pathname === '/dashboard') {
+        navigate('/dashboard/claim-notifications', { replace: true });
       }
     }
   }, [roles, location.pathname, navigate]);
@@ -743,6 +753,7 @@ export default function DashboardLayout() {
                               
                               const matchQuotation = message.match(/QUO-\d{4}-\d{5}/) || message.match(/QUO \d{4} \d{5}/);
                               const matchInvoice = message.match(/INV-\d{4}-\d{5}/);
+                              const matchClaimNotification = message.match(/CLN-\d{4}-\d{5}/);
                               const matchClaim = message.match(/CLM-\d{4}-\d{5}/);
                               const matchPolicy = message.match(/POL-\d{4}-\d{5}/);
 
@@ -760,6 +771,9 @@ export default function DashboardLayout() {
                                 } else {
                                   navigate(`/dashboard/invoices?search=${code}`);
                                 }
+                              } else if (matchClaimNotification) {
+                                const code = matchClaimNotification[0];
+                                navigate(`/dashboard/claim-notifications?search=${code}`);
                               } else if (matchClaim) {
                                 const code = matchClaim[0];
                                 navigate(`/dashboard/claims?search=${code}`);
@@ -772,6 +786,8 @@ export default function DashboardLayout() {
                                 } else {
                                   navigate('/dashboard/quotations');
                                 }
+                              } else if (title.toLowerCase().includes('claim notification')) {
+                                navigate('/dashboard/claim-notifications');
                               } else if (title.toLowerCase().includes('claim')) {
                                 navigate('/dashboard/claims');
                               } else if (title.toLowerCase().includes('invoice') || title.toLowerCase().includes('payment')) {
@@ -849,16 +865,18 @@ export default function DashboardLayout() {
                       <p className="text-sm font-medium text-slate-800">{user?.name}</p>
                       <p className="text-xs text-slate-500">{user?.email}</p>
                     </div>
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        navigate('/dashboard/settings');
-                      }}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
-                    >
-                      <Settings className="h-4 w-4" />
-                      Settings
-                    </button>
+                    {!roles.includes('Claims Officer') && (
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          navigate('/dashboard/settings');
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Settings
+                      </button>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-slate-50 transition"

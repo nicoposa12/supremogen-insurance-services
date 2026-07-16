@@ -95,3 +95,48 @@ export interface ClaimFormData {
   incident_description: string;
   claim_amount: number;
 }
+
+// ─── Claim Notification ──────────────────────────
+
+export interface ClaimNotification {
+  id: number;
+  reference_number: string;
+  assured_name: string;
+  contact_number: string | null;
+  email_address: string | null;
+  insurance_provider: string;
+  plate_number: string | null;
+  policy_number: string;
+  inception_date: string | null;
+  accident_date: string;
+  nature_of_claims: string;
+  notes: string | null;
+  submitted_by: number | { id: number; name: string; email?: string };
+  status: 'pending' | 'acknowledged' | 'returned';
+  acknowledged_by: number | { id: number; name: string; email?: string } | null;
+  acknowledged_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClaimNotificationFormData {
+  assured_name: string;
+  contact_number: string;
+  email_address: string;
+  insurance_provider: string;
+  plate_number: string;
+  policy_number: string;
+  inception_date: string;
+  accident_date: string;
+  nature_of_claims: string;
+  notes: string;
+}
+
+export interface ClaimNotificationListParams {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  status?: string;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
+}

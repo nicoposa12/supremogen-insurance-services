@@ -647,3 +647,47 @@ textarea:disabled {
   white-space: nowrap;
 }
 
+/* Print Styles for Claim Notifications */
+@media print {
+  body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  
+  /* Hide all dashboard elements */
+  aside,
+  header,
+  nav,
+  button,
+  .toast-container,
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  /* Main area resets */
+  main,
+  .flex-1,
+  .min-h-screen {
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Printable document styling */
+  .printable-document {
+    visibility: visible !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+

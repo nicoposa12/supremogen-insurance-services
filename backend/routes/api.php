@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\RenewalController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\AttachmentController;
+use App\Http\Controllers\Api\V1\ClaimNotificationController;
 
 Route::prefix('v1')->group(function () {
     // Public routes
@@ -86,6 +87,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/claims/{claim}/assign', [ClaimController::class, 'assign']);
         Route::post('/claims/{claim}/review', [ClaimController::class, 'review']);
         Route::post('/claims/{claim}/settle', [ClaimController::class, 'settle']);
+
+        // Claim Notifications
+        Route::get('/claim-notifications', [ClaimNotificationController::class, 'index']);
+        Route::post('/claim-notifications', [ClaimNotificationController::class, 'store']);
+        Route::get('/claim-notifications/{id}', [ClaimNotificationController::class, 'show']);
+        Route::post('/claim-notifications/{id}/acknowledge', [ClaimNotificationController::class, 'acknowledge']);
+        Route::post('/claim-notifications/{id}/return', [ClaimNotificationController::class, 'returnToAgent']);
 
         // Renewals
         Route::get('/renewals', [RenewalController::class, 'index']);

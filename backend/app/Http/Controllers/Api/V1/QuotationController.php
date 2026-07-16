@@ -407,6 +407,39 @@ class QuotationController extends Controller
                     'unit_price' => $customer?->policy_premium ?? 0,
                     'amount' => $customer?->policy_premium ?? 0,
                 ]);
+
+                // Automatically create a Claim Notification for Claims Officers
+                try {
+                    $claimNotification = \App\Models\ClaimNotification::create([
+                        'reference_number'   => \App\Models\ClaimNotification::generateNumber(),
+                        'assured_name'       => trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')),
+                        'contact_number'     => $customer->mobile ?? $customer->phone,
+                        'email_address'      => $customer->email,
+                        'insurance_provider' => $customer->insurance_provider ?? 'Supremogen Insurance Services',
+                        'plate_number'       => $customer->plate_no,
+                        'policy_number'      => $policy->policy_number,
+                        'inception_date'     => $policy->effective_date,
+                        'accident_date'      => $policy->effective_date ?? now(),
+                        'nature_of_claims'   => 'Auto-generated claim notification upon underwriting approval.',
+                        'notes'              => 'Automatically generated from approved Quotation ' . $quotation->quotation_number,
+                        'submitted_by'       => $quotation->prepared_by ?? $request->user()->id,
+                        'status'             => 'pending',
+                    ]);
+
+                    // Notify all Claims Officers
+                    $officers = \App\Models\User::role('Claims Officer')->get();
+                    foreach ($officers as $officer) {
+                        \App\Models\Notification::create([
+                            'user_id' => $officer->id,
+                            'title'   => 'Claim Notification Received',
+                            'message' => "New claim notification {$claimNotification->reference_number} for assured \"{$claimNotification->assured_name}\" — Policy {$claimNotification->policy_number}.",
+                            'type'    => 'warning',
+                            'read_at' => null,
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to create automatic claim notification: ' . $e->getMessage());
+                }
             }
         });
 

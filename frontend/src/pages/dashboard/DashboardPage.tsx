@@ -41,12 +41,14 @@ const STATUS_COLORS = ['#10b981', '#f59e0b', '#ef4444'];
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { roles } = useAuth();
+  const isClaimsOfficer = roles.includes('Claims Officer');
   const showRevenue = roles.includes('Administrator') || roles.includes('Accounting Officer');
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
     refetchInterval: 60000, // auto-refresh every 60s
+    enabled: !isClaimsOfficer,
   });
 
   const dashboard: DashboardData | undefined = response?.data;
@@ -81,6 +83,10 @@ export default function DashboardPage() {
     }
     return dashboard.stats.policies[customerTimeframe] || { value: 0, trend: 0 };
   }, [dashboard, customerTimeframe]);
+
+  if (isClaimsOfficer) {
+    return null;
+  }
 
   const getOverviewData = () => {
     if (!dashboard) return [];
