@@ -102,6 +102,7 @@ export default function ClaimNotificationsPage() {
   const [returnReason, setReturnReason] = useState('');
   const [claimType, setClaimType] = useState('');
   const [requirementFiles, setRequirementFiles] = useState<Record<string, File>>({});
+  const [requirementNotes, setRequirementNotes] = useState<Record<string, string>>({});
   const [viewAttachment, setViewAttachment] = useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -145,6 +146,7 @@ export default function ClaimNotificationsPage() {
     setValidationErrors({});
     setClaimType('');
     setRequirementFiles({});
+    setRequirementNotes({});
   };
 
   // Fetch suggestions for assured name
@@ -264,7 +266,9 @@ export default function ClaimNotificationsPage() {
                 const req = TTPD_REQUIREMENTS.find((r) => r.key === key);
                 label = req ? req.label : 'Requirement Document';
               }
-              return uploadAttachment('claim_notification', res.data.id, file, label);
+              const note = requirementNotes[key];
+              const docType = note ? `${label} | Note: ${note}` : label;
+              return uploadAttachment('claim_notification', res.data.id, file, docType);
             })
           );
           showToast('Requirements uploaded successfully!');
@@ -490,37 +494,50 @@ export default function ClaimNotificationsPage() {
               <div className="mt-8 pt-6 border-t border-slate-100 no-print">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Uploaded Requirements</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {detailRecord.attachments.map((att: any) => (
-                    <div key={att.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <FileText className="h-5 w-5 text-[#4A0E17] shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-700 truncate">{att.document_type || att.file_name}</p>
-                          <p className="text-[10px] text-slate-450 mt-0.5 truncate">
-                            {att.file_name} ({(att.file_size / 1024).toFixed(1)} KB)
-                          </p>
+                  {detailRecord.attachments.map((att: any) => {
+                    const [docTitle, docNote] = att.document_type ? att.document_type.split(' | Note: ') : [att.file_name, ''];
+                    return (
+                      <div key={att.id} className="flex flex-col p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <FileText className="h-5 w-5 text-[#4A0E17] shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-slate-700 truncate">{docTitle}</p>
+                              <p className="text-[10px] text-slate-450 mt-0.5 truncate">
+                                {att.file_name} ({(att.file_size / 1024).toFixed(1)} KB)
+                              </p>
+                              <p className="text-[9px] text-slate-400 mt-0.5">
+                                Uploaded: {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() => setViewAttachment(att)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-150 transition cursor-pointer"
+                              title="View Attachment"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <a
+                              href={`/api/v1/attachments/${att.id}/download?token=${token}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-150 transition"
+                              title="Download"
+                            >
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </div>
                         </div>
+                        {docNote && (
+                          <div className="pl-7 pr-3 py-1.5 bg-amber-50/40 border-l-2 border-amber-400 rounded-r-lg">
+                            <p className="text-[11px] text-amber-800 leading-tight font-medium">Note: {docNote}</p>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          onClick={() => setViewAttachment(att)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-150 transition cursor-pointer"
-                          title="View Attachment"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <a
-                          href={`/api/v1/attachments/${att.id}/download?token=${token}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-150 transition"
-                          title="Download"
-                        >
-                          <Download className="h-4 w-4" />
-                        </a>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -557,35 +574,39 @@ export default function ClaimNotificationsPage() {
           />
         )}
 
-        {viewAttachment && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print">
-            <div className="bg-white rounded-2xl border border-slate-205 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
-              <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
-                <div>
-                  <h3 className="text-white font-bold text-base">{viewAttachment.document_type || 'Attachment Viewer'}</h3>
-                  <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[500px]">{viewAttachment.file_name}</p>
+        {viewAttachment && (() => {
+          const [docTitle, docNote] = viewAttachment.document_type ? viewAttachment.document_type.split(' | Note: ') : [viewAttachment.file_name, ''];
+          return (
+            <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print">
+              <div className="bg-white rounded-2xl border border-slate-205 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
+                <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
+                  <div>
+                    <h3 className="text-white font-bold text-base">{docTitle}</h3>
+                    <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[550px]">
+                      {viewAttachment.file_name} ({(viewAttachment.file_size / 1024).toFixed(1)} KB) | Uploaded: {new Date(viewAttachment.created_at).toLocaleDateString()} {new Date(viewAttachment.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })} {docNote ? ` | Note: ${docNote}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setViewAttachment(null)}
+                    className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setViewAttachment(null)}
-                  className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
-                {viewAttachment.mime_type.startsWith('image/') ? (
-                  <img
-                    src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
-                    alt={viewAttachment.document_type || 'Attachment'}
-                    className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
-                  />
-                ) : viewAttachment.mime_type === 'application/pdf' ? (
-                  <iframe
-                    src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
-                    title={viewAttachment.document_type || 'Attachment'}
-                    className="w-full h-[60vh] rounded-lg border border-slate-200"
-                  />
-                ) : (
+                <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
+                  {viewAttachment.mime_type.startsWith('image/') ? (
+                    <img
+                      src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                      alt={docTitle}
+                      className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
+                    />
+                  ) : viewAttachment.mime_type === 'application/pdf' ? (
+                    <iframe
+                      src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                      title={docTitle}
+                      className="w-full h-[60vh] rounded-lg border border-slate-200"
+                    />
+                  ) : (
                   <div className="text-center space-y-4 p-8">
                     <FileText className="h-16 w-16 text-slate-400 mx-auto" />
                     <div>
@@ -605,7 +626,8 @@ export default function ClaimNotificationsPage() {
               </div>
             </div>
           </div>
-        )}
+        );
+      })()}
       </div>
     );
   }
@@ -865,6 +887,11 @@ export default function ClaimNotificationsPage() {
                                       delete copy[req.key];
                                       return copy;
                                     });
+                                    setRequirementNotes((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[req.key];
+                                      return copy;
+                                    });
                                   }}
                                   className="text-slate-400 hover:text-red-500 transition"
                                 >
@@ -872,6 +899,19 @@ export default function ClaimNotificationsPage() {
                                 </button>
                               )}
                             </div>
+                            {requirementFiles[req.key] && (
+                              <div className="mt-1">
+                                <input
+                                  type="text"
+                                  placeholder="Add a brief note for this file..."
+                                  value={requirementNotes[req.key] || ''}
+                                  onChange={(e) => {
+                                    setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                  }}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                />
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -917,6 +957,11 @@ export default function ClaimNotificationsPage() {
                                       delete copy[req.key];
                                       return copy;
                                     });
+                                    setRequirementNotes((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[req.key];
+                                      return copy;
+                                    });
                                   }}
                                   className="text-slate-400 hover:text-red-500 transition"
                                 >
@@ -924,6 +969,19 @@ export default function ClaimNotificationsPage() {
                                 </button>
                               )}
                             </div>
+                            {requirementFiles[req.key] && (
+                              <div className="mt-1">
+                                <input
+                                  type="text"
+                                  placeholder="Add a brief note for this file..."
+                                  value={requirementNotes[req.key] || ''}
+                                  onChange={(e) => {
+                                    setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                  }}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                />
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1264,55 +1322,60 @@ export default function ClaimNotificationsPage() {
         </div>
       )}
 
-      {viewAttachment && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
-            <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
-              <div>
-                <h3 className="text-white font-bold text-base">{viewAttachment.document_type || 'Attachment Viewer'}</h3>
-                <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[500px]">{viewAttachment.file_name}</p>
-              </div>
-              <button
-                onClick={() => setViewAttachment(null)}
-                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
-              {viewAttachment.mime_type.startsWith('image/') ? (
-                <img
-                  src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
-                  alt={viewAttachment.document_type || 'Attachment'}
-                  className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
-                />
-              ) : viewAttachment.mime_type === 'application/pdf' ? (
-                <iframe
-                  src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
-                  title={viewAttachment.document_type || 'Attachment'}
-                  className="w-full h-[60vh] rounded-lg border border-slate-200"
-                />
-              ) : (
-                <div className="text-center space-y-4 p-8">
-                  <FileText className="h-16 w-16 text-slate-400 mx-auto" />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
-                    <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
-                  </div>
-                  <a
-                    href={`/api/v1/attachments/${viewAttachment.id}/download?token=${token}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition"
-                  >
-                    <Download className="h-4 w-4" /> Download File
-                  </a>
+      {viewAttachment && (() => {
+        const [docTitle, docNote] = viewAttachment.document_type ? viewAttachment.document_type.split(' | Note: ') : [viewAttachment.file_name, ''];
+        return (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
+              <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="text-white font-bold text-base">{docTitle}</h3>
+                  <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[550px]">
+                    {viewAttachment.file_name} ({(viewAttachment.file_size / 1024).toFixed(1)} KB) | Uploaded: {new Date(viewAttachment.created_at).toLocaleDateString()} {new Date(viewAttachment.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })} {docNote ? ` | Note: ${docNote}` : ''}
+                  </p>
                 </div>
-              )}
+                <button
+                  onClick={() => setViewAttachment(null)}
+                  className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
+                {viewAttachment.mime_type.startsWith('image/') ? (
+                  <img
+                    src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                    alt={docTitle}
+                    className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
+                  />
+                ) : viewAttachment.mime_type === 'application/pdf' ? (
+                  <iframe
+                    src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                    title={docTitle}
+                    className="w-full h-[60vh] rounded-lg border border-slate-200"
+                  />
+                ) : (
+                  <div className="text-center space-y-4 p-8">
+                    <FileText className="h-16 w-16 text-slate-400 mx-auto" />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
+                      <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
+                    </div>
+                    <a
+                      href={`/api/v1/attachments/${viewAttachment.id}/download?token=${token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition"
+                    >
+                      <Download className="h-4 w-4" /> Download File
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
