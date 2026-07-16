@@ -89,6 +89,7 @@ export interface PaymentListParams {
   method?: string;
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';
+  customer_id?: number;
 }
 
 export interface InvoiceFormData {

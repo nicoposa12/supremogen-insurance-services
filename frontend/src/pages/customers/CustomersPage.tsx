@@ -25,6 +25,8 @@ import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { getCustomers, deleteCustomer, createCustomer, updateCustomer } from '../../services/customerApi';
+import { getPayments } from '../../services/paymentApi';
+import { getClaims } from '../../services/claimApi';
 import { uploadAttachment, getAttachments } from '../../services/attachmentApi';
 import type { Customer, CustomerListParams, CustomerFormData } from '../../types/CustomerTypes';
 import AttachmentPanel from '../../components/ui/AttachmentPanel';
@@ -118,6 +120,22 @@ export default function CustomersPage() {
     enabled: !!selectedCustomer?.id,
   });
   const selectedAttachments = selectedAttachmentsRes?.data ?? [];
+
+  const activeCustomerId = selectedCustomer?.id || formEditTarget?.id;
+
+  // Fetch payments for selected customer/form edit target
+  const { data: customerPaymentsRes, isLoading: isLoadingPayments } = useQuery({
+    queryKey: ['customer-payments', activeCustomerId],
+    queryFn: () => getPayments({ customer_id: activeCustomerId!, per_page: 50 }),
+    enabled: !!activeCustomerId,
+  });
+
+  // Fetch claims for selected customer/form edit target
+  const { data: customerClaimsRes, isLoading: isLoadingClaims } = useQuery({
+    queryKey: ['customer-claims', activeCustomerId],
+    queryFn: () => getClaims({ customer_id: activeCustomerId!, per_page: 50 }),
+    enabled: !!activeCustomerId,
+  });
 
   // ─── React Hook Form ─────────────────
   const {
@@ -1126,18 +1144,98 @@ export default function CustomersPage() {
               {activeModalTab === 'payment' && (
                 <div className="space-y-4">
                   <h4 className="font-bold text-sm text-[#4A0E17]">Payment History</h4>
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden p-6 text-center text-slate-500 text-xs">
-                    No payment transactions recorded for this record.
-                  </div>
+                  {isLoadingPayments ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-5 w-5 animate-spin text-[#4A0E17]" />
+                    </div>
+                  ) : !customerPaymentsRes?.data?.data || customerPaymentsRes.data.data.length === 0 ? (
+                    <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden p-6 text-center text-slate-500 text-xs">
+                      No payment transactions recorded for this record.
+                    </div>
+                  ) : (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                      <table className="min-w-full divide-y divide-slate-200/85 text-xs">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Payment No.</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Method</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200/85 bg-white">
+                          {customerPaymentsRes.data.data.map((p) => (
+                            <tr key={p.id}>
+                              <td className="px-4 py-2.5 font-mono font-bold text-slate-750 text-slate-700">{p.payment_number}</td>
+                              <td className="px-4 py-2.5 font-medium text-slate-650 capitalize">{p.payment_method?.replace(/_/g, ' ')}</td>
+                              <td className="px-4 py-2.5 text-slate-500">{formatDate(p.payment_date)}</td>
+                              <td className="px-4 py-2.5 font-bold text-slate-800">{formatCurrency(p.amount)}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider ${
+                                  p.status === 'completed' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' :
+                                  p.status === 'voided' ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20' :
+                                  'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'
+                                }`}>
+                                  {p.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeModalTab === 'claims' && (
                 <div className="space-y-4">
                   <h4 className="font-bold text-sm text-[#4A0E17]">Claims Record</h4>
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden p-6 text-center text-slate-500 text-xs">
-                    No claims filed against this policy.
-                  </div>
+                  {isLoadingClaims ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-5 w-5 animate-spin text-[#4A0E17]" />
+                    </div>
+                  ) : !customerClaimsRes?.data?.data || customerClaimsRes.data.data.length === 0 ? (
+                    <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden p-6 text-center text-slate-500 text-xs">
+                      No claims filed against this policy.
+                    </div>
+                  ) : (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                      <table className="min-w-full divide-y divide-slate-200/85 text-xs">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Claim No.</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Incident Date</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Remarks</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200/85 bg-white">
+                          {customerClaimsRes.data.data.map((c) => (
+                            <tr key={c.id}>
+                              <td className="px-4 py-2.5 font-mono font-bold text-slate-750 text-slate-700">{c.claim_number}</td>
+                              <td className="px-4 py-2.5 text-slate-500">{formatDate(c.incident_date)}</td>
+                              <td className="px-4 py-2.5 font-bold text-slate-800">{formatCurrency(c.claim_amount)}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider ${
+                                  c.status === 'settled' || c.status === 'approved' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' :
+                                  c.status === 'denied' || c.status === 'closed' ? 'bg-slate-100 text-slate-700 ring-1 ring-slate-650/20' :
+                                  'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'
+                                }`}>
+                                  {c.status?.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-slate-600 max-w-[200px] truncate" title={c.adjuster_remarks || c.incident_description}>
+                                {c.adjuster_remarks || c.incident_description || '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1998,18 +2096,98 @@ export default function CustomersPage() {
               {activeFormTab === 'payment' && (
                 <div className="space-y-4 flex-1">
                   <h4 className="font-bold text-sm text-[#4A0E17]">Payment History</h4>
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden p-6 text-center text-slate-500 text-xs">
-                    No payment transactions recorded for this record.
-                  </div>
+                  {isLoadingPayments ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-5 w-5 animate-spin text-[#4A0E17]" />
+                    </div>
+                  ) : !customerPaymentsRes?.data?.data || customerPaymentsRes.data.data.length === 0 ? (
+                    <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden p-6 text-center text-slate-500 text-xs">
+                      No payment transactions recorded for this record.
+                    </div>
+                  ) : (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                      <table className="min-w-full divide-y divide-slate-200/85 text-xs">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Payment No.</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Method</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200/85 bg-white">
+                          {customerPaymentsRes.data.data.map((p) => (
+                            <tr key={p.id}>
+                              <td className="px-4 py-2.5 font-mono font-bold text-slate-700">{p.payment_number}</td>
+                              <td className="px-4 py-2.5 font-medium text-slate-650 capitalize">{p.payment_method?.replace(/_/g, ' ')}</td>
+                              <td className="px-4 py-2.5 text-slate-500">{formatDate(p.payment_date)}</td>
+                              <td className="px-4 py-2.5 font-bold text-slate-800">{formatCurrency(p.amount)}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider ${
+                                  p.status === 'completed' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' :
+                                  p.status === 'voided' ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-600/20' :
+                                  'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'
+                                }`}>
+                                  {p.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeFormTab === 'claims' && (
                 <div className="space-y-4 flex-1">
                   <h4 className="font-bold text-sm text-[#4A0E17]">Claims Record</h4>
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden p-6 text-center text-slate-500 text-xs">
-                    No claims filed against this policy.
-                  </div>
+                  {isLoadingClaims ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-5 w-5 animate-spin text-[#4A0E17]" />
+                    </div>
+                  ) : !customerClaimsRes?.data?.data || customerClaimsRes.data.data.length === 0 ? (
+                    <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden p-6 text-center text-slate-500 text-xs">
+                      No claims filed against this policy.
+                    </div>
+                  ) : (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                      <table className="min-w-full divide-y divide-slate-200/85 text-xs">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Claim No.</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Incident Date</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Remarks</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200/85 bg-white">
+                          {customerClaimsRes.data.data.map((c) => (
+                            <tr key={c.id}>
+                              <td className="px-4 py-2.5 font-mono font-bold text-slate-700">{c.claim_number}</td>
+                              <td className="px-4 py-2.5 text-slate-500">{formatDate(c.incident_date)}</td>
+                              <td className="px-4 py-2.5 font-bold text-slate-800">{formatCurrency(c.claim_amount)}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider ${
+                                  c.status === 'settled' || c.status === 'approved' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' :
+                                  c.status === 'denied' || c.status === 'closed' ? 'bg-slate-100 text-slate-700 ring-1 ring-slate-650/20' :
+                                  'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'
+                                }`}>
+                                  {c.status?.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-slate-600 max-w-[200px] truncate" title={c.adjuster_remarks || c.incident_description}>
+                                {c.adjuster_remarks || c.incident_description || '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 

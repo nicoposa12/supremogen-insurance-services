@@ -77,6 +77,7 @@ export interface ClaimListParams {
   status?: string;
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';
+  customer_id?: number;
 }
 
 export interface RenewalListParams {

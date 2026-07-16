@@ -21,15 +21,20 @@ class ClaimController extends Controller
         $allowed = ['claim_number', 'claim_amount', 'status', 'incident_date', 'created_at'];
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
-        $claims = Claim::with([
+        $query = Claim::with([
                 'customer:id,customer_code,first_name,last_name',
                 'policy:id,policy_number',
                 'filedBy:id,name',
                 'assignedTo:id,name',
             ])
             ->search($request->input('search'))
-            ->ofStatus($request->input('status'))
-            ->orderBy($sortBy, $sortDir)
+            ->ofStatus($request->input('status'));
+
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->input('customer_id'));
+        }
+
+        $claims = $query->orderBy($sortBy, $sortDir)
             ->paginate($perPage)
             ->appends($request->query());
 

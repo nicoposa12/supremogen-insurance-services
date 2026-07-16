@@ -22,7 +22,7 @@ class PaymentController extends Controller
         $allowed = ['payment_number', 'amount', 'payment_method', 'payment_date', 'status', 'created_at'];
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
-        $payments = Payment::with([
+        $query = Payment::with([
                 'invoice:id,invoice_number,customer_id,total_amount,balance',
                 'invoice.customer:id,customer_code,first_name,last_name',
                 'receivedBy:id,name',
@@ -30,8 +30,15 @@ class PaymentController extends Controller
             ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
-            ->ofMethod($request->input('method'))
-            ->orderBy($sortBy, $sortDir)
+            ->ofMethod($request->input('method'));
+
+        if ($request->filled('customer_id')) {
+            $query->whereHas('invoice', function ($q) use ($request) {
+                $q->where('customer_id', $request->input('customer_id'));
+            });
+        }
+
+        $payments = $query->orderBy($sortBy, $sortDir)
             ->paginate($perPage)
             ->appends($request->query());
 
