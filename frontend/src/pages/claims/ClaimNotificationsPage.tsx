@@ -1097,7 +1097,9 @@ export default function ClaimNotificationsPage() {
     {
       key: 'created_at', label: 'Date', sortable: true,
       render: (r: ClaimNotification) => (
-        <span className="text-xs text-slate-500">{new Date(r.created_at).toLocaleDateString()}</span>
+        <span className="text-xs text-slate-500">
+          {new Date(r.created_at).toLocaleDateString()} {new Date(r.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
+        </span>
       ),
     },
     {
