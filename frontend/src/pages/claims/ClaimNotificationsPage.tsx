@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search, Plus, Eye, CheckCircle2, Filter, Loader2, X,
   Send, FileText, Phone, Mail, Car, Shield, Calendar,
-  AlertTriangle, User, ChevronLeft, Printer, RotateCcw,
+  AlertTriangle, User, ChevronLeft, Printer, RotateCcw, ChevronDown,
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -37,7 +37,7 @@ export default function ClaimNotificationsPage() {
   const isAdmin = roles.includes('Administrator');
   const canSubmit = roles.includes('Sales Agent') || roles.includes('Team Renewal') || isAdmin;
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const querySearch = searchParams.get('search') || '';
 
   // ─── List State ─────────────────────────────
@@ -57,9 +57,18 @@ export default function ClaimNotificationsPage() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setParams((p) => ({ ...p, search: searchInput, page: 1 }));
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (searchInput) {
+          next.set('search', searchInput);
+        } else {
+          next.delete('search');
+        }
+        return next;
+      }, { replace: true });
     }, 300);
     return () => clearTimeout(handler);
-  }, [searchInput]);
+  }, [searchInput, setSearchParams]);
 
   // ─── View Modes ─────────────────────────────
   const [activeView, setActiveView] = useState<'list' | 'form' | 'detail'>('list');
@@ -825,31 +834,35 @@ export default function ClaimNotificationsPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/80 p-4 space-y-3">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input type="text" placeholder="Search reference no., assured name, policy..."
-            value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition" />
-          {searchInput && (
-            <button onClick={() => setSearchInput('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input type="text" placeholder="Search reference no., assured name, policy..."
+              value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition" />
+            {searchInput && (
+              <button onClick={() => setSearchInput('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <Filter className="h-4 w-4 text-slate-400 shrink-0" />
-          {statusFilters.map((s) => (
-            <button key={s} onClick={() => setParams((p) => ({ ...p, status: s, page: 1 }))}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-                params.status === s
-                  ? 'bg-[#4A0E17] text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}>
-              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
+          <div className="relative w-full sm:w-48 shrink-0">
+            <select
+              value={params.status || 'all'}
+              onChange={(e) => setParams((p) => ({ ...p, status: e.target.value === 'all' ? undefined : e.target.value, page: 1 }))}
+              className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition appearance-none cursor-pointer font-medium"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="returned">Returned</option>
+              <option value="acknowledged">Acknowledged</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-505">
+              <ChevronDown className="h-4 w-4" />
+            </div>
+          </div>
         </div>
 
         {isLoading ? (
