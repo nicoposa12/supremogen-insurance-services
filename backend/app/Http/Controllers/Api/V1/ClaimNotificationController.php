@@ -111,19 +111,15 @@ class ClaimNotificationController extends Controller
         try {
             $provider = $record->insurance_provider;
             $providerEmails = [
-                'ALPHA GREENHILLS' => [
-                    'to' => ['aileen.canoza@yahoo.com', 'Cherryalphaisnurance@yahoo.com'],
+                'ALPHA' => [
+                    'to' => ['aileen.canoza@yahoo.com', 'Cherryalphaisnurance@yahoo.com', 'polan.alphainsurance@gmail.com', 'amdavocol.aisci@gmail.com'],
                     'cc' => ['catalankarlamaysalestl@gmail.com', 'jccristobal@supremogen.com', 'jmozar.supremogen@gmail.com'],
                 ],
                 'MILESTONE' => [
                     'to' => ['lowella.nipales@milestoneguaranty.com', 'Jvillanueva@milestoneguaranty.com', 'jesus.salcedo@milestoneguaranty.com'],
                     'cc' => ['catalankarlamaysalestl@gmail.com', 'jccristobal@supremogen.com', 'jmozar.supremogen@gmail.com'],
                 ],
-                'ALPHA PASIG' => [
-                    'to' => ['polan.alphainsurance@gmail.com', 'amdavocol.aisci@gmail.com'],
-                    'cc' => ['catalankarlamaysalestl@gmail.com', 'jccristobal@supremogen.com', 'jmozar.supremogen@gmail.com'],
-                ],
-                'CBIC JC' => [
+                'CBIC' => [
                     'to' => ['roselyncbic@gmail.com', 'enricomendoza8971@yahoo.com', 'dave.cbic@gmail.com', 'claims@countrybankers.com', 'jcdeguzman.cbic@gmail.com', 'casurban@yahoo.com'],
                     'cc' => ['catalankarlamaysalestl@gmail.com', 'jccristobal@supremogen.com', 'jmozar.supremogen@gmail.com'],
                 ],
@@ -131,13 +127,13 @@ class ClaimNotificationController extends Controller
                     'to' => ['claims@miciph.com', 'mcamtan@miciph.com', 'csantos@miciph.com'],
                     'cc' => ['catalankarlamaysalestl@gmail.com', 'jccristobal@supremogen.com', 'jmozar.supremogen@gmail.com'],
                 ],
-                'BETHEL DIRECT' => [
+                'BETHEL' => [
                     'to' => ['jfvanguardia@bethelgen.com', 'dbendozo@bethelgen.com', 'rsvelasquez@bethelgen.com'],
                     'cc' => ['catalankarlamaysalestl@gmail.com', 'jccristobal@supremogen.com', 'jmozar.supremogen@gmail.com'],
                 ],
-                'COMPRELINE' => [
-                    'to' => ['claimscici@yahoo.com'],
-                    'cc' => ['catalankarlamaysalestl@gmail.com', 'jccristobal@supremogen.com', 'sales@supremogen.com'],
+                'PHILIPPINE BRITISH' => [
+                    'to' => ['catalankarlamaysalestl@gmail.com', 'sales@supremogen.com'],
+                    'cc' => ['jccristobal@supremogen.com'],
                     'bcc' => ['jmozar.supremogen@gmail.com'],
                 ]
             ];

@@ -44,6 +44,15 @@ const OWN_DAMAGE_REQUIREMENTS = [
   { key: 'req_9', label: '• Authorization letter and valid ID from assured (if driven by authorized driver)' },
 ];
 
+const TTPD_REQUIREMENTS = [
+  { key: 'tppd_1', label: '1. Police report/Affidavit' },
+  { key: 'tppd_2', label: '2. Adverse Official Receipt and Certificate of Registration (ORCR)' },
+  { key: 'tppd_3', label: '3. Adverse Driver’s license' },
+  { key: 'tppd_4', label: '4. Adverse Repair Estimate' },
+  { key: 'tppd_5', label: '5. Adverse Certificate of no claim from his/her insurance provider' },
+  { key: 'tppd_6', label: '6. Adverse photos of damaged unit showing the plate number' },
+];
+
 export default function ClaimNotificationsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -182,18 +191,14 @@ export default function ClaimNotificationsPage() {
       : `${customer.first_name} ${customer.last_name}`.trim();
 
     const rawProvider = customer.insurance_provider || '';
-    const validProviders = [
-      'ALPHA GREENHILLS',
-      'MILESTONE',
-      'ALPHA PASIG',
-      'CBIC JC',
-      'METROPOLITAN',
-      'BETHEL DIRECT',
-      'COMPRELINE'
-    ];
-    const matchedProvider = validProviders.find(
-      (p) => p.toLowerCase() === rawProvider.toLowerCase()
-    ) || '';
+    let matchedProvider = '';
+    const provUpper = rawProvider.toUpperCase();
+    if (provUpper.includes('ALPHA')) matchedProvider = 'ALPHA';
+    else if (provUpper.includes('MILESTONE')) matchedProvider = 'MILESTONE';
+    else if (provUpper.includes('CBIC')) matchedProvider = 'CBIC';
+    else if (provUpper.includes('BETHEL')) matchedProvider = 'BETHEL';
+    else if (provUpper.includes('METROPOLITAN')) matchedProvider = 'METROPOLITAN';
+    else if (provUpper.includes('BRITISH') || provUpper.includes('PHILIPPINE BRITISH')) matchedProvider = 'PHILIPPINE BRITISH';
 
     const formatInputDate = (dateStr: string | null | undefined) => {
       if (!dateStr) return '';
@@ -251,8 +256,14 @@ export default function ClaimNotificationsPage() {
         try {
           await Promise.all(
             Object.entries(requirementFiles).map(([key, file]) => {
-              const req = OWN_DAMAGE_REQUIREMENTS.find((r) => r.key === key);
-              const label = req ? req.label : 'Requirement Document';
+              let label = 'Requirement Document';
+              if (key.startsWith('req_')) {
+                const req = OWN_DAMAGE_REQUIREMENTS.find((r) => r.key === key);
+                label = req ? req.label : 'Requirement Document';
+              } else if (key.startsWith('tppd_')) {
+                const req = TTPD_REQUIREMENTS.find((r) => r.key === key);
+                label = req ? req.label : 'Requirement Document';
+              }
               return uploadAttachment('claim_notification', res.data.id, file, label);
             })
           );
@@ -683,13 +694,12 @@ export default function ClaimNotificationsPage() {
                     }}
                     className={getInputClass('insurance_provider')}>
                     <option value="">Select Insurance Provider</option>
-                    <option value="ALPHA GREENHILLS">ALPHA GREENHILLS</option>
+                    <option value="ALPHA">ALPHA</option>
                     <option value="MILESTONE">MILESTONE</option>
-                    <option value="ALPHA PASIG">ALPHA PASIG</option>
-                    <option value="CBIC JC">CBIC JC</option>
+                    <option value="CBIC">CBIC</option>
+                    <option value="BETHEL">BETHEL</option>
+                    <option value="PHILIPPINE BRITISH">PHILIPPINE BRITISH</option>
                     <option value="METROPOLITAN">METROPOLITAN</option>
-                    <option value="BETHEL DIRECT">BETHEL DIRECT</option>
-                    <option value="COMPRELINE">COMPRELINE</option>
                   </select>
                 </div>
                 <div className="relative">
@@ -764,18 +774,30 @@ export default function ClaimNotificationsPage() {
                       onChange={(e) => {
                         const val = e.target.value;
                         setClaimType(val);
-                        if (val === 'own_damage') {
+                        if (val === 'OWN DAMAGE') {
                           const reqs = `OWN DAMAGE CLAIM REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.`;
                           setForm((prev) => ({ ...prev, nature_of_claims: reqs }));
                           if (validationErrors.nature_of_claims) {
                             setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
                           }
-                        } else if (val === 'tppd') {
-                          setForm((prev) => ({ ...prev, nature_of_claims: 'THIRD PARTY PROPERTY DAMAGE (TPPD)' }));
-                        } else if (val === 'bodily_injury') {
-                          setForm((prev) => ({ ...prev, nature_of_claims: 'BODURY INJURY / EXCESS LIABILITY' }));
-                        } else if (val === 'theft') {
-                          setForm((prev) => ({ ...prev, nature_of_claims: 'THEFT / CARNAP' }));
+                        } else if (val === 'OWN DAMAGE & TTPD') {
+                          const reqs = `OWN DAMAGE & TPPD REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.\n\n--------------------------------------------------\n\nTHIRD PARTY (TTPD) CLAIM - REQUIREMENTS\n\n• Police report/Affidavit\n• Adverse Official Receipt and Certificate of Registration (ORCR)\n• Adverse Driver’s license\n• Adverse Repair Estimate\n• Adverse Certificate of no claim from his/her insurance provider\n• Adverse photos of damaged unit showing the plate number`;
+                          setForm((prev) => ({ ...prev, nature_of_claims: reqs }));
+                          if (validationErrors.nature_of_claims) {
+                            setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
+                          }
+                        } else if (val === 'TPPD') {
+                          const reqs = `THIRD PARTY (TTPD) CLAIM - REQUIREMENTS\n\n• Police report/Affidavit\n• Adverse Official Receipt and Certificate of Registration (ORCR)\n• Adverse Driver’s license\n• Adverse Repair Estimate\n• Adverse Certificate of no claim from his/her insurance provider\n• Adverse photos of damaged unit showing the plate number`;
+                          setForm((prev) => ({ ...prev, nature_of_claims: reqs }));
+                          if (validationErrors.nature_of_claims) {
+                            setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
+                          }
+                        } else if (val === 'ACT OF NATURE') {
+                          setForm((prev) => ({ ...prev, nature_of_claims: 'ACT OF NATURE CLAIM' }));
+                        } else if (val === 'THEFT AND LOSS') {
+                          setForm((prev) => ({ ...prev, nature_of_claims: 'THEFT AND LOSS CLAIM' }));
+                        } else if (val === 'CNC (CERTIFICATE OF NO CLAIM)') {
+                          setForm((prev) => ({ ...prev, nature_of_claims: 'CNC (CERTIFICATE OF NO CLAIM)' }));
                         } else {
                           setForm((prev) => ({ ...prev, nature_of_claims: '' }));
                         }
@@ -783,11 +805,12 @@ export default function ClaimNotificationsPage() {
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
                     >
                       <option value="">Select Type of Claim</option>
-                      <option value="own_damage">Own Damage</option>
-                      <option value="tppd">Third Party Property Damage (TPPD)</option>
-                      <option value="bodily_injury">Bodily Injury (BI)</option>
-                      <option value="theft">Theft / Carnap</option>
-                      <option value="other">Other / Custom Description</option>
+                      <option value="OWN DAMAGE">OWN DAMAGE</option>
+                      <option value="TPPD">TPPD</option>
+                      <option value="OWN DAMAGE & TTPD">OWN DAMAGE & TTPD</option>
+                      <option value="ACT OF NATURE">ACT OF NATURE</option>
+                      <option value="THEFT AND LOSS">THEFT AND LOSS</option>
+                      <option value="CNC (CERTIFICATE OF NO CLAIM)">CNC (CERTIFICATE OF NO CLAIM)</option>
                     </select>
                   </div>
                   <div>
@@ -803,7 +826,8 @@ export default function ClaimNotificationsPage() {
                       placeholder="Describe the nature of the claim or requirements..." />
                   </div>
                   
-                  {claimType === 'own_damage' && (
+                  {/* Own Damage Requirements */}
+                  {(claimType === 'OWN DAMAGE' || claimType === 'OWN DAMAGE & TTPD') && (
                     <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
                       <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Own Damage Claim Requirements (Upload Attachments)</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -842,7 +866,59 @@ export default function ClaimNotificationsPage() {
                                       return copy;
                                     });
                                   }}
-                                  className="text-slate-400 hover:text-red-505 transition"
+                                  className="text-slate-400 hover:text-red-500 transition"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Third Party (TTPD) Requirements */}
+                  {(claimType === 'TPPD' || claimType === 'OWN DAMAGE & TTPD') && (
+                    <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                      <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Third Party (TTPD) Claim Requirements (Upload Attachments)</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {TTPD_REQUIREMENTS.map((req) => (
+                          <div key={req.key} className="space-y-1">
+                            <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                id={`file-${req.key}`}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setRequirementFiles((prev) => ({ ...prev, [req.key]: file }));
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`file-${req.key}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                              >
+                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                <span>Choose File</span>
+                              </label>
+                              <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                                {requirementFiles[req.key]?.name || 'No file selected'}
+                              </span>
+                              {requirementFiles[req.key] && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRequirementFiles((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[req.key];
+                                      return copy;
+                                    });
+                                  }}
+                                  className="text-slate-400 hover:text-red-500 transition"
                                 >
                                   <X className="h-4 w-4" />
                                 </button>
