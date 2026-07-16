@@ -40,6 +40,7 @@ class DashboardController extends Controller
             $invoiceQuery = Invoice::query();
             $paymentQuery = Payment::query();
             $renewalQuery = Renewal::query();
+            $claimNotificationQuery = \App\Models\ClaimNotification::query();
 
             if ($isAgent) {
                 $customerQuery->where('created_by', $userId);
@@ -74,6 +75,7 @@ class DashboardController extends Controller
                           $q2->where('prepared_by', $userId);
                       });
                 });
+                $claimNotificationQuery->where('submitted_by', $userId);
             }
 
             // Driver-specific SQL fields
@@ -251,8 +253,19 @@ class DashboardController extends Controller
             $totalReceivable = (float) (clone $invoiceQuery)->whereNotIn('status', ['cancelled', 'paid'])->sum('balance');
             $overdueInvoices = (int) (clone $invoiceQuery)->where('status', 'overdue')->count();
             $totalCollected = (float) (clone $paymentQuery)->where('status', 'completed')->sum('amount');
-            $pendingClaims = (int) (clone $claimQuery)->whereIn('status', ['filed', 'under_investigation'])->count();
-            $totalClaims = (int) (clone $claimQuery)->count();
+            $pendingClaims = (int) (clone $claimNotificationQuery)->whereIn('status', ['pending', 'resubmitted'])->count();
+            $claimsThisMonth = (int) (clone $claimNotificationQuery)
+                ->where('created_at', '>=', $now->copy()->startOfMonth())
+                ->where('created_at', '<=', $now->copy()->endOfMonth())
+                ->count();
+            $claimsLastMonth = (int) (clone $claimNotificationQuery)
+                ->where('created_at', '>=', $now->copy()->subMonth()->startOfMonth())
+                ->where('created_at', '<=', $now->copy()->subMonth()->endOfMonth())
+                ->count();
+            $claimsTrend = $claimsLastMonth > 0
+                ? round((($claimsThisMonth - $claimsLastMonth) / $claimsLastMonth) * 100, 1)
+                : ($claimsThisMonth > 0 ? 100 : 0);
+
             $pendingRenewals = (int) (clone $renewalQuery)->where('status', 'pending')->count();
 
             // 5. Daily overview chart
@@ -472,7 +485,8 @@ class DashboardController extends Controller
                         'yearly' => ['value' => $yearlyPolicies, 'trend' => $yearlyPoliciesTrend],
                     ],
                     'pending_claims' => $pendingClaims,
-                    'total_claims' => $totalClaims,
+                    'pending_claims_trend' => $claimsTrend,
+                    'total_claims' => (int) (clone $claimNotificationQuery)->count(),
                     'monthly_revenue' => (float) $monthlyRevenue,
                     'revenue_trend' => $revenueTrend,
                     'total_receivable' => $totalReceivable,

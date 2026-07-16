@@ -148,6 +148,7 @@ export interface DashboardStats {
   policies_trend: number;
   pending_claims: number;
   claims_trend: number;
+  pending_claims_trend?: number;
   monthly_revenue: number;
   revenue_trend: number;
   premium?: {

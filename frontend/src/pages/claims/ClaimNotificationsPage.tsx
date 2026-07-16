@@ -1728,6 +1728,7 @@ export default function ClaimNotificationsPage() {
           title="Acknowledge Claim Notification"
           message={`Are you sure you want to acknowledge claim notification ${acknowledgeTarget.reference_number} for assured "${acknowledgeTarget.assured_name}"?`}
           confirmLabel="Acknowledge"
+          variant="success"
           onConfirm={() => acknowledgeMut.mutate(acknowledgeTarget.id)}
           onCancel={() => setAcknowledgeTarget(null)}
           loading={acknowledgeMut.isPending}

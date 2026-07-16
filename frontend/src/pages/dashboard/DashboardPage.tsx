@@ -286,7 +286,7 @@ export default function DashboardPage() {
             label="Pending Claims"
             value={dashboard.stats.pending_claims}
             icon={ShieldAlert}
-            trend={0}
+            trend={dashboard.stats.pending_claims_trend ?? 0}
             iconColor="text-rose-650"
             iconBg="bg-rose-50"
           />
