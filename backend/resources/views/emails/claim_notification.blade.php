@@ -110,6 +110,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <img src="{{ asset('images/supremogen_logo.jpg') }}" alt="Supremogen Logo" style="height: 64px; width: 64px; border-radius: 12px; object-fit: contain; margin-bottom: 12px; background-color: #ffffff; padding: 4px; display: inline-block;">
             <h1>Claim Notification FAO</h1>
         </div>
         <div class="content">
@@ -120,10 +121,6 @@
 
             <div class="details-card">
                 <table class="details-table">
-                    <tr>
-                        <td class="label">Reference Number</td>
-                        <td class="value" style="font-weight: 700; color: #4A0E17;">{{ $referenceNumber }}</td>
-                    </tr>
                     <tr>
                         <td class="label">Assured Name</td>
                         <td class="value" style="font-weight: 600;">{{ $assuredName }}</td>
