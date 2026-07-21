@@ -630,7 +630,7 @@ export default function ClaimNotificationsPage() {
       ...form,
       assured_name: form.assured_name.toUpperCase(),
       policy_number: form.policy_number.toUpperCase(),
-      plate_number: form.plate_number ? form.plate_number.toUpperCase() : null,
+      plate_number: (form.plate_number || '').toUpperCase(),
       nature_of_claims: prefix + form.nature_of_claims,
     };
     submitMut.mutate(payload);
