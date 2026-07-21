@@ -64,15 +64,19 @@ class Claim extends Model
     public function scopeSearch($query, ?string $term)
     {
         if (!$term) return $query;
-        return $query->where(function ($q) use ($term) {
-            $q->where('claim_number', 'like', "%{$term}%")
+
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+
+        return $query->where(function ($q) use ($term, $likeOperator) {
+            $q->where('claim_number', $likeOperator, "%{$term}%")
               ->orWhereHas('customer', fn($cq) =>
-                  $cq->where('first_name', 'like', "%{$term}%")
-                     ->orWhere('last_name', 'like', "%{$term}%")
-                     ->orWhere('customer_code', 'like', "%{$term}%")
+                  $cq->where('first_name', $likeOperator, "%{$term}%")
+                     ->orWhere('last_name', $likeOperator, "%{$term}%")
+                     ->orWhere('customer_code', $likeOperator, "%{$term}%")
               )
               ->orWhereHas('policy', fn($pq) =>
-                  $pq->where('policy_number', 'like', "%{$term}%")
+                  $pq->where('policy_number', $likeOperator, "%{$term}%")
               );
         });
     }

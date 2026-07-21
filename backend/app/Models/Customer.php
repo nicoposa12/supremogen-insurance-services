@@ -205,16 +205,19 @@ class Customer extends Model
             return $query;
         }
 
-        return $query->where(function ($q) use ($term) {
-            $q->where('first_name', 'like', "%{$term}%")
-              ->orWhere('last_name', 'like', "%{$term}%")
-              ->orWhere('email', 'like', "%{$term}%")
-              ->orWhere('phone', 'like', "%{$term}%")
-              ->orWhere('mobile', 'like', "%{$term}%")
-              ->orWhere('customer_code', 'like', "%{$term}%")
-              ->orWhere('company_name', 'like', "%{$term}%")
-              ->orWhere('plate_no', 'like', "%{$term}%")
-              ->orWhere('policy_no', 'like', "%{$term}%");
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+
+        return $query->where(function ($q) use ($term, $likeOperator) {
+            $q->where('first_name', $likeOperator, "%{$term}%")
+              ->orWhere('last_name', $likeOperator, "%{$term}%")
+              ->orWhere('email', $likeOperator, "%{$term}%")
+              ->orWhere('phone', $likeOperator, "%{$term}%")
+              ->orWhere('mobile', $likeOperator, "%{$term}%")
+              ->orWhere('customer_code', $likeOperator, "%{$term}%")
+              ->orWhere('company_name', $likeOperator, "%{$term}%")
+              ->orWhere('plate_no', $likeOperator, "%{$term}%")
+              ->orWhere('policy_no', $likeOperator, "%{$term}%");
         });
     }
 

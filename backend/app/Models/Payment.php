@@ -47,11 +47,15 @@ class Payment extends Model
     public function scopeSearch($query, ?string $term)
     {
         if (!$term) return $query;
-        return $query->where(function ($q) use ($term) {
-            $q->where('payment_number', 'like', "%{$term}%")
-              ->orWhere('reference_number', 'like', "%{$term}%")
-              ->orWhereHas('invoice', function ($iq) use ($term) {
-                  $iq->where('invoice_number', 'like', "%{$term}%");
+
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+
+        return $query->where(function ($q) use ($term, $likeOperator) {
+            $q->where('payment_number', $likeOperator, "%{$term}%")
+              ->orWhere('reference_number', $likeOperator, "%{$term}%")
+              ->orWhereHas('invoice', function ($iq) use ($term, $likeOperator) {
+                  $iq->where('invoice_number', $likeOperator, "%{$term}%");
               });
         });
     }

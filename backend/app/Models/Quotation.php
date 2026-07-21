@@ -101,14 +101,17 @@ class Quotation extends Model
     {
         if (!$term) return $query;
 
-        return $query->where(function ($q) use ($term) {
-            $q->where('quotation_number', 'like', "%{$term}%")
-              ->orWhere('ir_number', 'like', "%{$term}%")
-              ->orWhere('notes', 'like', "%{$term}%")
-              ->orWhereHas('customer', function ($cq) use ($term) {
-                  $cq->where('first_name', 'like', "%{$term}%")
-                     ->orWhere('last_name', 'like', "%{$term}%")
-                     ->orWhere('customer_code', 'like', "%{$term}%");
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+
+        return $query->where(function ($q) use ($term, $likeOperator) {
+            $q->where('quotation_number', $likeOperator, "%{$term}%")
+              ->orWhere('ir_number', $likeOperator, "%{$term}%")
+              ->orWhere('notes', $likeOperator, "%{$term}%")
+              ->orWhereHas('customer', function ($cq) use ($term, $likeOperator) {
+                  $cq->where('first_name', $likeOperator, "%{$term}%")
+                     ->orWhere('last_name', $likeOperator, "%{$term}%")
+                     ->orWhere('customer_code', $likeOperator, "%{$term}%");
               });
         });
     }
