@@ -628,6 +628,9 @@ export default function ClaimNotificationsPage() {
     const prefix = getClaimTypePrefix(claimType);
     const payload = {
       ...form,
+      assured_name: form.assured_name.toUpperCase(),
+      policy_number: form.policy_number.toUpperCase(),
+      plate_number: form.plate_number ? form.plate_number.toUpperCase() : null,
       nature_of_claims: prefix + form.nature_of_claims,
     };
     submitMut.mutate(payload);
@@ -1386,7 +1389,7 @@ export default function ClaimNotificationsPage() {
                 ].map((row, idx) => (
                   <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
                     <td className="px-5 py-3 font-semibold text-slate-500 w-1/3">{row.label}</td>
-                    <td className="px-5 py-3 font-medium text-slate-800">{row.value}</td>
+                    <td className="px-5 py-3 font-medium text-slate-800 uppercase">{row.value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1416,7 +1419,7 @@ export default function ClaimNotificationsPage() {
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Submitted By</p>
               <div className="space-y-0.5">
-                <p className="font-bold text-slate-800">{submitter}</p>
+                <p className="font-bold text-slate-800 uppercase">{submitter}</p>
                 <p className="text-xs text-slate-500">Sales Agent / Representative</p>
               </div>
             </div>
@@ -1424,7 +1427,7 @@ export default function ClaimNotificationsPage() {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Acknowledged By</p>
               {acknowledger ? (
                 <div className="space-y-0.5">
-                  <p className="font-bold text-slate-800">{acknowledger}</p>
+                  <p className="font-bold text-slate-800 uppercase">{acknowledger}</p>
                   <p className="text-xs text-slate-500">
                     Claims Officer
                     {selectedRecord.acknowledged_at && ` (on ${new Date(selectedRecord.acknowledged_at).toLocaleDateString()})`}
@@ -1510,7 +1513,7 @@ export default function ClaimNotificationsPage() {
                       <div className="md:col-span-2">
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Assured Name</label>
                         <input type="text" value={selectedRecord.assured_name} disabled
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed uppercase" />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Contact Number</label>
@@ -1525,17 +1528,17 @@ export default function ClaimNotificationsPage() {
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Insurance Provider</label>
                         <input type="text" value={selectedRecord.insurance_provider} disabled
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed uppercase" />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Plate Number</label>
                         <input type="text" value={selectedRecord.plate_number || '—'} disabled
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed uppercase" />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Policy Number</label>
                         <input type="text" value={selectedRecord.policy_number} disabled
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed uppercase" />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Inception Date</label>
@@ -1550,12 +1553,12 @@ export default function ClaimNotificationsPage() {
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Claim Count</label>
                         <input type="text" value={selectedRecord.claim_count || '—'} disabled
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed uppercase" />
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type of Claim</label>
                         <input type="text" value={determineClaimType(selectedRecord.nature_of_claims) || '—'} disabled
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed uppercase" />
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nature of Claims / Details</label>
@@ -2030,7 +2033,7 @@ export default function ClaimNotificationsPage() {
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Assured Name *</label>
                   <input type="text" value={form.assured_name}
                     onChange={(e) => {
-                      setForm({ ...form, assured_name: e.target.value });
+                      setForm({ ...form, assured_name: e.target.value.toUpperCase() });
                       setShowNameSuggestions(true);
                       if (validationErrors.assured_name) {
                         setValidationErrors((prev) => ({ ...prev, assured_name: false }));
@@ -2038,7 +2041,7 @@ export default function ClaimNotificationsPage() {
                     }}
                     onFocus={() => setShowNameSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowNameSuggestions(false), 200)}
-                    className={getInputClass('assured_name')} placeholder="Full name of the assured" />
+                    className={`${getInputClass('assured_name')} uppercase`} placeholder="Full name of the assured" />
                   
                   {showNameSuggestions && nameSuggestions.length > 0 && (
                     <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
@@ -2101,7 +2104,7 @@ export default function ClaimNotificationsPage() {
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Plate Number</label>
                   <input type="text" value={form.plate_number || ''}
                     onChange={(e) => {
-                      setForm({ ...form, plate_number: e.target.value });
+                      setForm({ ...form, plate_number: e.target.value.toUpperCase() });
                       setShowPlateSuggestions(true);
                       if (validationErrors.plate_number) {
                         setValidationErrors((prev) => ({ ...prev, plate_number: false }));
@@ -2109,7 +2112,7 @@ export default function ClaimNotificationsPage() {
                     }}
                     onFocus={() => setShowPlateSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowPlateSuggestions(false), 200)}
-                    className={getInputClass('plate_number')} placeholder="e.g. ABC 1234" />
+                    className={`${getInputClass('plate_number')} uppercase`} placeholder="e.g. ABC 1234" />
                   
                   {showPlateSuggestions && plateSuggestions.length > 0 && (
                     <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
@@ -2140,12 +2143,12 @@ export default function ClaimNotificationsPage() {
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Policy Number *</label>
                   <input type="text" value={form.policy_number}
                     onChange={(e) => {
-                      setForm({ ...form, policy_number: e.target.value });
+                      setForm({ ...form, policy_number: e.target.value.toUpperCase() });
                       if (validationErrors.policy_number) {
                         setValidationErrors((prev) => ({ ...prev, policy_number: false }));
                       }
                     }}
-                    className={getInputClass('policy_number')} placeholder="e.g. POL-2026-00001" />
+                    className={`${getInputClass('policy_number')} uppercase`} placeholder="e.g. POL-2026-00001" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Inception Date</label>
@@ -2355,28 +2358,28 @@ export default function ClaimNotificationsPage() {
     {
       key: 'reference_number', label: 'Ref No.', sortable: true,
       render: (r: ClaimNotification) => (
-        <span className="font-mono text-xs text-[#4A0E17] font-bold">{r.reference_number}</span>
+        <span className="font-mono text-xs text-[#4A0E17] font-bold uppercase">{r.reference_number}</span>
       ),
     },
     {
       key: 'assured_name', label: 'Assured Name', sortable: true,
       render: (r: ClaimNotification) => (
         <div>
-          <p className="font-medium text-slate-800">{r.assured_name}</p>
-          <p className="text-xs text-slate-500">{r.policy_number}</p>
+          <p className="font-medium text-slate-800 uppercase">{r.assured_name}</p>
+          <p className="text-xs text-slate-500 uppercase">{r.policy_number}</p>
         </div>
       ),
     },
     {
       key: 'insurance_provider', label: 'Provider', className: 'hidden lg:table-cell',
       render: (r: ClaimNotification) => (
-        <span className="text-sm text-slate-600">{r.insurance_provider}</span>
+        <span className="text-sm text-slate-600 uppercase">{r.insurance_provider}</span>
       ),
     },
     {
       key: 'claim_count', label: 'Claim Count', className: 'hidden xl:table-cell',
       render: (r: ClaimNotification) => (
-        <span className="text-xs text-slate-605">{r.claim_count || '—'}</span>
+        <span className="text-xs text-slate-605 uppercase">{r.claim_count || '—'}</span>
       ),
     },
     {
@@ -2393,7 +2396,7 @@ export default function ClaimNotificationsPage() {
       key: 'submitted_by', label: 'Submitted By', className: 'hidden lg:table-cell',
       render: (r: ClaimNotification) => {
         const name = typeof r.submitted_by === 'object' ? r.submitted_by.name : '—';
-        return <span className="text-xs text-slate-600">{name}</span>;
+        return <span className="text-xs text-slate-600 uppercase">{name}</span>;
       },
     },
     {
