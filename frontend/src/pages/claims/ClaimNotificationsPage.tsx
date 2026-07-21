@@ -22,6 +22,7 @@ import {
   returnClaimNotification,
   getClaimNotification,
   updateClaimNotification,
+  sendEmailToInsuranceProvider,
 } from '../../services/claimNotificationApi';
 import { uploadAttachment } from '../../services/attachmentApi';
 import type {
@@ -32,6 +33,86 @@ import type {
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 import { getCustomers } from '../../services/customerApi';
 import type { Customer } from '../../types/CustomerTypes';
+
+const PROVIDER_EMAILS: Record<string, { to: string[]; cc: string[] }> = {
+  'CBIC': {
+    to: [
+      'roselyncbic@gmail.com',
+      'enricomendoza8971@yahoo.com',
+      'dave.cbic@gmail.com',
+      'claims@countrybankers.com',
+      'jcdeguzman.cbic@gmail.com',
+      'casurban@yahoo.com'
+    ],
+    cc: [
+      'catalankarlamaysalestl@gmail.com',
+      'jccristobal@supremogen.com',
+      'jmozar.supremogen@gmail.com'
+    ]
+  },
+  'METROPOLITAN': {
+    to: [
+      'claims@miciph.com',
+      'mcamtan@miciph.com',
+      'csantos@miciph.com'
+    ],
+    cc: [
+      'catalankarlamaysalestl@gmail.com',
+      'jccristobal@supremogen.com',
+      'jmozar.supremogen@gmail.com'
+    ]
+  },
+  'BETHEL': {
+    to: [
+      'jfvanguardia@bethelgen.com',
+      'dbendozo@bethelgen.com',
+      'rsvelasquez@bethelgen.com'
+    ],
+    cc: [
+      'catalankarlamaysalestl@gmail.com',
+      'jccristobal@supremogen.com',
+      'jmozar.supremogen@gmail.com'
+    ]
+  },
+  'MILESTONE': {
+    to: [
+      'lowella.nipales@milestoneguaranty.com',
+      'Jvillanueva@milestoneguaranty.com',
+      'jesus.salcedo@milestoneguaranty.com'
+    ],
+    cc: [
+      'catalankarlamaysalestl@gmail.com',
+      'jccristobal@supremogen.com',
+      'jmozar.supremogen@gmail.com'
+    ]
+  },
+  'ALPHA': {
+    to: [
+      'nicoposa8@gmail.com'
+    ],
+    cc: []
+  },
+  'PHILIPPINE BRITISH': {
+    to: [
+      'catalankarlamaysalestl@gmail.com',
+      'sales@supremogen.com'
+    ],
+    cc: [
+      'jccristobal@supremogen.com'
+    ]
+  }
+};
+
+const getProviderConfig = (providerName: string): { to: string[]; cc: string[] } => {
+  const norm = (providerName || '').toUpperCase();
+  if (norm.includes('CBIC')) return PROVIDER_EMAILS['CBIC'];
+  if (norm.includes('METROPOLITAN')) return PROVIDER_EMAILS['METROPOLITAN'];
+  if (norm.includes('BETHEL')) return PROVIDER_EMAILS['BETHEL'];
+  if (norm.includes('MILESTONE')) return PROVIDER_EMAILS['MILESTONE'];
+  if (norm.includes('ALPHA')) return PROVIDER_EMAILS['ALPHA'];
+  if (norm.includes('PHILIPPINE BRITISH') || norm.includes('BRITISH')) return PROVIDER_EMAILS['PHILIPPINE BRITISH'];
+  return { to: [], cc: [] };
+};
 
 const OWN_DAMAGE_REQUIREMENTS = [
   { key: 'req_1', label: '1. Original Police Report OR Notarized Affidavit' },
@@ -148,6 +229,14 @@ export default function ClaimNotificationsPage() {
   const [viewAttachment, setViewAttachment] = useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ClaimNotification | null>(null);
+
+  // Email Dispatch Modal States
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailModalProvider, setEmailModalProvider] = useState('');
+  const [availableTo, setAvailableTo] = useState<string[]>([]);
+  const [availableCc, setAvailableCc] = useState<string[]>([]);
+  const [selectedTo, setSelectedTo] = useState<string[]>([]);
+  const [selectedCc, setSelectedCc] = useState<string[]>([]);
 
   // Helper to determine claim type from nature_of_claims on edit
   const determineClaimType = (nature: string | undefined): string => {
@@ -489,6 +578,16 @@ export default function ClaimNotificationsPage() {
       }
     },
     onError: (err: any) => showToast(err.response?.data?.message ?? 'Failed to return notification.', 'error'),
+  });
+
+  const sendEmailMut = useMutation({
+    mutationFn: ({ id, to, cc }: { id: number; to: string[]; cc: string[] }) =>
+      sendEmailToInsuranceProvider(id, { to, cc }),
+    onSuccess: (res) => {
+      showToast(res.message || 'Email sent to insurance provider successfully.');
+      setIsEmailModalOpen(false);
+    },
+    onError: (err: any) => showToast(err.response?.data?.message ?? 'Failed to send email.', 'error'),
   });
 
   const handleSubmit = () => {
@@ -1345,6 +1444,33 @@ export default function ClaimNotificationsPage() {
             <p className="text-sm text-slate-500">Claim Notification Detail</p>
           </div>
           <div className="flex items-center gap-2">
+            {selectedRecord.status === 'acknowledged' && (
+              <button
+                onClick={() => {
+                  const config = getProviderConfig(selectedRecord.insurance_provider);
+                  setAvailableTo(config.to);
+                  setAvailableCc(config.cc);
+                  setSelectedTo([...config.to]);
+                  setSelectedCc([...config.cc]);
+                  setEmailModalProvider(selectedRecord.insurance_provider);
+                  setIsEmailModalOpen(true);
+                }}
+                disabled={sendEmailMut.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] disabled:opacity-50 text-white text-sm font-medium rounded-xl shadow-sm transition cursor-pointer"
+              >
+                {sendEmailMut.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Sending Email...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4" />
+                    <span>Email Insurance Provider</span>
+                  </>
+                )}
+              </button>
+            )}
             <button
               onClick={() => window.print()}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl border border-slate-200 shadow-sm transition cursor-pointer"
@@ -1681,6 +1807,160 @@ export default function ClaimNotificationsPage() {
           </div>
         );
       })()}
+
+      {/* Email Selection Modal */}
+      {isEmailModalOpen && selectedRecord && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-[#4A0E17] to-[#7A1C2E] px-5 py-4 flex items-center justify-between text-white">
+              <div className="flex items-center gap-2.5">
+                <Mail className="h-5 w-5 text-white/90" />
+                <div>
+                  <h3 className="text-base font-bold">Email Insurance Provider</h3>
+                  <p className="text-[11px] text-white/70 mt-0.5">Select recipients for {emailModalProvider}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEmailModalOpen(false)}
+                disabled={sendEmailMut.isPending}
+                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+              {/* Select All Section */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Recipients Selection</span>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTo([...availableTo]);
+                      setSelectedCc([...availableCc]);
+                    }}
+                    className="text-xs font-semibold text-[#4A0E17] hover:underline cursor-pointer"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTo([]);
+                      setSelectedCc([]);
+                    }}
+                    className="text-xs font-semibold text-slate-500 hover:underline cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              {/* TO List */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-slate-705">TO: Recipients</h4>
+                {availableTo.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">No TO emails configured.</p>
+                ) : (
+                  <div className="space-y-1.5 bg-slate-50/50 border border-slate-150 rounded-xl p-3">
+                    {availableTo.map((email) => {
+                      const isChecked = selectedTo.includes(email);
+                      return (
+                        <label key={email} className="flex items-center gap-3 py-1 cursor-pointer select-none group text-xs text-slate-650">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTo((prev) => [...prev, email]);
+                              } else {
+                                setSelectedTo((prev) => prev.filter((item) => item !== email));
+                              }
+                            }}
+                            className="rounded border-slate-300 text-[#4A0E17] focus:ring-[#4A0E17]/20 h-4 w-4 cursor-pointer"
+                          />
+                          <span className="group-hover:text-slate-900 transition">{email}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* CC List */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-slate-705">CC: Recipients</h4>
+                {availableCc.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">No CC emails configured.</p>
+                ) : (
+                  <div className="space-y-1.5 bg-slate-50/50 border border-[#CBD5E1] rounded-xl p-3">
+                    {availableCc.map((email) => {
+                      const isChecked = selectedCc.includes(email);
+                      return (
+                        <label key={email} className="flex items-center gap-3 py-1 cursor-pointer select-none group text-xs text-slate-650">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCc((prev) => [...prev, email]);
+                              } else {
+                                setSelectedCc((prev) => prev.filter((item) => item !== email));
+                              }
+                            }}
+                            className="rounded border-slate-300 text-[#4A0E17] focus:ring-[#4A0E17]/20 h-4 w-4 cursor-pointer"
+                          />
+                          <span className="group-hover:text-slate-900 transition">{email}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 px-5 py-4 border-t border-slate-150 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsEmailModalOpen(false)}
+                disabled={sendEmailMut.isPending}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100/80 text-slate-700 text-sm font-medium rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  sendEmailMut.mutate({
+                    id: selectedRecord.id,
+                    to: selectedTo,
+                    cc: selectedCc,
+                  })
+                }
+                disabled={selectedTo.length === 0 || sendEmailMut.isPending}
+                className="inline-flex items-center gap-2 px-5 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+              >
+                {sendEmailMut.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    <span>Send Email</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     );
   }
@@ -2366,6 +2646,7 @@ export default function ClaimNotificationsPage() {
           </div>
         );
       })()}
+
     </div>
   );
 }

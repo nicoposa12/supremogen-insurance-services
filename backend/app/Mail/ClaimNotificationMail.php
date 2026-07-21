@@ -25,6 +25,7 @@ class ClaimNotificationMail extends Mailable implements ShouldQueue
     public $natureOfClaims;
     public $notes;
     public $submitterName;
+    public $attachmentsData;
 
     /**
      * Create a new message instance.
@@ -41,7 +42,8 @@ class ClaimNotificationMail extends Mailable implements ShouldQueue
         string $accidentDate,
         string $natureOfClaims,
         ?string $notes,
-        string $submitterName
+        string $submitterName,
+        ?iterable $attachmentsData = []
     ) {
         $this->referenceNumber = $referenceNumber;
         $this->assuredName = $assuredName;
@@ -55,6 +57,7 @@ class ClaimNotificationMail extends Mailable implements ShouldQueue
         $this->natureOfClaims = $natureOfClaims;
         $this->notes = $notes;
         $this->submitterName = $submitterName;
+        $this->attachmentsData = $attachmentsData ?? [];
     }
 
     /**
@@ -82,6 +85,14 @@ class ClaimNotificationMail extends Mailable implements ShouldQueue
      */
     public function attachments(): array
     {
-        return [];
+        $mailAttachments = [];
+        foreach ($this->attachmentsData as $att) {
+            if (\Illuminate\Support\Facades\Storage::exists($att->file_path)) {
+                $mailAttachments[] = \Illuminate\Mail\Mailables\Attachment::fromPath(
+                    \Illuminate\Support\Facades\Storage::path($att->file_path)
+                )->as($att->file_name)->withMime($att->mime_type);
+            }
+        }
+        return $mailAttachments;
     }
 }

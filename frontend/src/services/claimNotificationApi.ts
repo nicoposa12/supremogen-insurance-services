@@ -56,3 +56,14 @@ export async function updateClaimNotification(
   const { data } = await axios.put<SingleResponse<ClaimNotification>>(`${BASE}/${id}`, formData);
   return data;
 }
+
+export async function sendEmailToInsuranceProvider(
+  id: number,
+  payload: { to: string[]; cc: string[] }
+): Promise<{ success: boolean; message: string }> {
+  const { data } = await axios.post<{ success: boolean; message: string }>(
+    `${BASE}/${id}/send-email`,
+    payload
+  );
+  return data;
+}

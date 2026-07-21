@@ -430,4 +430,73 @@ class ClaimNotificationController extends Controller
             'data'    => $record->fresh(['submittedBy:id,name', 'acknowledgedBy:id,name']),
         ]);
     }
+
+    /**
+     * Email the claim notification and all attachments to the insurance provider manually.
+     */
+    public function sendEmailToProvider(Request $request, string $id)
+    {
+        $record = ClaimNotification::with(['attachments'])->find($id);
+
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'Claim notification not found.'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'to'   => 'required|array|min:1',
+            'to.*' => 'required|email',
+            'cc'   => 'nullable|array',
+            'cc.*' => 'nullable|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . implode(', ', $validator->errors()->all()),
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $toEmails = $request->input('to');
+        $ccEmails = $request->input('cc', []);
+
+        try {
+            $mailable = new \App\Mail\ClaimNotificationMail(
+                $record->reference_number,
+                $record->assured_name,
+                $record->contact_number,
+                $record->email_address,
+                $record->insurance_provider,
+                $record->plate_number,
+                $record->policy_number,
+                $record->inception_date ? ($record->inception_date instanceof \Carbon\Carbon ? $record->inception_date->toDateString() : $record->inception_date) : null,
+                $record->accident_date instanceof \Carbon\Carbon ? $record->accident_date->toDateString() : $record->accident_date,
+                $record->nature_of_claims,
+                $record->notes,
+                $request->user()->name,
+                $record->attachments
+            );
+
+            // Set custom subject indicating it has attachments/requirements
+            $mailable->subject("[CLAIM REQUIREMENTS] {$record->reference_number} - {$record->assured_name}");
+
+            $mail = \Illuminate\Support\Facades\Mail::to($toEmails);
+            if (!empty($ccEmails)) {
+                $mail->cc($ccEmails);
+            }
+
+            $mail->send($mailable);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Claim notification and requirements emailed to insurance provider successfully.',
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send claim notification email manually: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }
