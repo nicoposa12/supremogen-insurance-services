@@ -50,10 +50,10 @@ Artisan::command('reminders:send', function () {
         $inception = \Carbon\Carbon::parse($customer->inception_date);
         $dueDate = $inception->copy()->addMonths($nextInstallmentIndex - 1)->startOfDay();
 
-        // Check if the due date is exactly 1 day from today (day before payment)
+        // Check if the due date is exactly 1 day or 7 days from today (payment reminder)
         $daysDiff = $today->diffInDays($dueDate, false);
         
-        if ((int)$daysDiff === 1) {
+        if ((int)$daysDiff === 1 || (int)$daysDiff === 7) {
             $dueDateFormatted = $dueDate->format('M d, Y');
             $ordinals = [1 => '1ST', 2 => '2ND', 3 => '3RD', 4 => '4TH', 5 => '5TH', 6 => '6TH'];
             $isLast = ((int)$nextInstallmentIndex === (int)$terms);
@@ -132,6 +132,6 @@ Artisan::command('reminders:send', function () {
 
     Log::info("Completed payment reminder command. Sent {$sentCount} reminders.");
     $this->info("Completed payment reminder command. Sent {$sentCount} reminders.");
-})->purpose('Send automated payment reminders to clients 1 day before due date');
+})->purpose('Send automated payment reminders to clients 7 days and 1 day before due date');
 
 Schedule::command('reminders:send')->daily();
