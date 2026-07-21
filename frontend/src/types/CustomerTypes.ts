@@ -169,6 +169,9 @@ export interface DashboardStats {
     monthly: { value: number; trend: number };
     yearly: { value: number; trend: number };
   };
+  acknowledged_claims?: number;
+  returned_claims?: number;
+  total_claims?: number;
 }
 
 export interface MonthlyOverview {
@@ -198,8 +201,11 @@ export interface DashboardData {
       monthly: ChartSlice[];
       yearly: ChartSlice[];
     };
+    claims_by_provider?: ChartSlice[];
+    claims_by_status?: ChartSlice[];
   };
   recent_customers: Customer[];
+  recent_claims?: any[];
 }
 
 // ─── Form / Query Types ───────────────────────

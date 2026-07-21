@@ -268,6 +268,56 @@ class DashboardController extends Controller
 
             $pendingRenewals = (int) (clone $renewalQuery)->where('status', 'pending')->count();
 
+            $acknowledgedClaims = (int) (clone $claimNotificationQuery)->where('status', 'acknowledged')->count();
+            $returnedClaims = (int) (clone $claimNotificationQuery)->where('status', 'returned')->count();
+
+            // Group claims by provider
+            $providerCounts = (clone $claimNotificationQuery)
+                ->selectRaw("insurance_provider, COUNT(*) as count")
+                ->groupBy('insurance_provider')
+                ->get()
+                ->pluck('count', 'insurance_provider')
+                ->toArray();
+            
+            $claimsByProvider = [];
+            foreach ($providerCounts as $provider => $count) {
+                if (!$provider) continue;
+                $claimsByProvider[] = [
+                    'name' => $provider,
+                    'value' => (int) $count
+                ];
+            }
+
+            // Group claims by status
+            $statusCounts = (clone $claimNotificationQuery)
+                ->selectRaw("status, COUNT(*) as count")
+                ->groupBy('status')
+                ->get()
+                ->pluck('count', 'status')
+                ->toArray();
+
+            $claimsByStatus = [
+                ['name' => 'Pending', 'value' => (int) (($statusCounts['pending'] ?? 0) + ($statusCounts['resubmitted'] ?? 0))],
+                ['name' => 'Acknowledged', 'value' => (int) ($statusCounts['acknowledged'] ?? 0)],
+                ['name' => 'Returned', 'value' => (int) ($statusCounts['returned'] ?? 0)],
+            ];
+
+            // Recent claims list
+            $recentClaims = (clone $claimNotificationQuery)->orderByDesc('created_at')
+                ->take(10)
+                ->get()
+                ->map(function ($item) {
+                     return [
+                         'id' => $item->id,
+                         'reference_number' => $item->reference_number,
+                         'assured_name' => $item->assured_name,
+                         'insurance_provider' => $item->insurance_provider,
+                         'status' => $item->status,
+                         'created_at' => $item->created_at->toDateTimeString()
+                     ];
+                })
+                ->toArray();
+
             // 5. Daily overview chart
             $dailyData = (clone $customerQuery)
                 ->selectRaw("
@@ -486,6 +536,8 @@ class DashboardController extends Controller
                     ],
                     'pending_claims' => $pendingClaims,
                     'pending_claims_trend' => $claimsTrend,
+                    'acknowledged_claims' => $acknowledgedClaims,
+                    'returned_claims' => $returnedClaims,
                     'total_claims' => (int) (clone $claimNotificationQuery)->count(),
                     'monthly_revenue' => (float) $monthlyRevenue,
                     'revenue_trend' => $revenueTrend,
@@ -512,8 +564,11 @@ class DashboardController extends Controller
                         'monthly' => $monthlyStatuses,
                         'yearly' => $yearlyStatuses,
                     ],
+                    'claims_by_provider' => $claimsByProvider,
+                    'claims_by_status' => $claimsByStatus,
                 ],
                 'recent_customers' => $recentCustomers,
+                'recent_claims' => $recentClaims,
             ];
         });
 

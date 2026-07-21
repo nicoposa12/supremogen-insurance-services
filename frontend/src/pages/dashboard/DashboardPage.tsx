@@ -11,6 +11,8 @@ import {
   TrendingDown,
   Minus,
   ShieldAlert,
+  FileText,
+  RotateCcw,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -48,7 +50,6 @@ export default function DashboardPage() {
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
     refetchInterval: 60000, // auto-refresh every 60s
-    enabled: !isClaimsOfficer,
   });
 
   const dashboard: DashboardData | undefined = response?.data;
@@ -85,7 +86,188 @@ export default function DashboardPage() {
   }, [dashboard, customerTimeframe]);
 
   if (isClaimsOfficer) {
-    return null;
+    const claimsByProvider = dashboard?.charts?.claims_by_provider || [];
+    const claimsByStatus = dashboard?.charts?.claims_by_status || [];
+    const recentClaims = dashboard?.recent_claims || [];
+
+    return (
+      <div className="space-y-6">
+        {/* Header Title */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-805 uppercase tracking-wide">Claims Operations Dashboard</h1>
+            <p className="text-xs text-slate-500 mt-1">Real-time claims notification status, distribution, and queue analytics.</p>
+          </div>
+        </div>
+
+        {/* Stats Cards Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Pending Claims"
+            value={dashboard?.stats?.pending_claims ?? 0}
+            icon={ShieldAlert}
+            trend={dashboard?.stats?.pending_claims_trend ?? 0}
+            trendLabel="vs last month"
+            iconColor="text-rose-600"
+            iconBg="bg-rose-50"
+          />
+          <StatCard
+            label="Acknowledged Claims"
+            value={dashboard?.stats?.acknowledged_claims ?? 0}
+            icon={ShieldCheck}
+            iconColor="text-emerald-600"
+            iconBg="bg-emerald-50"
+          />
+          <StatCard
+            label="Returned to Agent"
+            value={dashboard?.stats?.returned_claims ?? 0}
+            icon={RotateCcw}
+            iconColor="text-amber-600"
+            iconBg="bg-amber-50"
+          />
+          <StatCard
+            label="Total Claims Filed"
+            value={dashboard?.stats?.total_claims ?? 0}
+            icon={FileText}
+            iconColor="text-blue-600"
+            iconBg="bg-blue-50"
+          />
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Claims by Provider Chart */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6">
+            <h3 className="text-sm font-bold text-slate-750 uppercase tracking-wider mb-4">Claims by Insurance Provider</h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={claimsByProvider} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
+                    border: 'none',
+                    borderRadius: '12px',
+                    color: '#f8fafc',
+                    fontSize: '12px',
+                  }}
+                  labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                />
+                <Bar dataKey="value" fill="#4A0E17" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Claims status Pie Chart */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6">
+            <h3 className="text-sm font-bold text-slate-750 uppercase tracking-wider mb-4">Claims Distribution</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={claimsByStatus}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={75}
+                  paddingAngle={4}
+                  dataKey="value"
+                  strokeWidth={0}
+                >
+                  {claimsByStatus.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value: string) => (
+                    <span className="text-xs text-slate-650 font-semibold uppercase">{value}</span>
+                  )}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
+                    border: 'none',
+                    borderRadius: '12px',
+                    color: '#f8fafc',
+                    fontSize: '13px',
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Recent Claim Notifications */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-750 uppercase tracking-wider">Recent Claim Notifications</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Latest submitted claim notifications</p>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard/claim-notifications')}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition uppercase"
+            >
+              View Queue
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto -mx-6">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="text-left px-6 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Ref No. / Assured
+                  </th>
+                  <th className="text-left px-4 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Provider
+                  </th>
+                  <th className="text-left px-4 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="text-left px-4 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">
+                    Date Filed
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentClaims.map((c: any) => (
+                  <tr
+                    key={c.id}
+                    onClick={() => navigate(`/dashboard/claim-notifications?search=${c.reference_number}`)}
+                    className="border-b border-slate-50 hover:bg-slate-50/80 cursor-pointer transition"
+                  >
+                    <td className="px-6 py-3">
+                      <div>
+                        <p className="font-bold text-slate-800 uppercase">
+                          {c.reference_number}
+                        </p>
+                        <p className="text-xs text-slate-500 uppercase mt-0.5">{c.assured_name}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 font-semibold uppercase">
+                      {c.insurance_provider}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={c.status} />
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                        <Clock className="h-3.5 w-3.5" />
+                        {new Date(c.created_at).toLocaleDateString()} {new Date(c.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const getOverviewData = () => {

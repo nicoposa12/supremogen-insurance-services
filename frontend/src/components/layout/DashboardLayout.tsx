@@ -316,7 +316,7 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   } else if (isCollection) {
     isForbidden = !['Collection Module', 'Collection Ledger'].includes(item.label);
   } else if (isClaimsOfficer) {
-    isForbidden = !['Claim Notifications'].includes(item.label);
+    isForbidden = !['Dashboard', 'Claim Notifications'].includes(item.label);
   }
 
   if (isForbidden) {
@@ -445,8 +445,6 @@ export default function DashboardLayout() {
         navigate('/dashboard/customers', { replace: true });
       } else if (isCollection && location.pathname === '/dashboard') {
         navigate('/dashboard/collection', { replace: true });
-      } else if (isClaimsOfficer && location.pathname === '/dashboard') {
-        navigate('/dashboard/claim-notifications', { replace: true });
       }
     }
   }, [roles, location.pathname, navigate]);
