@@ -238,6 +238,20 @@ export default function ClaimNotificationsPage() {
   const [selectedTo, setSelectedTo] = useState<string[]>([]);
   const [selectedCc, setSelectedCc] = useState<string[]>([]);
 
+  // Listen to Escape key to close modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEmailModalOpen(false);
+        setReturnTarget(null);
+        setAcknowledgeTarget(null);
+        setViewAttachment(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Helper to determine claim type from nature_of_claims on edit
   const determineClaimType = (nature: string | undefined): string => {
     if (!nature) return '';
@@ -1444,7 +1458,7 @@ export default function ClaimNotificationsPage() {
             <p className="text-sm text-slate-500">Claim Notification Detail</p>
           </div>
           <div className="flex items-center gap-2">
-            {selectedRecord.status === 'acknowledged' && (
+            {isClaimsOfficer && selectedRecord.status === 'acknowledged' && (
               <button
                 onClick={() => {
                   const config = getProviderConfig(selectedRecord.insurance_provider);
@@ -1710,8 +1724,14 @@ export default function ClaimNotificationsPage() {
         )}
 
         {returnTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden animate-scale-in">
+          <div
+            onClick={() => { setReturnTarget(null); setReturnReason(''); }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 cursor-pointer"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden animate-scale-in cursor-default"
+            >
               <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between">
                 <h3 className="text-white font-bold text-base">Return Claim Notification</h3>
                 <button onClick={() => { setReturnTarget(null); setReturnReason(''); }} className="text-white/80 hover:text-white">
@@ -1756,8 +1776,14 @@ export default function ClaimNotificationsPage() {
         {viewAttachment && (() => {
           const [docTitle, docNote] = viewAttachment.document_type ? viewAttachment.document_type.split(' | Note: ') : [viewAttachment.file_name, ''];
           return (
-            <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print">
-              <div className="bg-white rounded-2xl border border-slate-205 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
+            <div
+              onClick={() => setViewAttachment(null)}
+              className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print cursor-pointer"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl border border-slate-205 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh] cursor-default"
+              >
                 <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
                   <div>
                     <h3 className="text-white font-bold text-base">{docTitle}</h3>
@@ -1810,8 +1836,14 @@ export default function ClaimNotificationsPage() {
 
       {/* Email Selection Modal */}
       {isEmailModalOpen && selectedRecord && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up">
+        <div
+          onClick={() => setIsEmailModalOpen(false)}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up cursor-default"
+          >
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-[#4A0E17] to-[#7A1C2E] px-5 py-4 flex items-center justify-between text-white">
               <div className="flex items-center gap-2.5">

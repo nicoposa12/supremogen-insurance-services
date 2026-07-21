@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 
 interface ConfirmModalProps {
@@ -23,6 +24,17 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   const btnClass =

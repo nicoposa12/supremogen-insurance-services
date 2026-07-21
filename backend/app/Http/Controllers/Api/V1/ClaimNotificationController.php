@@ -436,6 +436,13 @@ class ClaimNotificationController extends Controller
      */
     public function sendEmailToProvider(Request $request, string $id)
     {
+        if (!$request->user()->hasRole('Claims Officer') && !$request->user()->hasRole('Administrator')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only Claims Officers can send emails to providers.'
+            ], 403);
+        }
+
         $record = ClaimNotification::with(['attachments'])->find($id);
 
         if (!$record) {
