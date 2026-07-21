@@ -71,9 +71,9 @@ class ClaimNotificationController extends Controller
             'policy_number'      => 'required|string|max:50',
             'inception_date'     => 'nullable|date',
             'accident_date'      => 'required|date|before_or_equal:today',
-            'nature_of_claims'   => 'required|string|max:5000',
+            'nature_of_claims'   => 'nullable|string|max:5000',
             'notes'              => 'nullable|string|max:5000',
-            'claim_count'        => 'nullable|string|max:255',
+            'claim_count'        => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -94,7 +94,7 @@ class ClaimNotificationController extends Controller
             'policy_number'      => $request->input('policy_number'),
             'inception_date'     => $request->input('inception_date'),
             'accident_date'      => $request->input('accident_date'),
-            'nature_of_claims'   => $request->input('nature_of_claims'),
+            'nature_of_claims'   => $request->input('nature_of_claims') ?? '',
             'notes'              => $request->input('notes'),
             'claim_count'        => $request->input('claim_count'),
             'submitted_by'       => $request->user()->id,
@@ -316,9 +316,9 @@ class ClaimNotificationController extends Controller
             'policy_number'      => 'required|string|max:50',
             'inception_date'     => 'nullable|date',
             'accident_date'      => 'required|date|before_or_equal:today',
-            'nature_of_claims'   => 'required|string|max:5000',
+            'nature_of_claims'   => 'nullable|string|max:5000',
             'notes'              => 'nullable|string|max:5000',
-            'claim_count'        => 'nullable|string|max:255',
+            'claim_count'        => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -338,7 +338,7 @@ class ClaimNotificationController extends Controller
             'policy_number'      => $request->input('policy_number'),
             'inception_date'     => $request->input('inception_date'),
             'accident_date'      => $request->input('accident_date'),
-            'nature_of_claims'   => $request->input('nature_of_claims'),
+            'nature_of_claims'   => $request->input('nature_of_claims') ?? '',
             'notes'              => $request->input('notes'),
             'claim_count'        => $request->input('claim_count'),
             'status'             => 'resubmitted', // reset to resubmitted on resubmit

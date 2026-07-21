@@ -10,13 +10,16 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: {
       host: true, // Allow external access in Docker
+      watch: {
+        usePolling: true,
+      },
       proxy: {
         '/api': {
-          target: env.VITE_API_PROXY_URL || process.env.VITE_API_PROXY_URL || 'http://127.0.0.1:8000',
+          target: process.env.VITE_API_PROXY_URL || env.VITE_API_PROXY_URL || 'http://127.0.0.1:8000',
           changeOrigin: true,
         },
         '/storage': {
-          target: env.VITE_API_PROXY_URL || process.env.VITE_API_PROXY_URL || 'http://127.0.0.1:8000',
+          target: process.env.VITE_API_PROXY_URL || env.VITE_API_PROXY_URL || 'http://127.0.0.1:8000',
           changeOrigin: true,
         },
       },

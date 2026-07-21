@@ -54,6 +54,33 @@ const TTPD_REQUIREMENTS = [
   { key: 'tppd_6', label: '6. Adverse photos of damaged unit showing the plate number' },
 ];
 
+const ACT_OF_NATURE_REQUIREMENTS = [
+  { key: 'aon_1', label: '1. Original Police Report OR Notarized Affidavit' },
+  { key: 'aon_2', label: '2. Readable copy of ORCR' },
+  { key: 'aon_3', label: '3. Clear copy of Drivers license (Back and Front) with copy of OR' },
+  { key: 'aon_4', label: '4. Clear Pictures of Damages of the vehicle' },
+  { key: 'aon_5', label: '5. (4 Sides) Clear Pictures of the Vehicle Isometric View' },
+  { key: 'aon_6', label: '6. Repair Estimate with Contact number' },
+  { key: 'aon_7', label: '7. Barangay certificate proof na nagkaroon ng baha or etc.' },
+];
+
+const THEFT_AND_LOSS_REQUIREMENTS = [
+  { key: 'tal_1', label: '1. Original Police Report OR Notarized Affidavit' },
+  { key: 'tal_2', label: '2. Readable copy of ORCR' },
+  { key: 'tal_3', label: '3. Clear copy of Drivers license (Back and Front) with copy of OR' },
+  { key: 'tal_4', label: '4. Clear Pictures of Damages of the vehicle' },
+  { key: 'tal_5', label: '5. (4 Sides) Clear Pictures of the Vehicle Isometric View' },
+  { key: 'tal_6', label: '6. Repair Estimate with Contact number' },
+  { key: 'tal_7', label: '7. CCTV or proof na ninakaw' },
+];
+
+const CNC_REQUIREMENTS = [
+  { key: 'cnc_1', label: '1. READABLE ORCR of both parties.' },
+  { key: 'cnc_2', label: '2. READABLE DRIVERS LICENSE of both parties. (FRONT & BACK).' },
+  { key: 'cnc_3', label: '3. Pictures of vehicle showing plate no and damages parts' },
+  { key: 'cnc_4', label: '4. Affidavit or Police Report.' },
+];
+
 interface CustomAttachmentInput {
   id: string;
   label: string;
@@ -135,7 +162,75 @@ export default function ClaimNotificationsPage() {
     if (upper.includes('THIRD PARTY (TTPD) CLAIM - REQUIREMENTS')) {
       return 'TPPD';
     }
+    if (upper.includes('ACT OF NATURE CLAIM') || upper.includes('[ACT OF NATURE CLAIM]')) {
+      return 'ACT OF NATURE';
+    }
+    if (upper.includes('THEFT AND LOSS CLAIM') || upper.includes('[THEFT AND LOSS CLAIM]')) {
+      return 'THEFT AND LOSS';
+    }
+    if (upper.includes('CNC (CERTIFICATE OF NO CLAIM)') || upper.includes('[CNC (CERTIFICATE OF NO CLAIM)]')) {
+      return 'CNC (CERTIFICATE OF NO CLAIM)';
+    }
     return '';
+  };
+
+  const getClaimTypePrefix = (type: string): string => {
+    switch (type) {
+      case 'OWN DAMAGE':
+        return '[OWN DAMAGE CLAIM REQUIREMENTS]\n\n';
+      case 'OWN DAMAGE & TTPD':
+        return '[OWN DAMAGE CLAIM REQUIREMENTS & THIRD PARTY (TTPD) CLAIM - REQUIREMENTS]\n\n';
+      case 'TPPD':
+        return '[THIRD PARTY (TTPD) CLAIM - REQUIREMENTS]\n\n';
+      case 'ACT OF NATURE':
+        return '[ACT OF NATURE CLAIM]\n\n';
+      case 'THEFT AND LOSS':
+        return '[THEFT AND LOSS CLAIM]\n\n';
+      case 'CNC (CERTIFICATE OF NO CLAIM)':
+        return '[CNC (CERTIFICATE OF NO CLAIM)]\n\n';
+      default:
+        return '';
+    }
+  };
+
+  const stripRequirementsPrefix = (text: string | undefined): string => {
+    if (!text) return '';
+    
+    // 1. Clean up new bracketed headers
+    const bracketRegex = /^\[(OWN DAMAGE CLAIM REQUIREMENTS & THIRD PARTY \(TTPD\) CLAIM - REQUIREMENTS|OWN DAMAGE CLAIM REQUIREMENTS|THIRD PARTY \(TTPD\) CLAIM - REQUIREMENTS|ACT OF NATURE CLAIM|THEFT AND LOSS CLAIM|CNC \(CERTIFICATE OF NO CLAIM\))\]\n?\n?/;
+    if (bracketRegex.test(text)) {
+      return text.replace(bracketRegex, '').trim();
+    }
+
+    // 2. Clean up old giant requirement lists
+    const oldOwnDamageTtpd = `OWN DAMAGE & TPPD REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.\n\n--------------------------------------------------\n\nTHIRD PARTY (TTPD) CLAIM - REQUIREMENTS\n\n• Police report/Affidavit\n• Adverse Official Receipt and Certificate of Registration (ORCR)\n• Adverse Driver’s license\n• Adverse Repair Estimate\n• Adverse Certificate of no claim from his/her insurance provider\n• Adverse photos of damaged unit showing the plate number`;
+    
+    const oldOwnDamage = `OWN DAMAGE CLAIM REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.`;
+
+    const oldTtpd = `THIRD PARTY (TTPD) CLAIM - REQUIREMENTS\n\n• Police report/Affidavit\n• Adverse Official Receipt and Certificate of Registration (ORCR)\n• Adverse Driver’s license\n• Adverse Repair Estimate\n• Adverse Certificate of no claim from his/her insurance provider\n• Adverse photos of damaged unit showing the plate number`;
+
+    // Standardize newlines before checking startsWith
+    const normalizedText = text.replace(/\\r\\n/g, '\\n').replace(/\r\n/g, '\n');
+    const normalizedOwnDamageTtpd = oldOwnDamageTtpd.replace(/\r\n/g, '\n');
+    const normalizedOwnDamage = oldOwnDamage.replace(/\r\n/g, '\n');
+    const normalizedTtpd = oldTtpd.replace(/\r\n/g, '\n');
+
+    if (normalizedText.startsWith(normalizedOwnDamageTtpd)) {
+      return normalizedText.slice(normalizedOwnDamageTtpd.length).trim();
+    }
+    if (normalizedText.startsWith(normalizedOwnDamage)) {
+      return normalizedText.slice(normalizedOwnDamage.length).trim();
+    }
+    if (normalizedText.startsWith(normalizedTtpd)) {
+      return normalizedText.slice(normalizedTtpd.length).trim();
+    }
+
+    // Old simple ones
+    if (text.trim() === 'ACT OF NATURE CLAIM') return '';
+    if (text.trim() === 'THEFT AND LOSS CLAIM') return '';
+    if (text.trim() === 'CNC (CERTIFICATE OF NO CLAIM)') return '';
+
+    return text;
   };
 
   const handleEdit = (record: ClaimNotification) => {
@@ -153,7 +248,7 @@ export default function ClaimNotificationsPage() {
       policy_number: record.policy_number,
       inception_date: formatDate(record.inception_date),
       accident_date: formatDate(record.accident_date),
-      nature_of_claims: record.nature_of_claims,
+      nature_of_claims: stripRequirementsPrefix(record.nature_of_claims),
       notes: record.notes || '',
       claim_count: record.claim_count || '',
     });
@@ -330,6 +425,15 @@ export default function ClaimNotificationsPage() {
               } else if (key.startsWith('tppd_')) {
                 const req = TTPD_REQUIREMENTS.find((r) => r.key === key);
                 label = req ? req.label : 'Requirement Document';
+              } else if (key.startsWith('aon_')) {
+                const req = ACT_OF_NATURE_REQUIREMENTS.find((r) => r.key === key);
+                label = req ? req.label : 'Requirement Document';
+              } else if (key.startsWith('tal_')) {
+                const req = THEFT_AND_LOSS_REQUIREMENTS.find((r) => r.key === key);
+                label = req ? req.label : 'Requirement Document';
+              } else if (key.startsWith('cnc_')) {
+                const req = CNC_REQUIREMENTS.find((r) => r.key === key);
+                label = req ? req.label : 'Requirement Document';
               }
               const note = requirementNotes[key];
               const docType = note ? `${label} | Note: ${note}` : label;
@@ -393,7 +497,8 @@ export default function ClaimNotificationsPage() {
     if (!form.insurance_provider.trim()) newErrors.insurance_provider = true;
     if (!form.policy_number.trim()) newErrors.policy_number = true;
     if (!form.accident_date) newErrors.accident_date = true;
-    if (!form.nature_of_claims.trim()) newErrors.nature_of_claims = true;
+    if (!form.claim_count) newErrors.claim_count = true;
+    if (!claimType) newErrors.claim_type = true;
 
     setValidationErrors(newErrors);
 
@@ -402,26 +507,21 @@ export default function ClaimNotificationsPage() {
       else if (newErrors.insurance_provider) { showToast('Please select the Insurance Provider.', 'error'); }
       else if (newErrors.policy_number) { showToast('Please enter the Policy Number.', 'error'); }
       else if (newErrors.accident_date) { showToast('Please set the Accident Date.', 'error'); }
-      else if (newErrors.nature_of_claims) { showToast('Please describe the Nature of Claims.', 'error'); }
+      else if (newErrors.claim_count) { showToast('Please select the Claim Count.', 'error'); }
+      else if (newErrors.claim_type) { showToast('Please select the Type of Claim.', 'error'); }
       return;
     }
 
-    submitMut.mutate(form);
+    const prefix = getClaimTypePrefix(claimType);
+    const payload = {
+      ...form,
+      nature_of_claims: prefix + form.nature_of_claims,
+    };
+    submitMut.mutate(payload);
   };
 
   const getDetailClaimType = (nature: string | undefined): string => {
-    if (!nature) return '';
-    const upper = nature.toUpperCase();
-    if (upper.includes('OWN DAMAGE CLAIM REQUIREMENTS') && upper.includes('THIRD PARTY (TTPD) CLAIM - REQUIREMENTS')) {
-      return 'OWN DAMAGE & TTPD';
-    }
-    if (upper.includes('OWN DAMAGE CLAIM REQUIREMENTS')) {
-      return 'OWN DAMAGE';
-    }
-    if (upper.includes('THIRD PARTY (TTPD) CLAIM - REQUIREMENTS')) {
-      return 'TPPD';
-    }
-    return '';
+    return determineClaimType(nature);
   };
 
   const handleDetailUpload = async () => {
@@ -442,6 +542,15 @@ export default function ClaimNotificationsPage() {
             label = req ? req.label : 'Requirement Document';
           } else if (key.startsWith('tppd_')) {
             const req = TTPD_REQUIREMENTS.find((r) => r.key === key);
+            label = req ? req.label : 'Requirement Document';
+          } else if (key.startsWith('aon_')) {
+            const req = ACT_OF_NATURE_REQUIREMENTS.find((r) => r.key === key);
+            label = req ? req.label : 'Requirement Document';
+          } else if (key.startsWith('tal_')) {
+            const req = THEFT_AND_LOSS_REQUIREMENTS.find((r) => r.key === key);
+            label = req ? req.label : 'Requirement Document';
+          } else if (key.startsWith('cnc_')) {
+            const req = CNC_REQUIREMENTS.find((r) => r.key === key);
             label = req ? req.label : 'Requirement Document';
           }
           const note = requirementNotes[key];
@@ -477,7 +586,6 @@ export default function ClaimNotificationsPage() {
       sort_dir: p.sort_by === key && p.sort_dir === 'asc' ? 'desc' : 'asc',
     }));
   };
-
   const statusFilters = ['all', 'pending', 'returned', 'acknowledged'];
   const getInputClass = (fieldName: string) => {
     const hasError = validationErrors[fieldName];
@@ -496,6 +604,733 @@ export default function ClaimNotificationsPage() {
     const acknowledger = selectedRecord.acknowledged_by && typeof selectedRecord.acknowledged_by === 'object'
       ? selectedRecord.acknowledged_by.name
       : null;
+
+    // Define the upload list section
+    const uploadedRequirementsSection = detailRecord && detailRecord.attachments && detailRecord.attachments.length > 0 && (
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Uploaded Requirements</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {detailRecord.attachments.map((att: any) => {
+            const [docTitle, docNote] = att.document_type ? att.document_type.split(' | Note: ') : [att.file_name, ''];
+            return (
+              <div key={att.id} className="flex flex-col p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FileText className="h-5 w-5 text-[#4A0E17] shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-700 truncate">{docTitle}</p>
+                      <p className="text-[10px] text-slate-450 mt-0.5 truncate">
+                        {att.file_name} ({(att.file_size / 1024).toFixed(1)} KB)
+                      </p>
+                      <p className="text-[9px] text-slate-400 mt-0.5">
+                        Uploaded: {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => setViewAttachment(att)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-150 transition cursor-pointer"
+                      title="View Attachment"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <a
+                      href={`/api/v1/attachments/${att.id}/download?token=${token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-150 transition"
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </a>
+                  </div>
+                </div>
+                {docNote && (
+                  <div className="pl-7 pr-3 py-1.5 bg-amber-50/40 border-l-2 border-amber-400 rounded-r-lg">
+                    <p className="text-[11px] text-amber-800 leading-tight font-medium">Note: {docNote}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+
+    // Define the upload form section
+    const uploadFormSection = selectedRecord && selectedRecord.status === 'acknowledged' && !isClaimsOfficer && (() => {
+      const detailClaimType = getDetailClaimType(detailRecord?.nature_of_claims);
+      return (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-6 no-print">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-[#4A0E17]" />
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Upload Claim Requirements</h4>
+          </div>
+          
+          {/* Own Damage Requirements */}
+          {(detailClaimType === 'OWN DAMAGE' || detailClaimType === 'OWN DAMAGE & TTPD') && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Own Damage Claim Requirements (Upload Attachments)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {OWN_DAMAGE_REQUIREMENTS.map((req) => (
+                  <div key={req.key} className="space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`detail-file-${req.key}`}
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) {
+                              setRequirementFiles((prev) => ({
+                                ...prev,
+                                [req.key]: [...(prev[req.key] || []), ...files],
+                              }));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`detail-file-${req.key}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                        >
+                          <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Choose File</span>
+                        </label>
+                        {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                          <span className="text-xs text-slate-400 italic">No files selected</span>
+                        )}
+                      </div>
+
+                      {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {requirementFiles[req.key].map((file, idx) => (
+                            <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
+                              <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
+                              <span className="truncate max-w-[120px]">{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRequirementFiles((prev) => {
+                                    const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                    const copy = { ...prev };
+                                    if (list.length === 0) {
+                                      delete copy[req.key];
+                                    } else {
+                                      copy[req.key] = list;
+                                    }
+                                    return copy;
+                                  });
+                                }}
+                                className="text-slate-455 hover:text-red-500 transition cursor-pointer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          placeholder="Add a brief note for this file..."
+                          value={requirementNotes[req.key] || ''}
+                          onChange={(e) => {
+                            setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                          }}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Third Party (TTPD) Requirements */}
+          {(detailClaimType === 'TPPD' || detailClaimType === 'OWN DAMAGE & TTPD') && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Third Party (TTPD) Claim Requirements (Upload Attachments)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TTPD_REQUIREMENTS.map((req) => (
+                  <div key={req.key} className="space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`detail-file-${req.key}`}
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) {
+                              setRequirementFiles((prev) => ({
+                                ...prev,
+                                [req.key]: [...(prev[req.key] || []), ...files],
+                              }));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`detail-file-${req.key}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                        >
+                          <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Choose File</span>
+                        </label>
+                        {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                          <span className="text-xs text-slate-400 italic">No files selected</span>
+                        )}
+                      </div>
+
+                      {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {requirementFiles[req.key].map((file, idx) => (
+                            <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
+                              <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
+                              <span className="truncate max-w-[120px]">{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRequirementFiles((prev) => {
+                                    const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                    const copy = { ...prev };
+                                    if (list.length === 0) {
+                                      delete copy[req.key];
+                                    } else {
+                                      copy[req.key] = list;
+                                    }
+                                    return copy;
+                                  });
+                                }}
+                                className="text-slate-455 hover:text-red-500 transition cursor-pointer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          placeholder="Add a brief note for this file..."
+                          value={requirementNotes[req.key] || ''}
+                          onChange={(e) => {
+                            setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                          }}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Act of Nature Requirements */}
+          {detailClaimType === 'ACT OF NATURE' && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Act of Nature Claim Requirements (Upload Attachments)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ACT_OF_NATURE_REQUIREMENTS.map((req) => (
+                  <div key={req.key} className="space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`detail-file-${req.key}`}
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) {
+                              setRequirementFiles((prev) => ({
+                                ...prev,
+                                [req.key]: [...(prev[req.key] || []), ...files],
+                              }));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`detail-file-${req.key}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                        >
+                          <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Choose File</span>
+                        </label>
+                        {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                          <span className="text-xs text-slate-400 italic">No files selected</span>
+                        )}
+                      </div>
+
+                      {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {requirementFiles[req.key].map((file, idx) => (
+                            <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
+                              <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
+                              <span className="truncate max-w-[120px]">{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRequirementFiles((prev) => {
+                                    const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                    const copy = { ...prev };
+                                    if (list.length === 0) {
+                                      delete copy[req.key];
+                                    } else {
+                                      copy[req.key] = list;
+                                    }
+                                    return copy;
+                                  });
+                                }}
+                                className="text-slate-455 hover:text-red-500 transition cursor-pointer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          placeholder="Add a brief note for this file..."
+                          value={requirementNotes[req.key] || ''}
+                          onChange={(e) => {
+                            setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                          }}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Theft and Loss Requirements */}
+          {detailClaimType === 'THEFT AND LOSS' && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Theft and Loss Claim Requirements (Upload Attachments)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {THEFT_AND_LOSS_REQUIREMENTS.map((req) => (
+                  <div key={req.key} className="space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`detail-file-${req.key}`}
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) {
+                              setRequirementFiles((prev) => ({
+                                ...prev,
+                                [req.key]: [...(prev[req.key] || []), ...files],
+                              }));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`detail-file-${req.key}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
+                        >
+                          <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Choose File</span>
+                        </label>
+                        {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                          <span className="text-xs text-slate-400 italic">No files selected</span>
+                        )}
+                      </div>
+
+                      {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {requirementFiles[req.key].map((file, idx) => (
+                            <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
+                              <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
+                              <span className="truncate max-w-[120px]">{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRequirementFiles((prev) => {
+                                    const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                    const copy = { ...prev };
+                                    if (list.length === 0) {
+                                      delete copy[req.key];
+                                    } else {
+                                      copy[req.key] = list;
+                                    }
+                                    return copy;
+                                  });
+                                }}
+                                className="text-slate-455 hover:text-red-500 transition cursor-pointer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          placeholder="Add a brief note for this file..."
+                          value={requirementNotes[req.key] || ''}
+                          onChange={(e) => {
+                            setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                          }}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CNC Requirements */}
+          {detailClaimType === 'CNC (CERTIFICATE OF NO CLAIM)' && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">CNC Requirements (Upload Attachments)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {CNC_REQUIREMENTS.map((req) => (
+                  <div key={req.key} className="space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`detail-file-${req.key}`}
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) {
+                              setRequirementFiles((prev) => ({
+                                ...prev,
+                                [req.key]: [...(prev[req.key] || []), ...files],
+                              }));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`detail-file-${req.key}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                        >
+                          <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Choose File</span>
+                        </label>
+                        {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                          <span className="text-xs text-slate-400 italic">No files selected</span>
+                        )}
+                      </div>
+
+                      {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {requirementFiles[req.key].map((file, idx) => (
+                            <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
+                              <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
+                              <span className="truncate max-w-[120px]">{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRequirementFiles((prev) => {
+                                    const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                    const copy = { ...prev };
+                                    if (list.length === 0) {
+                                      delete copy[req.key];
+                                    } else {
+                                      copy[req.key] = list;
+                                    }
+                                    return copy;
+                                  });
+                                }}
+                                className="text-slate-455 hover:text-red-500 transition cursor-pointer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          placeholder="Add a brief note for this file..."
+                          value={requirementNotes[req.key] || ''}
+                          onChange={(e) => {
+                            setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                          }}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Additional Custom Attachments */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4 text-[#4A0E17]" />
+                <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Additional Attachments</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomAttachments((prev) => [
+                    ...prev,
+                    {
+                      id: Math.random().toString(36).substring(2, 9),
+                      label: '',
+                      file: null,
+                      note: '',
+                    },
+                  ]);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#4A0E17]/30 hover:bg-[#4A0E17]/5 text-[#4A0E17] text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Attachment</span>
+              </button>
+            </div>
+
+            {customAttachments.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {customAttachments.map((att) => (
+                  <div key={att.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomAttachments((prev) => prev.filter((c) => c.id !== att.id));
+                      }}
+                      className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-500">Document Label</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Excess Liability, Owner Photo..."
+                        value={att.label}
+                        onChange={(e) => {
+                          setCustomAttachments((prev) =>
+                            prev.map((c) => (c.id === att.id ? { ...c, label: e.target.value } : c))
+                          );
+                        }}
+                        className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-500">Choose File</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`custom-file-${att.id}`}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setCustomAttachments((prev) =>
+                              prev.map((c) => (c.id === att.id ? { ...c, file } : c))
+                            );
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor={`custom-file-${att.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                        >
+                          <Paperclip className="h-3 w-3 text-slate-400" />
+                          <span>Choose File</span>
+                        </label>
+                        <span className="text-[11px] text-slate-500 truncate max-w-[120px]">
+                          {att.file ? att.file.name : 'No file selected'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-500">Notes (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="Add a brief note..."
+                        value={att.note}
+                        onChange={(e) => {
+                          setCustomAttachments((prev) =>
+                            prev.map((c) => (c.id === att.id ? { ...c, note: e.target.value } : c))
+                          );
+                        }}
+                        className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic">No additional attachments added. Click the button above to upload extra files.</p>
+            )}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={handleDetailUpload}
+              disabled={isUploading || (Object.keys(requirementFiles).length === 0 && customAttachments.filter(c => c.file).length === 0)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#4A0E17] rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Uploading Files...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  <span>Upload Attachments</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      );
+    })();
+
+    // Render original printable document
+    const renderPrintableDocument = (hideOnScreen: boolean) => (
+      <div className={`printable-document bg-white rounded-2xl border border-slate-200/80 shadow-md p-8 md:p-12 max-w-3xl mx-auto ${hideOnScreen ? 'hidden print:block' : ''}`}>
+        {/* Header section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b-2 border-[#4A0E17] gap-4">
+          <div className="flex items-center gap-3.5">
+            <img src={logoImg} alt="Logo" className="h-16 w-16 rounded-xl border border-slate-100 object-cover" />
+            <div>
+              <h2 className="text-[#4A0E17] font-black text-2xl tracking-wider">SUPREMOGEN</h2>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">Insurance Services</p>
+            </div>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Official Document</p>
+            <p className="text-lg font-black text-slate-800 mt-1">{selectedRecord.reference_number}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Date Filed: {new Date(selectedRecord.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 space-y-6">
+          {/* Subject lines */}
+          <div className="space-y-1 border-l-4 border-[#4A0E17] pl-4 py-1">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Attention: Claims Department</p>
+            <h3 className="text-base font-bold text-[#4A0E17] uppercase tracking-wide">
+              SUBJECT: CLAIM NOTIFICATION - {selectedRecord.assured_name}
+            </h3>
+          </div>
+
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Good day, <br />
+            Kindly find below the official details and information of our Assured for the submitted claim notification.
+          </p>
+
+          {/* Document Details Table */}
+          <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+            <table className="min-w-full divide-y divide-slate-200/85 text-sm">
+              <tbody className="divide-y divide-slate-200/85 bg-white">
+                {[
+                  { label: 'Assured Name', value: selectedRecord.assured_name },
+                  { label: 'Contact Number', value: selectedRecord.contact_number || '—' },
+                  { label: 'Email Address', value: selectedRecord.email_address || '—' },
+                  { label: 'Insurance Provider', value: selectedRecord.insurance_provider },
+                  { label: 'Plate Number', value: selectedRecord.plate_number || '—' },
+                  { label: 'Policy Number', value: selectedRecord.policy_number },
+                  { label: 'Inception Date', value: selectedRecord.inception_date ? new Date(selectedRecord.inception_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
+                  { label: 'Accident Date', value: new Date(selectedRecord.accident_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
+                  { label: 'Claim Count', value: selectedRecord.claim_count || '—' },
+                ].map((row, idx) => (
+                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
+                    <td className="px-5 py-3 font-semibold text-slate-500 w-1/3">{row.label}</td>
+                    <td className="px-5 py-3 font-medium text-slate-800">{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Nature of claims */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nature of Claims</h4>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+              {stripRequirementsPrefix(selectedRecord.nature_of_claims) || 'No details provided...'}
+            </div>
+          </div>
+
+          {/* Notes */}
+          {selectedRecord.notes && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Additional Notes</h4>
+              <div className="bg-amber-50/40 border border-amber-200/60 rounded-xl p-4 text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
+                {selectedRecord.notes}
+              </div>
+            </div>
+          )}
+
+          {/* Signatures */}
+          <div className="pt-12 grid grid-cols-2 gap-8 text-sm">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Submitted By</p>
+              <div className="space-y-0.5">
+                <p className="font-bold text-slate-800">{submitter}</p>
+                <p className="text-xs text-slate-500">Sales Agent / Representative</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Acknowledged By</p>
+              {acknowledger ? (
+                <div className="space-y-0.5">
+                  <p className="font-bold text-slate-800">{acknowledger}</p>
+                  <p className="text-xs text-slate-500">
+                    Claims Officer
+                    {selectedRecord.acknowledged_at && ` (on ${new Date(selectedRecord.acknowledged_at).toLocaleDateString()})`}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-slate-400 italic">Pending Acknowledgment</p>
+                  <p className="text-xs text-slate-500">Claims Department</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Uploaded Attachments / Requirements */}
+          {uploadedRequirementsSection}
+        </div>
+      </div>
+    );
 
     return (
       <div className="space-y-4">
@@ -520,475 +1355,192 @@ export default function ClaimNotificationsPage() {
             <StatusBadge status={selectedRecord.status} />
           </div>
         </div>
-
-        {/* Printable Official Document Layout */}
-        <div className="printable-document bg-white rounded-2xl border border-slate-200/80 shadow-md p-8 md:p-12 max-w-3xl mx-auto">
-          {/* Header section */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b-2 border-[#4A0E17] gap-4">
-            <div className="flex items-center gap-3.5">
-              <img src={logoImg} alt="Logo" className="h-16 w-16 rounded-xl border border-slate-100 object-cover" />
-              <div>
-                <h2 className="text-[#4A0E17] font-black text-2xl tracking-wider">SUPREMOGEN</h2>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">Insurance Services</p>
-              </div>
-            </div>
-            <div className="text-left sm:text-right">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Official Document</p>
-              <p className="text-lg font-black text-slate-800 mt-1">{selectedRecord.reference_number}</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Date Filed: {new Date(selectedRecord.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 space-y-6">
-            {/* Subject lines */}
-            <div className="space-y-1 border-l-4 border-[#4A0E17] pl-4 py-1">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Attention: Claims Department</p>
-              <h3 className="text-base font-bold text-[#4A0E17] uppercase tracking-wide">
-                SUBJECT: CLAIM NOTIFICATION - {selectedRecord.assured_name}
-              </h3>
-            </div>
-
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Good day, <br />
-              Kindly find below the official details and information of our Assured for the submitted claim notification.
-            </p>
-
-            {/* Document Details Table */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
-              <table className="min-w-full divide-y divide-slate-200/85 text-sm">
-                <tbody className="divide-y divide-slate-200/85 bg-white">
-                  {[
-                    { label: 'Assured Name', value: selectedRecord.assured_name },
-                    { label: 'Contact Number', value: selectedRecord.contact_number || '—' },
-                    { label: 'Email Address', value: selectedRecord.email_address || '—' },
-                    { label: 'Insurance Provider', value: selectedRecord.insurance_provider },
-                    { label: 'Plate Number', value: selectedRecord.plate_number || '—' },
-                    { label: 'Policy Number', value: selectedRecord.policy_number },
-                    { label: 'Inception Date', value: selectedRecord.inception_date ? new Date(selectedRecord.inception_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
-                    { label: 'Accident Date', value: new Date(selectedRecord.accident_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
-                    { label: 'Claim Count', value: selectedRecord.claim_count || '—' },
-                  ].map((row, idx) => (
-                    <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
-                      <td className="px-5 py-3 font-semibold text-slate-500 w-1/3">{row.label}</td>
-                      <td className="px-5 py-3 font-medium text-slate-800">{row.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Nature of claims */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nature of Claims</h4>
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                {selectedRecord.nature_of_claims}
-              </div>
-            </div>
-
-            {/* Notes */}
-            {selectedRecord.notes && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Additional Notes</h4>
-                <div className="bg-amber-50/40 border border-amber-200/60 rounded-xl p-4 text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
-                  {selectedRecord.notes}
-                </div>
-              </div>
-            )}
-
-            {/* Signatures */}
-            <div className="pt-12 grid grid-cols-2 gap-8 text-sm">
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Submitted By</p>
-                <div className="space-y-0.5">
-                  <p className="font-bold text-slate-800">{submitter}</p>
-                  <p className="text-xs text-slate-500">Sales Agent / Representative</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Acknowledged By</p>
-                {acknowledger ? (
-                  <div className="space-y-0.5">
-                    <p className="font-bold text-slate-800">{acknowledger}</p>
-                    <p className="text-xs text-slate-500">
-                      Claims Officer
-                      {selectedRecord.acknowledged_at && ` (on ${new Date(selectedRecord.acknowledged_at).toLocaleDateString()})`}
-                    </p>
+        {selectedRecord.status === 'acknowledged' ? (
+          <>
+            <div className="no-print grid grid-cols-1 xl:grid-cols-2 gap-6 animate-fade-in">
+              <div className="space-y-6">
+                {/* Form Card (Read-Only) */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#4A0E17] to-[#7A1C2E] px-5 py-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-white/80" />
+                    <h3 className="text-sm font-bold text-white">Notification Details</h3>
                   </div>
-                ) : (
-                  <div className="space-y-0.5">
-                    <p className="font-semibold text-slate-400 italic">Pending Acknowledgment</p>
-                    <p className="text-xs text-slate-500">Claims Department</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Uploaded Attachments / Requirements */}
-            {detailRecord && detailRecord.attachments && detailRecord.attachments.length > 0 && (
-              <div className="mt-8 pt-6 border-t border-slate-100 no-print">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Uploaded Requirements</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {detailRecord.attachments.map((att: any) => {
-                    const [docTitle, docNote] = att.document_type ? att.document_type.split(' | Note: ') : [att.file_name, ''];
-                    return (
-                      <div key={att.id} className="flex flex-col p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <FileText className="h-5 w-5 text-[#4A0E17] shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-slate-700 truncate">{docTitle}</p>
-                              <p className="text-[10px] text-slate-450 mt-0.5 truncate">
-                                {att.file_name} ({(att.file_size / 1024).toFixed(1)} KB)
-                              </p>
-                              <p className="text-[9px] text-slate-400 mt-0.5">
-                                Uploaded: {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              onClick={() => setViewAttachment(att)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-150 transition cursor-pointer"
-                              title="View Attachment"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <a
-                              href={`/api/v1/attachments/${att.id}/download?token=${token}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-150 transition"
-                              title="Download"
-                            >
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </div>
-                        </div>
-                        {docNote && (
-                          <div className="pl-7 pr-3 py-1.5 bg-amber-50/40 border-l-2 border-amber-400 rounded-r-lg">
-                            <p className="text-[11px] text-amber-800 leading-tight font-medium">Note: {docNote}</p>
-                          </div>
-                        )}
+                  <div className="p-5 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Assured Name</label>
+                        <input type="text" value={selectedRecord.assured_name} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
                       </div>
-                    );
-                  })}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Contact Number</label>
+                        <input type="text" value={selectedRecord.contact_number || '—'} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Email Address</label>
+                        <input type="text" value={selectedRecord.email_address || '—'} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Insurance Provider</label>
+                        <input type="text" value={selectedRecord.insurance_provider} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Plate Number</label>
+                        <input type="text" value={selectedRecord.plate_number || '—'} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Policy Number</label>
+                        <input type="text" value={selectedRecord.policy_number} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Inception Date</label>
+                        <input type="text" value={selectedRecord.inception_date ? new Date(selectedRecord.inception_date).toLocaleDateString() : '—'} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Accident Date</label>
+                        <input type="text" value={new Date(selectedRecord.accident_date).toLocaleDateString()} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Claim Count</label>
+                        <input type="text" value={selectedRecord.claim_count || '—'} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type of Claim</label>
+                        <input type="text" value={determineClaimType(selectedRecord.nature_of_claims) || '—'} disabled
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nature of Claims / Details</label>
+                        <textarea value={stripRequirementsPrefix(selectedRecord.nature_of_claims)} disabled rows={8}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">NOTE</label>
+                        <textarea value={selectedRecord.notes || ''} disabled rows={3}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none cursor-not-allowed" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {/* Upload form in Detail View for Acknowledged status and non-Claims-Officer */}
-            {selectedRecord && selectedRecord.status === 'acknowledged' && !isClaimsOfficer && (() => {
-              const detailClaimType = getDetailClaimType(detailRecord?.nature_of_claims);
-              return (
-                <div className="mt-8 pt-6 border-t border-slate-150 no-print space-y-6">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-[#4A0E17]" />
-                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Upload Claim Requirements</h4>
+                {/* Uploaded Requirements List */}
+                {uploadedRequirementsSection}
+
+                {/* Requirements Upload Form */}
+                {uploadFormSection}
+              </div>
+
+              {/* Right column: Live Document Preview */}
+              <div>
+                {/* Simulated Paper Preview */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+                  <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-white/80" />
+                    <h3 className="text-sm font-bold text-white">Live Document Preview</h3>
                   </div>
                   
-                  {/* Own Damage Requirements */}
-                  {(detailClaimType === 'OWN DAMAGE' || detailClaimType === 'OWN DAMAGE & TTPD') && (
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                      <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Own Damage Claim Requirements (Upload Attachments)</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {OWN_DAMAGE_REQUIREMENTS.map((req) => (
-                          <div key={req.key} className="space-y-1">
-                            <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
-                            <div className="flex flex-col gap-1.5">
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="file"
-                                  id={`detail-file-${req.key}`}
-                                  multiple
-                                  onChange={(e) => {
-                                    const files = Array.from(e.target.files || []);
-                                    if (files.length > 0) {
-                                      setRequirementFiles((prev) => ({
-                                        ...prev,
-                                        [req.key]: [...(prev[req.key] || []), ...files],
-                                      }));
-                                    }
-                                  }}
-                                  className="hidden"
-                                />
-                                <label
-                                  htmlFor={`detail-file-${req.key}`}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                                >
-                                  <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                                  <span>Choose File</span>
-                                </label>
-                                {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
-                                  <span className="text-xs text-slate-400 italic">No files selected</span>
-                                )}
-                              </div>
-
-                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                                <div className="flex flex-wrap gap-1.5">
-                                  {requirementFiles[req.key].map((file, idx) => (
-                                    <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
-                                      <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
-                                      <span className="truncate max-w-[120px]">{file.name}</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setRequirementFiles((prev) => {
-                                            const list = (prev[req.key] || []).filter((_, i) => i !== idx);
-                                            const copy = { ...prev };
-                                            if (list.length === 0) {
-                                              delete copy[req.key];
-                                            } else {
-                                              copy[req.key] = list;
-                                            }
-                                            return copy;
-                                          });
-                                        }}
-                                        className="text-slate-450 hover:text-red-500 transition cursor-pointer"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                              <div className="mt-1">
-                                <input
-                                  type="text"
-                                  placeholder="Add a brief note for this file..."
-                                  value={requirementNotes[req.key] || ''}
-                                  onChange={(e) => {
-                                    setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
-                                  }}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
-                                />
-                              </div>
-                            )}
+                  {/* Simulating Paper Page */}
+                  <div className="p-6 md:p-8 flex-1 bg-white">
+                    <div className="border border-slate-150 rounded-2xl shadow-inner p-6 space-y-6">
+                      {/* Header section */}
+                      <div className="flex justify-between items-center pb-4 border-b border-[#4A0E17]">
+                        <div className="flex items-center gap-2">
+                          <img src={logoImg} alt="Logo" className="h-10 w-10 rounded-lg border border-slate-100 object-cover" />
+                          <div>
+                            <h4 className="text-[#4A0E17] font-black text-sm tracking-wider">SUPREMOGEN</h4>
+                            <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest">Insurance Services</p>
                           </div>
-                        ))}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                            Official Document
+                          </p>
+                          <p className="text-xs font-bold text-slate-650 mt-0.5">
+                            {selectedRecord.reference_number}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Third Party (TTPD) Requirements */}
-                  {(detailClaimType === 'TPPD' || detailClaimType === 'OWN DAMAGE & TTPD') && (
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                      <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Third Party (TTPD) Claim Requirements (Upload Attachments)</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {TTPD_REQUIREMENTS.map((req) => (
-                          <div key={req.key} className="space-y-1">
-                            <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
-                            <div className="flex flex-col gap-1.5">
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="file"
-                                  id={`detail-file-${req.key}`}
-                                  multiple
-                                  onChange={(e) => {
-                                    const files = Array.from(e.target.files || []);
-                                    if (files.length > 0) {
-                                      setRequirementFiles((prev) => ({
-                                        ...prev,
-                                        [req.key]: [...(prev[req.key] || []), ...files],
-                                      }));
-                                    }
-                                  }}
-                                  className="hidden"
-                                />
-                                <label
-                                  htmlFor={`detail-file-${req.key}`}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                                >
-                                  <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                                  <span>Choose File</span>
-                                </label>
-                                {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
-                                  <span className="text-xs text-slate-400 italic">No files selected</span>
-                                )}
-                              </div>
+                      {/* Subject */}
+                      <div className="border-l-2 border-[#4A0E17] pl-3 py-0.5">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attention: Claims Department</p>
+                        <h5 className="text-xs font-bold text-[#4A0E17] uppercase tracking-wide mt-0.5">
+                          SUBJECT: CLAIM NOTIFICATION - {selectedRecord.assured_name || '—'}
+                        </h5>
+                      </div>
 
-                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                                <div className="flex flex-wrap gap-1.5">
-                                  {requirementFiles[req.key].map((file, idx) => (
-                                    <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
-                                      <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
-                                      <span className="truncate max-w-[120px]">{file.name}</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setRequirementFiles((prev) => {
-                                            const list = (prev[req.key] || []).filter((_, i) => i !== idx);
-                                            const copy = { ...prev };
-                                            if (list.length === 0) {
-                                              delete copy[req.key];
-                                            } else {
-                                              copy[req.key] = list;
-                                            }
-                                            return copy;
-                                          });
-                                        }}
-                                        className="text-slate-455 hover:text-red-500 transition cursor-pointer"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                              <div className="mt-1">
-                                <input
-                                  type="text"
-                                  placeholder="Add a brief note for this file..."
-                                  value={requirementNotes[req.key] || ''}
-                                  onChange={(e) => {
-                                    setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
-                                  }}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
-                                />
-                              </div>
-                            )}
+                      {/* Details Table */}
+                      <div className="border border-slate-150 rounded-xl overflow-hidden">
+                        <table className="min-w-full divide-y divide-slate-150 text-xs">
+                          <tbody className="divide-y divide-slate-150 bg-white">
+                            {[
+                              { label: 'Assured Name', value: selectedRecord.assured_name || '—' },
+                              { label: 'Contact Number', value: selectedRecord.contact_number || '—' },
+                              { label: 'Email Address', value: selectedRecord.email_address || '—' },
+                              { label: 'Insurance Provider', value: selectedRecord.insurance_provider || '—' },
+                              { label: 'Plate Number', value: selectedRecord.plate_number || '—' },
+                              { label: 'Policy Number', value: selectedRecord.policy_number || '—' },
+                              { label: 'Inception Date', value: selectedRecord.inception_date ? new Date(selectedRecord.inception_date).toLocaleDateString() : '—' },
+                              { label: 'Accident Date', value: selectedRecord.accident_date ? new Date(selectedRecord.accident_date).toLocaleDateString() : '—' },
+                            ].map((row, idx) => (
+                              <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}>
+                                <td className="px-4 py-2 font-semibold text-slate-400 w-1/3">{row.label}</td>
+                                <td className="px-4 py-2 font-medium text-slate-700">{row.value}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Nature of claims */}
+                      <div className="space-y-1">
+                        <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nature of Claims</h5>
+                        <div className="bg-slate-50/80 border border-slate-150 rounded-xl p-3 text-xs text-slate-650 leading-relaxed whitespace-pre-wrap min-h-[60px]">
+                          {stripRequirementsPrefix(selectedRecord.nature_of_claims) || 'No details provided...'}
+                        </div>
+                      </div>
+
+                      {/* Notes */}
+                      {selectedRecord.notes && (
+                        <div className="space-y-1">
+                          <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Additional Notes</h5>
+                          <div className="bg-amber-50/30 border border-amber-100 rounded-xl p-3 text-xs text-amber-800 leading-relaxed whitespace-pre-wrap">
+                            {selectedRecord.notes}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Additional Custom Attachments */}
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Paperclip className="h-4 w-4 text-[#4A0E17]" />
-                        <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Additional Attachments</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCustomAttachments((prev) => [
-                            ...prev,
-                            {
-                              id: Math.random().toString(36).substring(2, 9),
-                              label: '',
-                              file: null,
-                              note: '',
-                            },
-                          ]);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#4A0E17]/30 hover:bg-[#4A0E17]/5 text-[#4A0E17] text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        <span>Add Attachment</span>
-                      </button>
-                    </div>
-
-                    {customAttachments.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {customAttachments.map((att) => (
-                          <div key={att.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 relative">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCustomAttachments((prev) => prev.filter((c) => c.id !== att.id));
-                              }}
-                              className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition cursor-pointer"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-
-                            <div className="space-y-1">
-                              <label className="block text-[10px] font-bold text-slate-500">Document Label</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. Excess Liability, Owner Photo..."
-                                value={att.label}
-                                onChange={(e) => {
-                                  setCustomAttachments((prev) =>
-                                    prev.map((c) => (c.id === att.id ? { ...c, label: e.target.value } : c))
-                                  );
-                                }}
-                                className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="block text-[10px] font-bold text-slate-500">File Attachment</label>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="file"
-                                  id={`detail-custom-file-${att.id}`}
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0] || null;
-                                    setCustomAttachments((prev) =>
-                                      prev.map((c) => (c.id === att.id ? { ...c, file } : c))
-                                    );
-                                  }}
-                                  className="hidden"
-                                />
-                                <label
-                                  htmlFor={`detail-custom-file-${att.id}`}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                                >
-                                  <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                                  <span>Choose File</span>
-                                </label>
-                                <span className="text-xs text-slate-500 truncate max-w-[150px]">
-                                  {att.file?.name || 'No file selected'}
-                                </span>
-                              </div>
-                            </div>
-
-                            {att.file && (
-                              <div className="space-y-1">
-                                <label className="block text-[10px] font-bold text-slate-500">Attachment Note</label>
-                                <input
-                                  type="text"
-                                  placeholder="Add a brief note for this file..."
-                                  value={att.note}
-                                  onChange={(e) => {
-                                    setCustomAttachments((prev) =>
-                                      prev.map((c) => (c.id === att.id ? { ...c, note: e.target.value } : c))
-                                    );
-                                  }}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">No additional attachments added. Click the button above to upload extra files.</p>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <button
-                      onClick={handleDetailUpload}
-                      disabled={isUploading || (Object.keys(requirementFiles).length === 0 && customAttachments.filter(c => c.file).length === 0)}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#4A0E17] rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
-                    >
-                      {isUploading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Uploading Files...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4" />
-                          <span>Upload Attachments</span>
-                        </>
+                        </div>
                       )}
-                    </button>
+
+                      {/* Signatures */}
+                      <div className="pt-6 grid grid-cols-2 gap-4 text-[10px] border-t border-slate-100">
+                        <div>
+                          <p className="font-bold text-slate-400 uppercase tracking-wider mb-4">Submitted By</p>
+                          <p className="font-bold text-slate-700">{submitter}</p>
+                          <p className="text-[9px] text-slate-400">Sales Agent / Representative</p>
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-400 uppercase tracking-wider mb-4">Acknowledged By</p>
+                          <p className="font-bold text-slate-700">{acknowledger || 'Pending Acknowledgment'}</p>
+                          <p className="text-[9px] text-slate-400">Claims Department</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              );
-            })()}
-          </div>
-        </div>
+              </div>
+            </div>
+            {renderPrintableDocument(true)}
+          </>
+        ) : (
+          renderPrintableDocument(false)
+        )}
 
         {/* Action buttons */}
         {isClaimsOfficer && (selectedRecord.status === 'pending' || selectedRecord.status === 'resubmitted') && (
@@ -1296,41 +1848,37 @@ export default function ClaimNotificationsPage() {
                 </div>
                 <div className="md:col-span-2 space-y-3">
                   <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Claim Count *</label>
+                    <select
+                      value={form.claim_count}
+                      onChange={(e) => {
+                        setForm({ ...form, claim_count: e.target.value });
+                        if (validationErrors.claim_count) {
+                          setValidationErrors((prev) => ({ ...prev, claim_count: false }));
+                        }
+                      }}
+                      className={getInputClass('claim_count') + " cursor-pointer"}
+                    >
+                      <option value="">Select Claim Count (e.g. 1st, 2nd...)</option>
+                      <option value="1st Claim">1st Claim</option>
+                      <option value="2nd Claim">2nd Claim</option>
+                      <option value="3rd Claim">3rd Claim</option>
+                      <option value="4th Claim">4th Claim</option>
+                      <option value="5th Claim">5th Claim</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type of Claim *</label>
                     <select
                       value={claimType}
                       onChange={(e) => {
                         const val = e.target.value;
                         setClaimType(val);
-                        if (val === 'OWN DAMAGE') {
-                          const reqs = `OWN DAMAGE CLAIM REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.`;
-                          setForm((prev) => ({ ...prev, nature_of_claims: reqs }));
-                          if (validationErrors.nature_of_claims) {
-                            setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
-                          }
-                        } else if (val === 'OWN DAMAGE & TTPD') {
-                          const reqs = `OWN DAMAGE & TPPD REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.\n\n--------------------------------------------------\n\nTHIRD PARTY (TTPD) CLAIM - REQUIREMENTS\n\n• Police report/Affidavit\n• Adverse Official Receipt and Certificate of Registration (ORCR)\n• Adverse Driver’s license\n• Adverse Repair Estimate\n• Adverse Certificate of no claim from his/her insurance provider\n• Adverse photos of damaged unit showing the plate number`;
-                          setForm((prev) => ({ ...prev, nature_of_claims: reqs }));
-                          if (validationErrors.nature_of_claims) {
-                            setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
-                          }
-                        } else if (val === 'TPPD') {
-                          const reqs = `THIRD PARTY (TTPD) CLAIM - REQUIREMENTS\n\n• Police report/Affidavit\n• Adverse Official Receipt and Certificate of Registration (ORCR)\n• Adverse Driver’s license\n• Adverse Repair Estimate\n• Adverse Certificate of no claim from his/her insurance provider\n• Adverse photos of damaged unit showing the plate number`;
-                          setForm((prev) => ({ ...prev, nature_of_claims: reqs }));
-                          if (validationErrors.nature_of_claims) {
-                            setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
-                          }
-                        } else if (val === 'ACT OF NATURE') {
-                          setForm((prev) => ({ ...prev, nature_of_claims: 'ACT OF NATURE CLAIM' }));
-                        } else if (val === 'THEFT AND LOSS') {
-                          setForm((prev) => ({ ...prev, nature_of_claims: 'THEFT AND LOSS CLAIM' }));
-                        } else if (val === 'CNC (CERTIFICATE OF NO CLAIM)') {
-                          setForm((prev) => ({ ...prev, nature_of_claims: 'CNC (CERTIFICATE OF NO CLAIM)' }));
-                        } else {
-                          setForm((prev) => ({ ...prev, nature_of_claims: '' }));
+                        if (validationErrors.claim_type) {
+                          setValidationErrors((prev) => ({ ...prev, claim_type: false }));
                         }
                       }}
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
+                      className={getInputClass('claim_type') + " cursor-pointer"}
                     >
                       <option value="">Select Type of Claim</option>
                       <option value="OWN DAMAGE">OWN DAMAGE</option>
@@ -1342,22 +1890,7 @@ export default function ClaimNotificationsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Claim Count</label>
-                    <select
-                      value={form.claim_count}
-                      onChange={(e) => setForm({ ...form, claim_count: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
-                    >
-                      <option value="">Select Claim Count (e.g. 1st, 2nd...)</option>
-                      <option value="1st Claim">1st Claim</option>
-                      <option value="2nd Claim">2nd Claim</option>
-                      <option value="3rd Claim">3rd Claim</option>
-                      <option value="4th Claim">4th Claim</option>
-                      <option value="5th Claim">5th Claim</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nature of Claims / Details *</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nature of Claims / Details</label>
                     <textarea value={form.nature_of_claims}
                       onChange={(e) => {
                         setForm({ ...form, nature_of_claims: e.target.value });
