@@ -162,7 +162,7 @@ export default function App() {
                 <Route path="summary" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Claims Officer']}><SummaryPage /></ProtectedRoute>} />
 
                 {/* Settings */}
-                <Route path="settings" element={<ProtectedRoute forbiddenRoles={['Claims Officer']}><SettingsPage /></ProtectedRoute>} />
+                <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
                 {/* Collection */}
                 <Route path="collection" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><CollectionPage /></ProtectedRoute>} />

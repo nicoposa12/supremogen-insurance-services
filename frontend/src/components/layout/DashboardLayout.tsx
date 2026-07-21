@@ -879,18 +879,16 @@ export default function DashboardLayout() {
                       <p className="text-sm font-medium text-slate-800">{user?.name}</p>
                       <p className="text-xs text-slate-500">{user?.email}</p>
                     </div>
-                    {!roles.includes('Claims Officer') && (
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          navigate('/dashboard/settings');
-                        }}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
-                      >
-                        <Settings className="h-4 w-4" />
-                        Settings
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        navigate('/dashboard/settings');
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Settings
+                    </button>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-slate-50 transition"
