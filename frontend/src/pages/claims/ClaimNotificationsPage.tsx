@@ -1636,7 +1636,7 @@ export default function ClaimNotificationsPage() {
                             ].map((row, idx) => (
                               <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}>
                                 <td className="px-4 py-2 font-semibold text-slate-400 w-1/3">{row.label}</td>
-                                <td className="px-4 py-2 font-medium text-slate-700">{row.value}</td>
+                                <td className="px-4 py-2 font-medium text-slate-700 uppercase">{row.value}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -2307,7 +2307,7 @@ export default function ClaimNotificationsPage() {
                       ].map((row, idx) => (
                         <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}>
                           <td className="px-4 py-2 font-semibold text-slate-400 w-1/3">{row.label}</td>
-                          <td className="px-4 py-2 font-medium text-slate-700">{row.value}</td>
+                          <td className="px-4 py-2 font-medium text-slate-700 uppercase">{row.value}</td>
                         </tr>
                       ))}
                     </tbody>
