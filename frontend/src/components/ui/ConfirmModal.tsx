@@ -39,21 +39,21 @@ export default function ConfirmModal({
 
   const btnClass =
     variant === 'danger'
-      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+      ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 focus:ring-rose-500/20 active:scale-[0.98] shadow-lg shadow-rose-600/10'
       : variant === 'warning'
-      ? 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500'
+      ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 focus:ring-amber-500/20 active:scale-[0.98] shadow-lg shadow-amber-500/10'
       : variant === 'success'
-      ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
-      : 'bg-[#4A0E17] hover:bg-[#3D0B12] focus:ring-[#4A0E17]';
+      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500/20 active:scale-[0.98] shadow-lg shadow-emerald-500/10'
+      : 'bg-gradient-to-r from-[#4A0E17] to-[#7A1C2E] hover:from-[#3D0B12] hover:to-[#5E1220] focus:ring-[#4A0E17]/20 active:scale-[0.98] shadow-lg shadow-[#4A0E17]/10';
 
-  const iconBg =
+  const iconColorClass =
     variant === 'danger'
-      ? 'bg-red-100 text-red-600'
+      ? 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600 border border-rose-200/50'
       : variant === 'warning'
-      ? 'bg-amber-100 text-amber-600'
+      ? 'bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 border border-amber-200/50'
       : variant === 'success'
-      ? 'bg-emerald-100 text-emerald-600'
-      : 'bg-slate-100 text-[#4A0E17]';
+      ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 border border-emerald-200/50'
+      : 'bg-gradient-to-br from-[#4A0E17]/5 to-[#4A0E17]/10 text-[#4A0E17] border border-[#4A0E17]/10';
 
   const Icon =
     variant === 'success'
@@ -66,42 +66,47 @@ export default function ConfirmModal({
     <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs animate-fade-in cursor-pointer"
         onClick={onCancel}
       />
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+      {/* Modal Container */}
+      <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 md:p-8 overflow-hidden animate-scale-up z-10 cursor-default">
+        {/* Close Button */}
         <button
           onClick={onCancel}
-          className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+          className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-650 hover:bg-slate-100 transition cursor-pointer"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <div className="flex items-start gap-4">
-          <div className={`p-2.5 rounded-xl shrink-0 ${iconBg}`}>
-            <Icon className="h-6 w-6" />
+        {/* Content Layout */}
+        <div className="flex flex-col items-center text-center mt-3">
+          {/* Centered Circular Icon */}
+          <div className={`p-4 rounded-full flex items-center justify-center shrink-0 mb-5 shadow-inner ${iconColorClass}`}>
+            <Icon className="h-8 w-8" />
           </div>
 
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-            <p className="mt-1 text-sm text-slate-500 leading-relaxed">{message}</p>
+          {/* Title & Message */}
+          <div className="space-y-2">
+            <h3 className="text-xl font-extrabold text-slate-800 tracking-tight">{title}</h3>
+            <p className="text-sm text-slate-500 leading-relaxed">{message}</p>
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-end gap-3">
+        {/* Buttons Grid */}
+        <div className="mt-8 flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
           <button
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+            className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition cursor-pointer"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-xl transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 cursor-pointer ${btnClass}`}
+            className={`px-6 py-2.5 text-sm font-semibold text-white rounded-xl shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${btnClass}`}
           >
             {loading ? 'Processing...' : confirmLabel}
           </button>

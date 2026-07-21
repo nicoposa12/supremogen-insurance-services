@@ -1458,7 +1458,7 @@ export default function ClaimNotificationsPage() {
             <p className="text-sm text-slate-500">Claim Notification Detail</p>
           </div>
           <div className="flex items-center gap-2">
-            {isClaimsOfficer && selectedRecord.status === 'acknowledged' && (
+            {isClaimsOfficer && (selectedRecord.status === 'acknowledged' || selectedRecord.status === 'pending' || selectedRecord.status === 'resubmitted') && (
               <button
                 onClick={() => {
                   const config = getProviderConfig(selectedRecord.insurance_provider);
@@ -1717,6 +1717,7 @@ export default function ClaimNotificationsPage() {
             title="Acknowledge Claim Notification"
             message={`Are you sure you want to acknowledge claim notification ${acknowledgeTarget.reference_number}?`}
             confirmLabel="Acknowledge"
+            variant="success"
             onConfirm={() => acknowledgeMut.mutate(acknowledgeTarget.id)}
             onCancel={() => setAcknowledgeTarget(null)}
             loading={acknowledgeMut.isPending}
@@ -2048,7 +2049,10 @@ export default function ClaimNotificationsPage() {
                         return (
                           <div
                             key={cust.id}
-                            onClick={() => handleSelectCustomer(cust)}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelectCustomer(cust);
+                            }}
                             className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
                           >
                             <p className="text-sm font-semibold text-slate-800">{name}</p>
@@ -2116,7 +2120,10 @@ export default function ClaimNotificationsPage() {
                         return (
                           <div
                             key={cust.id}
-                            onClick={() => handleSelectCustomer(cust)}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelectCustomer(cust);
+                            }}
                             className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
                           >
                             <p className="text-sm font-semibold text-slate-800">{cust.plate_no}</p>
@@ -2581,8 +2588,14 @@ export default function ClaimNotificationsPage() {
       )}
 
       {returnTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden animate-scale-in">
+        <div
+          onClick={() => { setReturnTarget(null); setReturnReason(''); }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden animate-scale-in cursor-default"
+          >
             <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between">
               <h3 className="text-white font-bold text-base">Return Claim Notification</h3>
               <button onClick={() => { setReturnTarget(null); setReturnReason(''); }} className="text-white/80 hover:text-white">
@@ -2627,8 +2640,14 @@ export default function ClaimNotificationsPage() {
       {viewAttachment && (() => {
         const [docTitle, docNote] = viewAttachment.document_type ? viewAttachment.document_type.split(' | Note: ') : [viewAttachment.file_name, ''];
         return (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh]">
+          <div
+            onClick={() => setViewAttachment(null)}
+            className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print cursor-pointer"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh] cursor-default"
+            >
               <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
                   <h3 className="text-white font-bold text-base">{docTitle}</h3>
