@@ -371,6 +371,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       policy_number: record.policy_number,
       inception_date: formatDate(record.inception_date),
       accident_date: formatDate(record.accident_date),
+      accident_reason: record.accident_reason || '',
       nature_of_claims: stripRequirementsPrefix(record.nature_of_claims),
       notes: record.notes || '',
       claim_count: record.claim_count || '',
@@ -396,6 +397,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     policy_number: '',
     inception_date: '',
     accident_date: '',
+    accident_reason: '',
     nature_of_claims: '',
     notes: '',
     claim_count: '',
@@ -417,6 +419,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       policy_number: '',
       inception_date: '',
       accident_date: '',
+      accident_reason: '',
       nature_of_claims: '',
       notes: '',
       claim_count: '',
@@ -501,6 +504,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       policy_number: customer.policy_no || '',
       inception_date: formatInputDate(customer.inception_date),
       accident_date: form.accident_date,
+      accident_reason: form.accident_reason,
       nature_of_claims: form.nature_of_claims,
       notes: form.notes,
       claim_count: form.claim_count,
@@ -527,10 +531,28 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     placeholderData: (prev) => prev,
   });
 
+  const [completedDocFilter, setCompletedDocFilter] = useState<string>('all');
+
   const rawRecords = response?.data?.data ?? [];
-  const records = rawRecords.filter((r) =>
-    completedOnly ? r.status === 'completed' : r.status !== 'completed'
-  );
+  const records = rawRecords
+    .filter((r) => (completedOnly ? r.status === 'completed' : r.status !== 'completed'))
+    .filter((r) => {
+      if (completedOnly && completedDocFilter && completedDocFilter !== 'all') {
+        const atts = r.attachments || [];
+        const target = completedDocFilter.trim().toUpperCase();
+        return atts.some((att: any) => {
+          if (!att.document_type) return false;
+          const [docTitle] = att.document_type.split(' | Note: ');
+          const clean = docTitle.trim().toUpperCase();
+          if (target === 'EVALUATION LETTER') return clean.includes('EVALUATION');
+          if (target === 'LOA') return clean.includes('LOA') || clean.includes('LETTER OF AUTHORITY');
+          if (target === 'OFFER LETTER') return clean.includes('OFFER');
+          if (target === 'DENIED CLAIM') return clean.includes('DENIED');
+          return clean.includes(target);
+        });
+      }
+      return true;
+    });
   const pagination = response?.data;
 
   const { data: detailResponse, isLoading: isDetailLoading } = useQuery({
@@ -1690,6 +1712,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   { label: 'Policy Number', value: selectedRecord.policy_number },
                   { label: 'Inception Date', value: selectedRecord.inception_date ? new Date(selectedRecord.inception_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
                   { label: 'Accident Date', value: new Date(selectedRecord.accident_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
+                  { label: 'Reason of Accident', value: selectedRecord.accident_reason || '—' },
                   { label: 'Claim Count', value: selectedRecord.claim_count || '—' },
                 ].map((row, idx) => (
                   <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
@@ -1700,6 +1723,16 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
               </tbody>
             </table>
           </div>
+
+          {/* Reason of Accident */}
+          {selectedRecord.accident_reason && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reason / Cause of Accident</h4>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                {selectedRecord.accident_reason}
+              </div>
+            </div>
+          )}
 
           {/* Nature of claims */}
           <div className="space-y-2">
@@ -2122,6 +2155,13 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                     }}
                     max={new Date().toISOString().split('T')[0]}
                     className={getInputClass('accident_date')} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Reason / Cause of Accident</label>
+                  <textarea value={form.accident_reason || ''} rows={3}
+                    placeholder="Describe what happened or the reason/cause of the accident..."
+                    onChange={(e) => setForm({ ...form, accident_reason: e.target.value })}
+                    className={getInputClass('accident_reason')} />
                 </div>
                 <div className="md:col-span-2 space-y-3">
                   <div>
@@ -2976,26 +3016,35 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
           <div className="relative w-full sm:w-48 shrink-0">
             <select
-              value={completedOnly ? 'completed' : (params.status || 'all')}
-              disabled={completedOnly}
+              value={completedOnly ? completedDocFilter : (params.status || 'all')}
               onChange={(e) => {
                 const val = e.target.value;
-                setParams((p) => ({ ...p, status: val === 'all' ? undefined : val, page: 1 }));
-                setSearchParams((prev) => {
-                  const next = new URLSearchParams(prev);
-                  if (val && val !== 'all') {
-                    next.set('status', val);
-                  } else {
-                    next.delete('status');
-                  }
-                  next.set('page', '1');
-                  return next;
-                }, { replace: true });
+                if (completedOnly) {
+                  setCompletedDocFilter(val);
+                } else {
+                  setParams((p) => ({ ...p, status: val === 'all' ? undefined : val, page: 1 }));
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    if (val && val !== 'all') {
+                      next.set('status', val);
+                    } else {
+                      next.delete('status');
+                    }
+                    next.set('page', '1');
+                    return next;
+                  }, { replace: true });
+                }
               }}
-              className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition appearance-none cursor-pointer font-medium disabled:opacity-80"
+              className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition appearance-none cursor-pointer font-medium"
             >
               {completedOnly ? (
-                <option value="completed">Completed Requirements</option>
+                <>
+                  <option value="all">All Completed Documents</option>
+                  <option value="EVALUATION LETTER">Evaluation Letter</option>
+                  <option value="LOA">LOA</option>
+                  <option value="OFFER LETTER">Offer Letter</option>
+                  <option value="DENIED CLAIM">Denied Claim</option>
+                </>
               ) : (
                 <>
                   <option value="all">Active Notifications</option>

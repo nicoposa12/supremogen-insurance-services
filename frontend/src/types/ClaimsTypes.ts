@@ -110,6 +110,7 @@ export interface ClaimNotification {
   policy_number: string;
   inception_date: string | null;
   accident_date: string;
+  accident_reason?: string | null;
   nature_of_claims: string;
   notes: string | null;
   claim_count?: string | null;
@@ -131,6 +132,7 @@ export interface ClaimNotificationFormData {
   policy_number: string;
   inception_date: string;
   accident_date: string;
+  accident_reason: string;
   nature_of_claims: string;
   notes: string;
   claim_count: string;

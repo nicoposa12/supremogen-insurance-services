@@ -25,6 +25,7 @@ class ClaimNotificationController extends Controller
         $query = ClaimNotification::with([
             'submittedBy:id,name',
             'acknowledgedBy:id,name',
+            'attachments',
         ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'));
@@ -69,8 +70,8 @@ class ClaimNotificationController extends Controller
             'insurance_provider' => 'required|string|max:255',
             'plate_number'       => 'nullable|string|max:30',
             'policy_number'      => 'required|string|max:50',
-            'inception_date'     => 'nullable|date',
             'accident_date'      => 'required|date|before_or_equal:today',
+            'accident_reason'    => 'nullable|string|max:5000',
             'nature_of_claims'   => 'nullable|string|max:5000',
             'notes'              => 'nullable|string|max:5000',
             'claim_count'        => 'required|string|max:255',
@@ -94,6 +95,7 @@ class ClaimNotificationController extends Controller
             'policy_number'      => $request->input('policy_number'),
             'inception_date'     => $request->input('inception_date'),
             'accident_date'      => $request->input('accident_date'),
+            'accident_reason'    => $request->input('accident_reason'),
             'nature_of_claims'   => $request->input('nature_of_claims') ?? '',
             'notes'              => $request->input('notes'),
             'claim_count'        => $request->input('claim_count'),
@@ -347,9 +349,8 @@ class ClaimNotificationController extends Controller
             'email_address'      => 'nullable|email|max:255',
             'insurance_provider' => 'required|string|max:255',
             'plate_number'       => 'nullable|string|max:30',
-            'policy_number'      => 'required|string|max:50',
-            'inception_date'     => 'nullable|date',
             'accident_date'      => 'required|date|before_or_equal:today',
+            'accident_reason'    => 'nullable|string|max:5000',
             'nature_of_claims'   => 'nullable|string|max:5000',
             'notes'              => 'nullable|string|max:5000',
             'claim_count'        => 'required|string|max:255',
@@ -372,6 +373,7 @@ class ClaimNotificationController extends Controller
             'policy_number'      => $request->input('policy_number'),
             'inception_date'     => $request->input('inception_date'),
             'accident_date'      => $request->input('accident_date'),
+            'accident_reason'    => $request->input('accident_reason'),
             'nature_of_claims'   => $request->input('nature_of_claims') ?? '',
             'notes'              => $request->input('notes'),
             'claim_count'        => $request->input('claim_count'),

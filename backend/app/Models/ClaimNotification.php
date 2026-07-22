@@ -18,6 +18,7 @@ class ClaimNotification extends Model
         'policy_number',
         'inception_date',
         'accident_date',
+        'accident_reason',
         'nature_of_claims',
         'notes',
         'claim_count',
