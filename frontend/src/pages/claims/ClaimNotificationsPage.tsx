@@ -298,7 +298,7 @@ export default function ClaimNotificationsPage() {
 
   const stripRequirementsPrefix = (text: string | undefined): string => {
     if (!text) return '';
-    
+
     // 1. Clean up new bracketed headers
     const bracketRegex = /^\[(OWN DAMAGE CLAIM REQUIREMENTS & THIRD PARTY \(TTPD\) CLAIM - REQUIREMENTS|OWN DAMAGE CLAIM REQUIREMENTS|THIRD PARTY \(TTPD\) CLAIM - REQUIREMENTS|ACT OF NATURE CLAIM|THEFT AND LOSS CLAIM|CNC \(CERTIFICATE OF NO CLAIM\))\]\n?\n?/;
     if (bracketRegex.test(text)) {
@@ -307,7 +307,7 @@ export default function ClaimNotificationsPage() {
 
     // 2. Clean up old giant requirement lists
     const oldOwnDamageTtpd = `OWN DAMAGE & TPPD REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.\n\n--------------------------------------------------\n\nTHIRD PARTY (TTPD) CLAIM - REQUIREMENTS\n\n• Police report/Affidavit\n• Adverse Official Receipt and Certificate of Registration (ORCR)\n• Adverse Driver’s license\n• Adverse Repair Estimate\n• Adverse Certificate of no claim from his/her insurance provider\n• Adverse photos of damaged unit showing the plate number`;
-    
+
     const oldOwnDamage = `OWN DAMAGE CLAIM REQUIREMENTS\n\n1. Original Police Report OR Notarized Affidavit\n2. Readable copy of ORCR\n3. Clear copy of Drivers license (Back and Front) with copy of OR\n4. Clear Pictures of Damages of the vehicle\n5. (4 Sides) Clear Pictures of the Vehicle Isometric View\n6. Repair Estimate with Contact number\n7. Picture of Odometer Reading\n8. Picture of Stencil or Vin plate\n• Authorization letter and valid ID from assured (if driven by authorized driver)\n\nTo proceed with the processing of this claim, kindly ensure that the full payment has been settled.`;
 
     const oldTtpd = `THIRD PARTY (TTPD) CLAIM - REQUIREMENTS\n\n• Police report/Affidavit\n• Adverse Official Receipt and Certificate of Registration (ORCR)\n• Adverse Driver’s license\n• Adverse Repair Estimate\n• Adverse Certificate of no claim from his/her insurance provider\n• Adverse photos of damaged unit showing the plate number`;
@@ -705,11 +705,10 @@ export default function ClaimNotificationsPage() {
   const statusFilters = ['all', 'pending', 'returned', 'acknowledged'];
   const getInputClass = (fieldName: string) => {
     const hasError = validationErrors[fieldName];
-    return `w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none transition ${
-      hasError
-        ? 'border-red-500 focus:ring-2 focus:ring-red-200/50 focus:border-red-500 shadow-sm shadow-red-500/10'
-        : 'border-slate-200 focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]'
-    }`;
+    return `w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none transition ${hasError
+      ? 'border-red-500 focus:ring-2 focus:ring-red-200/50 focus:border-red-500 shadow-sm shadow-red-500/10'
+      : 'border-slate-200 focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]'
+      }`;
   };
 
   // ─── Detail View ────────────────────────────
@@ -721,50 +720,102 @@ export default function ClaimNotificationsPage() {
       ? selectedRecord.acknowledged_by.name
       : null;
 
+    // Helper to calculate whether an attachment is the NEW FILE (latest) or OLD FILE (previous version)
+    const getFileAgeBadge = (att: any, allAtts: any[] = []) => {
+      const [docTitle] = (att.document_type || '').split(' | Note: ');
+      const titleClean = docTitle.trim().toLowerCase();
+
+      const sameTypeAtts = (allAtts || [])
+        .filter((a) => {
+          const [t] = (a.document_type || '').split(' | Note: ');
+          return t.trim().toLowerCase() === titleClean;
+        })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      if (sameTypeAtts.length === 0) return null;
+      const isLatest = sameTypeAtts[0].id === att.id;
+
+      if (isLatest) {
+        return (
+          <span className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-wider shrink-0 shadow-2xs">
+            NEW FILE
+          </span>
+        );
+      }
+      return (
+        <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 text-[9px] font-bold uppercase tracking-wider shrink-0">
+          OLD FILE
+        </span>
+      );
+    };
+
     // Define the upload list section
     const uploadedRequirementsSection = detailRecord && detailRecord.attachments && detailRecord.attachments.length > 0 && (
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
-        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Uploaded Requirements</h4>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              Uploaded Requirements ({detailRecord.attachments.length})
+            </h4>
+          </div>
+          <span className="text-[11px] text-slate-400 font-medium">
+            Submitted Claim Documents
+          </span>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {detailRecord.attachments.map((att: any) => {
             const [docTitle, docNote] = att.document_type ? att.document_type.split(' | Note: ') : [att.file_name, ''];
+            const badge = getFileAgeBadge(att, detailRecord.attachments || []);
             return (
-              <div key={att.id} className="flex flex-col p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <FileText className="h-5 w-5 text-[#4A0E17] shrink-0" />
+              <div
+                key={att.id}
+                className="flex flex-col justify-between p-3.5 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-xl space-y-2.5 transition shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="p-2 bg-white rounded-lg border border-slate-200/60 shadow-2xs shrink-0 mt-0.5">
+                      <FileText className="h-4 w-4 text-[#4A0E17]" />
+                    </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-700 truncate">{docTitle}</p>
-                      <p className="text-[10px] text-slate-450 mt-0.5 truncate">
-                        {att.file_name} ({(att.file_size / 1024).toFixed(1)} KB)
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-xs font-bold text-slate-800 truncate" title={docTitle}>{docTitle}</p>
+                        {badge}
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 truncate" title={att.file_name}>
+                        {att.file_name} <span className="text-slate-400">({(att.file_size / 1024).toFixed(1)} KB)</span>
                       </p>
-                      <p className="text-[9px] text-slate-400 mt-0.5">
+                      <p className="text-[10px] text-slate-400 mt-0.5">
                         Uploaded: {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
+                      type="button"
                       onClick={() => setViewAttachment(att)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-150 transition cursor-pointer"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-white transition cursor-pointer border border-transparent hover:border-slate-200"
                       title="View Attachment"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3.5 w-3.5" />
                     </button>
                     <a
                       href={`/api/v1/attachments/${att.id}/download?token=${token}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-150 transition"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition border border-transparent hover:border-slate-200"
                       title="Download"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3.5 w-3.5" />
                     </a>
                   </div>
                 </div>
+
                 {docNote && (
-                  <div className="pl-7 pr-3 py-1.5 bg-amber-50/40 border-l-2 border-amber-400 rounded-r-lg">
-                    <p className="text-[11px] text-amber-800 leading-tight font-medium">Note: {docNote}</p>
+                  <div className="px-2.5 py-1.5 bg-amber-50/60 border-l-2 border-amber-400 rounded-r-lg text-[11px] text-amber-900 font-medium">
+                    Note: {docNote}
                   </div>
                 )}
               </div>
@@ -777,13 +828,112 @@ export default function ClaimNotificationsPage() {
     // Define the upload form section
     const uploadFormSection = selectedRecord && selectedRecord.status === 'acknowledged' && !isClaimsOfficer && (() => {
       const detailClaimType = getDetailClaimType(detailRecord?.nature_of_claims);
+
+      const renderUploadedRequirementFiles = (reqLabel: string) => {
+        if (!detailRecord?.attachments || detailRecord.attachments.length === 0) return null;
+        const reqClean = reqLabel.trim().toLowerCase();
+
+        const matchingAttachments = detailRecord.attachments
+          .filter((att: any) => {
+            if (!att.document_type) return false;
+            const [docTitle] = att.document_type.split(' | Note: ');
+            const titleClean = docTitle.trim().toLowerCase();
+            const titleNoNum = titleClean.replace(/^[0-[#\.\s]+/, '').trim();
+            const reqNoNum = reqClean.replace(/^[0-[#\.\s]+/, '').trim();
+            return (
+              titleClean === reqClean ||
+              titleClean.includes(reqClean) ||
+              reqClean.includes(titleClean) ||
+              (titleNoNum.length > 3 && reqNoNum.length > 3 && (titleNoNum.includes(reqNoNum) || reqNoNum.includes(titleNoNum)))
+            );
+          })
+          .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        if (matchingAttachments.length === 0) return null;
+
+        return (
+          <div className="space-y-1.5 mt-2 pt-2 border-t border-slate-200/60">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              Already Uploaded ({matchingAttachments.length}):
+            </span>
+            <div className="space-y-1.5">
+              {matchingAttachments.map((att: any, idx: number) => {
+                const [docTitle, docNote] = att.document_type
+                  ? att.document_type.split(' | Note: ')
+                  : [att.file_name, ''];
+                const isNew = idx === 0;
+                return (
+                  <div
+                    key={att.id}
+                    className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs border transition-all ${
+                      isNew
+                        ? 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900 shadow-2xs'
+                        : 'bg-slate-50/80 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className={`h-3.5 w-3.5 shrink-0 ${isNew ? 'text-emerald-600' : 'text-slate-400'}`} />
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[150px]" title={att.file_name}>
+                          {att.file_name}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          ({(att.file_size / 1024).toFixed(1)} KB)
+                        </span>
+                        {isNew ? (
+                          <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-wider shadow-2xs">
+                            NEW FILE
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 text-[9px] font-bold uppercase tracking-wider">
+                            OLD FILE
+                          </span>
+                        )}
+                        {docNote && (
+                          <span className="text-[10px] text-amber-700 italic truncate max-w-[120px]" title={`Note: ${docNote}`}>
+                            Note: {docNote}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <span className="text-[9px] text-slate-400 font-medium hidden sm:inline">
+                        {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setViewAttachment(att)}
+                        className="p-1 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-white transition cursor-pointer"
+                        title="View Attachment"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      <a
+                        href={`/api/v1/attachments/${att.id}/download?token=${token}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition"
+                        title="Download"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      };
+
       return (
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-6 no-print">
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-[#4A0E17]" />
             <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Upload Claim Requirements</h4>
           </div>
-          
+
           {/* Own Damage Requirements */}
           {(detailClaimType === 'OWN DAMAGE' || detailClaimType === 'OWN DAMAGE & TTPD') && (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
@@ -863,6 +1013,7 @@ export default function ClaimNotificationsPage() {
                         />
                       </div>
                     )}
+                    {renderUploadedRequirementFiles(req.label)}
                   </div>
                 ))}
               </div>
@@ -948,6 +1099,7 @@ export default function ClaimNotificationsPage() {
                         />
                       </div>
                     )}
+                    {renderUploadedRequirementFiles(req.label)}
                   </div>
                 ))}
               </div>
@@ -1033,6 +1185,7 @@ export default function ClaimNotificationsPage() {
                         />
                       </div>
                     )}
+                    {renderUploadedRequirementFiles(req.label)}
                   </div>
                 ))}
               </div>
@@ -1118,6 +1271,7 @@ export default function ClaimNotificationsPage() {
                         />
                       </div>
                     )}
+                    {renderUploadedRequirementFiles(req.label)}
                   </div>
                 ))}
               </div>
@@ -1203,6 +1357,7 @@ export default function ClaimNotificationsPage() {
                         />
                       </div>
                     )}
+                    {renderUploadedRequirementFiles(req.label)}
                   </div>
                 ))}
               </div>
@@ -1589,7 +1744,7 @@ export default function ClaimNotificationsPage() {
                     <Eye className="h-4 w-4 text-white/80" />
                     <h3 className="text-sm font-bold text-white">Live Document Preview</h3>
                   </div>
-                  
+
                   {/* Simulating Paper Page */}
                   <div className="p-6 md:p-8 flex-1 bg-white">
                     <div className="border border-slate-150 rounded-2xl shadow-inner p-6 space-y-6">
@@ -1816,187 +1971,187 @@ export default function ClaimNotificationsPage() {
                       className="w-full h-[60vh] rounded-lg border border-slate-200"
                     />
                   ) : (
-                  <div className="text-center space-y-4 p-8">
-                    <FileText className="h-16 w-16 text-slate-400 mx-auto" />
-                    <div>
-                      <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
-                      <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
+                    <div className="text-center space-y-4 p-8">
+                      <FileText className="h-16 w-16 text-slate-400 mx-auto" />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
+                        <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
+                      </div>
+                      <a
+                        href={`/api/v1/attachments/${viewAttachment.id}/download?token=${token}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition"
+                      >
+                        <Download className="h-4 w-4" /> Download File
+                      </a>
                     </div>
-                    <a
-                      href={`/api/v1/attachments/${viewAttachment.id}/download?token=${token}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition"
-                    >
-                      <Download className="h-4 w-4" /> Download File
-                    </a>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
-      {/* Email Selection Modal */}
-      {isEmailModalOpen && selectedRecord && (
-        <div
-          onClick={() => setIsEmailModalOpen(false)}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print cursor-pointer"
-        >
+        {/* Email Selection Modal */}
+        {isEmailModalOpen && selectedRecord && (
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up cursor-default"
+            onClick={() => setIsEmailModalOpen(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print cursor-pointer"
           >
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-[#4A0E17] to-[#7A1C2E] px-5 py-4 flex items-center justify-between text-white">
-              <div className="flex items-center gap-2.5">
-                <Mail className="h-5 w-5 text-white/90" />
-                <div>
-                  <h3 className="text-base font-bold">Email Insurance Provider</h3>
-                  <p className="text-[11px] text-white/70 mt-0.5">Select recipients for {emailModalProvider}</p>
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up cursor-default"
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-[#4A0E17] to-[#7A1C2E] px-5 py-4 flex items-center justify-between text-white">
+                <div className="flex items-center gap-2.5">
+                  <Mail className="h-5 w-5 text-white/90" />
+                  <div>
+                    <h3 className="text-base font-bold">Email Insurance Provider</h3>
+                    <p className="text-[11px] text-white/70 mt-0.5">Select recipients for {emailModalProvider}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsEmailModalOpen(false)}
+                  disabled={sendEmailMut.isPending}
+                  className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                {/* Select All Section */}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Recipients Selection</span>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTo([...availableTo]);
+                        setSelectedCc([...availableCc]);
+                      }}
+                      className="text-xs font-semibold text-[#4A0E17] hover:underline cursor-pointer"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTo([]);
+                        setSelectedCc([]);
+                      }}
+                      className="text-xs font-semibold text-slate-500 hover:underline cursor-pointer"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                {/* TO List */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-705">TO: Recipients</h4>
+                  {availableTo.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic">No TO emails configured.</p>
+                  ) : (
+                    <div className="space-y-1.5 bg-slate-50/50 border border-slate-150 rounded-xl p-3">
+                      {availableTo.map((email) => {
+                        const isChecked = selectedTo.includes(email);
+                        return (
+                          <label key={email} className="flex items-center gap-3 py-1 cursor-pointer select-none group text-xs text-slate-650">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedTo((prev) => [...prev, email]);
+                                } else {
+                                  setSelectedTo((prev) => prev.filter((item) => item !== email));
+                                }
+                              }}
+                              className="rounded border-slate-300 text-[#4A0E17] focus:ring-[#4A0E17]/20 h-4 w-4 cursor-pointer"
+                            />
+                            <span className="group-hover:text-slate-900 transition">{email}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* CC List */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-705">CC: Recipients</h4>
+                  {availableCc.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic">No CC emails configured.</p>
+                  ) : (
+                    <div className="space-y-1.5 bg-slate-50/50 border border-[#CBD5E1] rounded-xl p-3">
+                      {availableCc.map((email) => {
+                        const isChecked = selectedCc.includes(email);
+                        return (
+                          <label key={email} className="flex items-center gap-3 py-1 cursor-pointer select-none group text-xs text-slate-650">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCc((prev) => [...prev, email]);
+                                } else {
+                                  setSelectedCc((prev) => prev.filter((item) => item !== email));
+                                }
+                              }}
+                              className="rounded border-slate-300 text-[#4A0E17] focus:ring-[#4A0E17]/20 h-4 w-4 cursor-pointer"
+                            />
+                            <span className="group-hover:text-slate-900 transition">{email}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
-              <button
-                onClick={() => setIsEmailModalOpen(false)}
-                disabled={sendEmailMut.isPending}
-                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
 
-            {/* Modal Content */}
-            <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
-              {/* Select All Section */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Recipients Selection</span>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedTo([...availableTo]);
-                      setSelectedCc([...availableCc]);
-                    }}
-                    className="text-xs font-semibold text-[#4A0E17] hover:underline cursor-pointer"
-                  >
-                    Select All
-                  </button>
-                  <span className="text-slate-300">|</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedTo([]);
-                      setSelectedCc([]);
-                    }}
-                    className="text-xs font-semibold text-slate-500 hover:underline cursor-pointer"
-                  >
-                    Clear All
-                  </button>
-                </div>
+              {/* Modal Footer */}
+              <div className="bg-slate-50 px-5 py-4 border-t border-slate-150 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEmailModalOpen(false)}
+                  disabled={sendEmailMut.isPending}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100/80 text-slate-700 text-sm font-medium rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    sendEmailMut.mutate({
+                      id: selectedRecord.id,
+                      to: selectedTo,
+                      cc: selectedCc,
+                    })
+                  }
+                  disabled={selectedTo.length === 0 || sendEmailMut.isPending}
+                  className="inline-flex items-center gap-2 px-5 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+                >
+                  {sendEmailMut.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      <span>Send Email</span>
+                    </>
+                  )}
+                </button>
               </div>
-
-              {/* TO List */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-705">TO: Recipients</h4>
-                {availableTo.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">No TO emails configured.</p>
-                ) : (
-                  <div className="space-y-1.5 bg-slate-50/50 border border-slate-150 rounded-xl p-3">
-                    {availableTo.map((email) => {
-                      const isChecked = selectedTo.includes(email);
-                      return (
-                        <label key={email} className="flex items-center gap-3 py-1 cursor-pointer select-none group text-xs text-slate-650">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedTo((prev) => [...prev, email]);
-                              } else {
-                                setSelectedTo((prev) => prev.filter((item) => item !== email));
-                              }
-                            }}
-                            className="rounded border-slate-300 text-[#4A0E17] focus:ring-[#4A0E17]/20 h-4 w-4 cursor-pointer"
-                          />
-                          <span className="group-hover:text-slate-900 transition">{email}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* CC List */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-705">CC: Recipients</h4>
-                {availableCc.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">No CC emails configured.</p>
-                ) : (
-                  <div className="space-y-1.5 bg-slate-50/50 border border-[#CBD5E1] rounded-xl p-3">
-                    {availableCc.map((email) => {
-                      const isChecked = selectedCc.includes(email);
-                      return (
-                        <label key={email} className="flex items-center gap-3 py-1 cursor-pointer select-none group text-xs text-slate-650">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedCc((prev) => [...prev, email]);
-                              } else {
-                                setSelectedCc((prev) => prev.filter((item) => item !== email));
-                              }
-                            }}
-                            className="rounded border-slate-300 text-[#4A0E17] focus:ring-[#4A0E17]/20 h-4 w-4 cursor-pointer"
-                          />
-                          <span className="group-hover:text-slate-900 transition">{email}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-slate-50 px-5 py-4 border-t border-slate-150 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsEmailModalOpen(false)}
-                disabled={sendEmailMut.isPending}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100/80 text-slate-700 text-sm font-medium rounded-xl transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  sendEmailMut.mutate({
-                    id: selectedRecord.id,
-                    to: selectedTo,
-                    cc: selectedCc,
-                  })
-                }
-                disabled={selectedTo.length === 0 || sendEmailMut.isPending}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
-              >
-                {sendEmailMut.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Sending...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    <span>Send Email</span>
-                  </>
-                )}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     );
   }
@@ -2042,7 +2197,7 @@ export default function ClaimNotificationsPage() {
                     onFocus={() => setShowNameSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowNameSuggestions(false), 200)}
                     className={`${getInputClass('assured_name')} uppercase`} placeholder="Full name of the assured" />
-                  
+
                   {showNameSuggestions && nameSuggestions.length > 0 && (
                     <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                       {nameSuggestions.map((cust) => {
@@ -2060,7 +2215,7 @@ export default function ClaimNotificationsPage() {
                           >
                             <p className="text-sm font-semibold text-slate-800">{name}</p>
                             <p className="text-xs text-slate-500 mt-0.5">
-                              {cust.policy_no ? `Policy: ${cust.policy_no}` : 'No Policy'} 
+                              {cust.policy_no ? `Policy: ${cust.policy_no}` : 'No Policy'}
                               {cust.plate_no ? ` | Plate: ${cust.plate_no}` : ''}
                             </p>
                           </div>
@@ -2113,7 +2268,7 @@ export default function ClaimNotificationsPage() {
                     onFocus={() => setShowPlateSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowPlateSuggestions(false), 200)}
                     className={`${getInputClass('plate_number')} uppercase`} placeholder="e.g. ABC 1234" />
-                  
+
                   {showPlateSuggestions && plateSuggestions.length > 0 && (
                     <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                       {plateSuggestions.map((cust) => {
@@ -2260,7 +2415,7 @@ export default function ClaimNotificationsPage() {
               <Eye className="h-4 w-4 text-white/80" />
               <h3 className="text-sm font-bold text-white">Live Document Preview</h3>
             </div>
-            
+
             {/* Simulating Paper Page */}
             <div className="p-6 md:p-8 flex-1 bg-white">
               <div className="border border-slate-150 rounded-2xl shadow-inner p-6 space-y-6">
