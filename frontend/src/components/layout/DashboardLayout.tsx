@@ -701,12 +701,28 @@ export default function DashboardLayout() {
 
             {/* Right: search + notifications + user */}
             <div className="flex items-center gap-2">
-              {/* Real-time Date & Time */}
-              <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-xl text-xs text-slate-600 dark:text-slate-300 font-medium select-none">
-                <Clock className="h-4 w-4 text-[#8A1C2E] dark:text-[#a82c40]" />
-                <span className="tabular-nums">
-                  {formattedDate} • {formattedTime}
-                </span>
+              {/* Real-time Date & Time and Role / Dept Badge */}
+              <div className="flex items-center gap-2">
+                {/* Active Role / Department Pill */}
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#8A1C2E]/10 border border-[#8A1C2E]/20 dark:bg-[#8A1C2E]/25 dark:border-[#8A1C2E]/40 rounded-xl text-xs font-semibold text-[#8A1C2E] dark:text-red-300">
+                  <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    {roles?.includes('Administrator')
+                      ? 'Administrator'
+                      : (roles?.includes('Accounting Officer')
+                        ? 'Accounting Officer'
+                        : (roles?.[0] ?? 'Staff'))}
+                  </span>
+                </div>
+
+                {/* Real-time Date & Time Clock */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-xl text-xs text-slate-700 dark:text-slate-200 font-medium select-none shadow-xs">
+                  <Clock className="h-4 w-4 text-[#8A1C2E] dark:text-red-400 shrink-0" />
+                  <span className="tabular-nums">
+                    <span className="hidden md:inline">{formattedDate} • </span>
+                    <span>{formattedTime}</span>
+                  </span>
+                </div>
               </div>
 
               {/* Dark/Light Mode Toggle */}
