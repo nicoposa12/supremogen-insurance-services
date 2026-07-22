@@ -64,6 +64,7 @@ const navItems: NavItem[] = [
   { label: 'Policy Issuance Request', path: '/dashboard/quotations', icon: FileText },
   { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
   { label: 'Accounting', path: '/dashboard/invoices', icon: Receipt },
+  { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileSpreadsheet },
   { label: 'Claims', path: '/dashboard/claims', icon: ShieldHalf },
   { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
   { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
@@ -107,7 +108,8 @@ const adminNavGroups: NavGroup[] = [
     icon: DollarSign,
     accent: '#f59e0b', // amber
     children: [
-      { label: 'Accounting', path: '/dashboard/invoices', icon: Receipt },
+      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileSpreadsheet },
     ],
   },
   {
@@ -308,6 +310,7 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   const isUnderwriter = roles.includes('Underwriter');
   const isCollection = roles.includes('Collection');
   const isClaimsOfficer = roles.includes('Claims Officer');
+  const isAccounting = roles.includes('Accounting Officer');
 
   let isForbidden = false;
 
@@ -319,6 +322,8 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
     isForbidden = !['Collection Module', 'Collection Ledger'].includes(item.label);
   } else if (isClaimsOfficer) {
     isForbidden = !['Dashboard', 'Claim Notifications', 'Completed Requirements'].includes(item.label);
+  } else if (isAccounting) {
+    isForbidden = !['Dashboard', 'Policy Statements'].includes(item.label);
   }
 
   if (isForbidden) {

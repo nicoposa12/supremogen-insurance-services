@@ -43,6 +43,7 @@ const InsuranceRequestsPage = lazy(() => import('./pages/underwriter/InsuranceRe
 const InvoicesPage = lazy(() => import('./pages/invoices/InvoicesPage'));
 const InvoiceFormPage = lazy(() => import('./pages/invoices/InvoiceFormPage'));
 const InvoiceDetailPage = lazy(() => import('./pages/invoices/InvoiceDetailPage'));
+const PolicyStatementsPage = lazy(() => import('./pages/accounting/PolicyStatementsPage'));
 
 // Payments (Phase 2 — Accounting & Payments)
 const PaymentsPage = lazy(() => import('./pages/payments/PaymentsPage'));
@@ -135,10 +136,11 @@ export default function App() {
                 <Route path="insurance-requests" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Claims Officer']}><InsuranceRequestsPage /></ProtectedRoute>} />
 
                 {/* Invoices */}
-                <Route path="invoices" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><InvoicesPage /></ProtectedRoute>} />
-                <Route path="invoices/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><InvoiceFormPage /></ProtectedRoute>} />
-                <Route path="invoices/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><InvoiceDetailPage /></ProtectedRoute>} />
-                <Route path="invoices/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><InvoiceFormPage /></ProtectedRoute>} />
+                <Route path="invoices" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoicesPage /></ProtectedRoute>} />
+                <Route path="invoices/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoiceFormPage /></ProtectedRoute>} />
+                <Route path="invoices/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoiceDetailPage /></ProtectedRoute>} />
+                <Route path="invoices/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoiceFormPage /></ProtectedRoute>} />
+                <Route path="policy-statements" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Collection']}><PolicyStatementsPage /></ProtectedRoute>} />
 
                 {/* Payments */}
                 <Route path="payments" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><PaymentsPage /></ProtectedRoute>} />

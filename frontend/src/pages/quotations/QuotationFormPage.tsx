@@ -189,7 +189,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   // Policy Information
   const [policyNo, setPolicyNo] = useState('');
   const [agent, setAgent] = useState('');
-  const [insuranceProvider, setInsuranceProvider] = useState('STANDARD INSURANCE');
+  const [insuranceProvider, setInsuranceProvider] = useState('ALPHA');
   const [seater, setSeater] = useState<number>(5);
 
   // Coverages (represented as formatted strings)
@@ -689,12 +689,21 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   });
 
   const buildPayload = (targetCid?: number): QuotationFormData => {
+    const parsedOD = parseStringToNumber(covOwnDamage);
     const coverageDetails = {
       agent: agent,
       insurance_provider: insuranceProvider,
       seater,
+      unit,
+      plate_no: plateNo,
+      chassis_no: chassisNo,
+      engine_no: engineNo,
+      color,
+      mortgage,
+      full_name: fullName,
+      sum_insured: parsedOD,
       coverages: {
-        own_damage: parseStringToNumber(covOwnDamage),
+        own_damage: parsedOD,
         theft_loss: 0,
         aon: parseStringToNumber(covAON),
         bi: parseStringToNumber(covBI),
@@ -727,7 +736,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         {
           insurance_product_id: products[0]?.id ?? 1,
           description: 'Motor Car Insurance',
-          sum_insured: 0,
+          sum_insured: parsedOD,
           premium_rate: sellingRateOD + sellingRateAON,
           premium_amount: policyPremium,
           coverage_details: coverageDetails,

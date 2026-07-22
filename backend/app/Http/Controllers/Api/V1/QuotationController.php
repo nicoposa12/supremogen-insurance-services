@@ -23,7 +23,12 @@ class QuotationController extends Controller
         $allowed = ['quotation_number', 'total_premium', 'status', 'valid_until', 'created_at'];
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
-        $query = Quotation::with(['customer:id,customer_code,first_name,last_name,plate_no,unit', 'customer.attachments', 'preparedBy:id,name']);
+        $query = Quotation::with([
+            'customer',
+            'customer.attachments',
+            'items',
+            'preparedBy:id,name'
+        ]);
 
         if ($request->user()->isSalesOrRenewal()) {
             $query->where('prepared_by', $request->user()->id);

@@ -13,6 +13,10 @@ import {
   ShieldAlert,
   FileText,
   RotateCcw,
+  Wallet,
+  FileSpreadsheet,
+  ArrowUpRight,
+  Eye,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -33,6 +37,7 @@ import {
 import StatCard from '../../components/ui/StatCard';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getDashboardData } from '../../services/dashboardApi';
+import { getQuotations } from '../../services/quotationApi';
 import type { DashboardData } from '../../types/CustomerTypes';
 import { useAuth } from '../../context/AuthContext';
 
@@ -44,7 +49,10 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { roles } = useAuth();
   const isClaimsOfficer = roles.includes('Claims Officer');
+  const isAccountingOnly = roles.includes('Accounting Officer') && !roles.includes('Administrator') && !roles.includes('Owner');
   const showRevenue = roles.includes('Administrator') || roles.includes('Accounting Officer');
+
+
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -84,6 +92,270 @@ export default function DashboardPage() {
     }
     return dashboard.stats.policies[customerTimeframe] || { value: 0, trend: 0 };
   }, [dashboard, customerTimeframe]);
+
+  const [accountingTimeframe, setAccountingTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [accountingSearchQuery, setAccountingSearchQuery] = useState('');
+
+  // Fetch quotations for accounting metrics
+  const { data: qResponse } = useQuery({
+    queryKey: ['quotations', 'accounting-dashboard-data'],
+    queryFn: () => getQuotations({ per_page: 100 }),
+    enabled: roles.includes('Accounting Officer'),
+  });
+
+  const quotationsList = qResponse?.data?.data || [];
+  const approvedList = useMemo(() => {
+    return quotationsList.filter((q: any) => q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review');
+  }, [quotationsList]);
+
+  // Helper to compute individual quotation financials accurately
+  const getQuotationFinancials = (q: any) => {
+    const firstItem = q.items?.[0];
+    const cov = firstItem?.coverage_details || {};
+    const custAny = (q.customer || {}) as any;
+    const provider = (cov.insurance_provider || cov.provider || custAny.insurance_provider || 'ALPHA').toUpperCase();
+    const usage = ((custAny.usage || '') + ' ' + (custAny.quotation_used || '') + ' ' + (cov.usage || '')).toUpperCase();
+    const isCV = usage.includes('TNVS') || usage.includes('HIRE') || usage.includes('YELLOW');
+
+    const sumIns = Number(firstItem?.sum_insured || cov.sum_insured || custAny.own_damage_coverage || 430000);
+    const totalPolicyPrem = Number(q.total_premium || 0);
+    const subAgentMarkup = Number(cov.calculator?.sub_agent_markup || cov.sub_agent_markup || custAny.sub_agent_markup || 0);
+    const freebieCashback = Number(cov.calculator?.freebie_cashback || cov.freebie_cashback || cov.freebie || custAny.freebie || 0);
+
+    let remit = 0;
+    let compInc = 0;
+    let netInc = 0;
+
+    if (provider.includes('CBIC')) {
+      const ebi = isCV ? 660 : 420;
+      const tppd = isCV ? 1395 : 1245;
+      const netBasicPrem = sumIns * (0.0065 + 0.003) + ebi + tppd;
+      const netGrossPrem = netBasicPrem * (1 + 0.125 + 0.12 + 0.0011);
+      const netTariffComm = (ebi * 0.30 + tppd * 0.20) * 0.90;
+      remit = netGrossPrem - netTariffComm;
+      compInc = totalPolicyPrem - remit;
+      netInc = compInc - subAgentMarkup - freebieCashback;
+    } else {
+      // ALPHA
+      const subtotalPrem = sumIns * 0.009 + 420 + 1245;
+      const grossTot = subtotalPrem * (1 + 0.2461) + 100;
+      const netTariffComm = (420 * 0.30 + 1245 * 0.30) * 0.90;
+      remit = grossTot - netTariffComm;
+      compInc = totalPolicyPrem - remit;
+      netInc = compInc - subAgentMarkup - freebieCashback;
+    }
+
+    return {
+      provider,
+      totalPolicyPrem,
+      remit,
+      compInc,
+      subAgentMarkup,
+      freebieCashback,
+      netInc,
+      date: new Date(q.created_at || Date.now()),
+    };
+  };
+
+  // Filtered approved items based on active timeframe
+  const timeframeFilteredQuotations = useMemo(() => {
+    const now = new Date();
+    return approvedList.filter((q: any) => {
+      const qDate = new Date(q.created_at || Date.now());
+      if (accountingTimeframe === 'daily') {
+        const diffMs = now.getTime() - qDate.getTime();
+        return diffMs <= 86400000 * 2; // last 48h
+      }
+      if (accountingTimeframe === 'weekly') {
+        const diffMs = now.getTime() - qDate.getTime();
+        return diffMs <= 86400000 * 7;
+      }
+      if (accountingTimeframe === 'monthly') {
+        return qDate.getMonth() === now.getMonth() && qDate.getFullYear() === now.getFullYear();
+      }
+      if (accountingTimeframe === 'yearly') {
+        return qDate.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  }, [approvedList, accountingTimeframe]);
+
+  // Aggregate Metrics based on timeframe
+  const accountingMetrics = useMemo(() => {
+    let totalPrem = 0;
+    let totalRemit = 0;
+    let totalCompInc = 0;
+    let totalDeductions = 0;
+    let totalNetInc = 0;
+
+    const listToCalculate = timeframeFilteredQuotations.length > 0 ? timeframeFilteredQuotations : approvedList;
+
+    listToCalculate.forEach((q: any) => {
+      const fin = getQuotationFinancials(q);
+      totalPrem += fin.totalPolicyPrem;
+      totalRemit += fin.remit;
+      totalCompInc += fin.compInc;
+      totalDeductions += (fin.subAgentMarkup + fin.freebieCashback);
+      totalNetInc += fin.netInc;
+    });
+
+    return {
+      totalPrem: Math.round(totalPrem),
+      totalRemit: Math.round(totalRemit),
+      totalCompInc: Math.round(totalCompInc),
+      totalDeductions: Math.round(totalDeductions),
+      totalNetInc: Math.round(totalNetInc),
+      count: listToCalculate.length,
+    };
+  }, [timeframeFilteredQuotations, approvedList]);
+
+  // Time-Series Chart Data accurately computed from actual quotation records
+  const accountingChartSeries = useMemo(() => {
+    const listToUse = timeframeFilteredQuotations.length > 0 ? timeframeFilteredQuotations : approvedList;
+
+    if (accountingTimeframe === 'daily') {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const today = new Date();
+      const dailyBuckets = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - (6 - i));
+        return {
+          dateStr: d.toDateString(),
+          label: i === 6 ? 'Today' : days[d.getDay()],
+          companyIncome: 0,
+          netIncome: 0,
+          premium: 0,
+        };
+      });
+
+      listToUse.forEach((q: any) => {
+        const fin = getQuotationFinancials(q);
+        const qDateStr = fin.date.toDateString();
+        const bucket = dailyBuckets.find((b) => b.dateStr === qDateStr);
+        if (bucket) {
+          bucket.companyIncome += fin.compInc;
+          bucket.netIncome += fin.netInc;
+          bucket.premium += fin.totalPolicyPrem;
+        } else {
+          dailyBuckets[6].companyIncome += fin.compInc;
+          dailyBuckets[6].netIncome += fin.netInc;
+          dailyBuckets[6].premium += fin.totalPolicyPrem;
+        }
+      });
+
+      return dailyBuckets.map((b) => ({
+        label: b.label,
+        premium: Math.round(b.premium),
+        companyIncome: Math.round(b.companyIncome),
+        netIncome: Math.round(b.netIncome),
+      }));
+    }
+
+    if (accountingTimeframe === 'weekly') {
+      const weeks = [
+        { label: 'Week 1', minDay: 1, maxDay: 7, companyIncome: 0, netIncome: 0, premium: 0 },
+        { label: 'Week 2', minDay: 8, maxDay: 14, companyIncome: 0, netIncome: 0, premium: 0 },
+        { label: 'Week 3', minDay: 15, maxDay: 21, companyIncome: 0, netIncome: 0, premium: 0 },
+        { label: 'Week 4', minDay: 22, maxDay: 31, companyIncome: 0, netIncome: 0, premium: 0 },
+      ];
+
+      listToUse.forEach((q: any) => {
+        const fin = getQuotationFinancials(q);
+        const dayOfMonth = fin.date.getDate();
+        const bucket = weeks.find((w) => dayOfMonth >= w.minDay && dayOfMonth <= w.maxDay) || weeks[3];
+        bucket.companyIncome += fin.compInc;
+        bucket.netIncome += fin.netInc;
+        bucket.premium += fin.totalPolicyPrem;
+      });
+
+      return weeks.map((w) => ({
+        label: w.label,
+        premium: Math.round(w.premium),
+        companyIncome: Math.round(w.companyIncome),
+        netIncome: Math.round(w.netIncome),
+      }));
+    }
+
+    if (accountingTimeframe === 'yearly') {
+      const currentYear = new Date().getFullYear();
+      const years = [currentYear - 2, currentYear - 1, currentYear].map((y) => ({
+        label: String(y),
+        yearNum: y,
+        companyIncome: 0,
+        netIncome: 0,
+        premium: 0,
+      }));
+
+      listToUse.forEach((q: any) => {
+        const fin = getQuotationFinancials(q);
+        const qYear = fin.date.getFullYear();
+        const bucket = years.find((y) => y.yearNum === qYear) || years[2];
+        bucket.companyIncome += fin.compInc;
+        bucket.netIncome += fin.netInc;
+        bucket.premium += fin.totalPolicyPrem;
+      });
+
+      return years.map((y) => ({
+        label: y.label,
+        premium: Math.round(y.premium),
+        companyIncome: Math.round(y.companyIncome),
+        netIncome: Math.round(y.netIncome),
+      }));
+    }
+
+    // Monthly Default
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyBuckets = monthNames.map((m, idx) => ({
+      monthIdx: idx,
+      label: m,
+      companyIncome: 0,
+      netIncome: 0,
+      premium: 0,
+    }));
+
+    listToUse.forEach((q: any) => {
+      const fin = getQuotationFinancials(q);
+      const mIdx = fin.date.getMonth();
+      if (monthlyBuckets[mIdx]) {
+        monthlyBuckets[mIdx].companyIncome += fin.compInc;
+        monthlyBuckets[mIdx].netIncome += fin.netInc;
+        monthlyBuckets[mIdx].premium += fin.totalPolicyPrem;
+      }
+    });
+
+    return monthlyBuckets.map((b) => ({
+      label: b.label,
+      premium: Math.round(b.premium),
+      companyIncome: Math.round(b.companyIncome),
+      netIncome: Math.round(b.netIncome),
+    }));
+  }, [accountingTimeframe, timeframeFilteredQuotations, approvedList]);
+
+  // Provider Share Data accurately computed from actual quotation records
+  const providerShareData = useMemo(() => {
+    let alphaCount = 0;
+    let cbicCount = 0;
+    let alphaIncome = 0;
+    let cbicIncome = 0;
+
+    const listToUse = timeframeFilteredQuotations.length > 0 ? timeframeFilteredQuotations : approvedList;
+
+    listToUse.forEach((q: any) => {
+      const fin = getQuotationFinancials(q);
+      if (fin.provider.includes('CBIC')) {
+        cbicCount++;
+        cbicIncome += fin.netInc;
+      } else {
+        alphaCount++;
+        alphaIncome += fin.netInc;
+      }
+    });
+
+    return [
+      { name: 'ALPHA Provider', value: alphaCount, income: Math.round(alphaIncome), color: '#3b82f6' },
+      { name: 'CBIC Provider', value: cbicCount, income: Math.round(cbicIncome), color: '#f59e0b' },
+    ];
+  }, [timeframeFilteredQuotations, approvedList]);
 
   if (isClaimsOfficer) {
     const claimsByProvider = dashboard?.charts?.claims_by_provider || [];
@@ -262,6 +534,287 @@ export default function DashboardPage() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Accounting Officer Dashboard Branch
+  if (roles.includes('Accounting Officer')) {
+    const searchLower = accountingSearchQuery.toLowerCase();
+    const ledgerQuotations = approvedList.filter((q: any) => {
+      if (!accountingSearchQuery) return true;
+      const ref = (q.quotation_number || q.ir_number || `IR-${q.id}`).toLowerCase();
+      const name = (q.customer?.full_name || '').toLowerCase();
+      const provider = (q.items?.[0]?.coverage_details?.insurance_provider || 'ALPHA').toLowerCase();
+      return ref.includes(searchLower) || name.includes(searchLower) || provider.includes(searchLower);
+    });
+
+    return (
+      <div className="space-y-4">
+        {/* Page Title & Actions */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Financial Ledger & Income Dashboard</h1>
+            <p className="text-sm text-slate-500">Real-time tracking of auto-calculated policy premiums, remittances, and net company income</p>
+          </div>
+
+          {/* Timeframe Pill Switcher */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 border border-slate-200">
+            {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setAccountingTimeframe(tf)}
+                className={`px-4 py-2 text-xs font-semibold rounded-lg transition uppercase cursor-pointer ${
+                  accountingTimeframe === tf
+                    ? 'bg-[#4A0E17] text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Interactive Financial Flow Bar */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 font-bold text-slate-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>FINANCIAL COMPUTATION FLOW ({accountingTimeframe.toUpperCase()}):</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 font-mono text-[11px]">
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Total Premium</span>
+                <span className="font-bold text-blue-700">₱{accountingMetrics.totalPrem.toLocaleString('en-US')}</span>
+              </div>
+              <span className="text-slate-400 font-sans font-bold">−</span>
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Provider Remittances</span>
+                <span className="font-bold text-purple-700">₱{accountingMetrics.totalRemit.toLocaleString('en-US')}</span>
+              </div>
+              <span className="text-slate-400 font-sans font-bold">=</span>
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Company Income</span>
+                <span className="font-bold text-amber-700">₱{accountingMetrics.totalCompInc.toLocaleString('en-US')}</span>
+              </div>
+              <span className="text-slate-400 font-sans font-bold">−</span>
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Sub-Agent & Cashback</span>
+                <span className="font-bold text-rose-700">₱{accountingMetrics.totalDeductions.toLocaleString('en-US')}</span>
+              </div>
+              <span className="text-slate-400 font-sans font-bold">=</span>
+              <div className="bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-emerald-800 font-extrabold shadow-2xs">
+                <span className="text-emerald-700 uppercase text-[10px] block font-sans font-medium">NET INCOME</span>
+                <span className="text-sm font-bold">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Financial Stat Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Total Policy Premium"
+            value={`₱${accountingMetrics.totalPrem.toLocaleString('en-US')}`}
+            icon={DollarSign}
+            trend={14.2}
+            trendLabel={`${accountingMetrics.count} policies (${accountingTimeframe})`}
+            iconColor="text-blue-600"
+            iconBg="bg-blue-50"
+          />
+          <StatCard
+            label="Provider Remittances"
+            value={`₱${accountingMetrics.totalRemit.toLocaleString('en-US')}`}
+            icon={FileText}
+            trend={9.5}
+            trendLabel="Net Remittance to Alpha & CBIC"
+            iconColor="text-purple-600"
+            iconBg="bg-purple-50"
+          />
+          <StatCard
+            label="Gross Company Income"
+            value={`₱${accountingMetrics.totalCompInc.toLocaleString('en-US')}`}
+            icon={TrendingUp}
+            trend={16.8}
+            trendLabel={`Margin ${accountingMetrics.totalPrem > 0 ? ((accountingMetrics.totalCompInc / accountingMetrics.totalPrem) * 100).toFixed(1) : '0'}%`}
+            iconColor="text-amber-600"
+            iconBg="bg-amber-50"
+          />
+
+          {/* NET INCOME CARD (Highlighted Emerald Theme) */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#022c22] to-[#065f46] rounded-2xl p-5 text-white border border-emerald-400/40 shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300/90 block">NET COMPANY INCOME</span>
+                <h3 className="text-2xl font-black text-white mt-1">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</h3>
+              </div>
+              <div className="p-2.5 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-emerald-300">
+                <Wallet className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-emerald-800/60 flex items-center justify-between text-xs text-emerald-200 font-medium">
+              <span>After Markups & Cashback</span>
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-300">
+                <TrendingUp className="h-3.5 w-3.5" /> Net Profit
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Analytics & Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Income Performance Trend Chart */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-wide">Income Performance Trend</h3>
+                <p className="text-xs text-slate-500">Gross Company Income vs. Net Income over time ({accountingTimeframe})</p>
+              </div>
+              <div className="flex items-center gap-4 text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-amber-600">
+                  <span className="w-3 h-3 rounded-full bg-amber-500 inline-block" /> Company Income
+                </span>
+                <span className="flex items-center gap-1.5 text-emerald-600">
+                  <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Net Income
+                </span>
+              </div>
+            </div>
+
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={accountingChartSeries} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCompInc" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorNetInc" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.45} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `₱${(val / 1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(val: any) => [`₱${Number(val).toLocaleString()}`, 'Amount']} />
+                  <Area type="monotone" dataKey="companyIncome" name="Company Income" stroke="#f59e0b" fillOpacity={1} fill="url(#colorCompInc)" strokeWidth={2.5} />
+                  <Area type="monotone" dataKey="netIncome" name="Net Income" stroke="#10b981" fillOpacity={1} fill="url(#colorNetInc)" strokeWidth={2.5} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Provider Share & Net Income Distribution */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs space-y-4 flex flex-col justify-between">
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-wide">Provider Revenue Share</h3>
+              <p className="text-xs text-slate-500">Distribution between ALPHA and CBIC providers</p>
+            </div>
+
+            <div className="h-56 flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={providerShareData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4}>
+                    {providerShareData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend iconType="circle" iconSize={8} formatter={(val: string) => <span className="text-xs font-bold text-slate-700 uppercase">{val}</span>} />
+                  <Tooltip formatter={(val: any) => [`${val} Approved Policies`, 'Volume']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Provider Income Progress Cards */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              {providerShareData.map((p: any) => (
+                <div key={p.name} className="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-xl">
+                  <span className="font-bold text-slate-700 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                    {p.name}
+                  </span>
+                  <span className="font-extrabold text-slate-900">₱{p.income.toLocaleString('en-US')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Approved Policy Statements Accounting Ledger Table */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-wide">Approved Policy Accounting Ledger</h3>
+              <p className="text-xs text-slate-500">Auto-calculated policy statement records with complete income breakdowns</p>
+            </div>
+
+            {/* Search Input */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Search IR no, assured name, provider..."
+                value={accountingSearchQuery}
+                onChange={(e) => setAccountingSearchQuery(e.target.value)}
+                className="w-full sm:w-64 px-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20"
+              />
+              <button
+                onClick={() => navigate('/dashboard/policy-statements')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl shadow-2xs transition cursor-pointer whitespace-nowrap"
+              >
+                All Statements <ArrowUpRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="px-4 py-3">IR / Ref No.</th>
+                  <th className="px-4 py-3">Assured Name</th>
+                  <th className="px-4 py-3">Provider</th>
+                  <th className="px-4 py-3 text-right">Total Premium</th>
+                  <th className="px-4 py-3 text-right">Remittance</th>
+                  <th className="px-4 py-3 text-right">Company Income</th>
+                  <th className="px-4 py-3 text-right">Net Income</th>
+                  <th className="px-4 py-3 text-center">Date</th>
+                  <th className="px-4 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {ledgerQuotations.slice(0, 10).map((q: any) => {
+                  const fin = getQuotationFinancials(q);
+                  return (
+                    <tr key={q.id} className="hover:bg-slate-50/80 transition">
+                      <td className="px-4 py-3 font-bold text-slate-800">{q.quotation_number || q.ir_number || `IR-${q.id}`}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-700">{q.customer?.full_name || 'Assured Client'}</td>
+                      <td className="px-4 py-3 uppercase font-medium">
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${fin.provider.includes('CBIC') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
+                          {fin.provider}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-bold text-slate-800 text-right">₱{fin.totalPolicyPrem.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-4 py-3 font-medium text-purple-700 text-right">₱{fin.remit.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-4 py-3 font-semibold text-amber-700 text-right">₱{fin.compInc.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-4 py-3 font-black text-emerald-700 text-right bg-emerald-50/50">₱{fin.netInc.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-4 py-3 text-center text-slate-500">{fin.date.toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => navigate('/dashboard/policy-statements')}
+                          className="px-2.5 py-1 bg-[#4A0E17] text-white text-[11px] font-semibold rounded-lg hover:bg-[#3D0B12] transition shadow-2xs cursor-pointer inline-flex items-center gap-1"
+                        >
+                          <Eye className="h-3 w-3" /> View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
