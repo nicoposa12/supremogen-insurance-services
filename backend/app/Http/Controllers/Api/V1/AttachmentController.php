@@ -104,7 +104,7 @@ class AttachmentController extends Controller
             'uploaded_by' => $request->user()?->id,
         ]);
 
-        // Notify Claims Officers when a Sales Agent or Team Renewal uploads requirements for a claim notification
+        // Notify on claim_notification attachments
         if ($type === 'claim_notification') {
             $user = $request->user();
             $isAgent = $user && ($user->hasRole('Sales Agent') || $user->hasRole('Team Renewal'));
@@ -124,6 +124,22 @@ class AttachmentController extends Controller
                     }
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Failed to notify Claims Officers on requirement upload: ' . $e->getMessage());
+                }
+            } else {
+                // If uploaded by Claims Officer / Admin, notify the Sales Agent / Submitter
+                try {
+                    $docLabel = $attachment->document_type ?: 'Official Document';
+                    if ($model->submitted_by) {
+                        \App\Models\Notification::create([
+                            'user_id' => $model->submitted_by,
+                            'title'   => 'Official Claim Document Uploaded',
+                            'message' => "{$user->name} (Claims Officer) uploaded an official document ({$docLabel} - {$attachment->file_name}) for claim notification {$model->reference_number}.",
+                            'type'    => 'info',
+                            'read_at' => null,
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to notify Agent on official document upload: ' . $e->getMessage());
                 }
             }
         }

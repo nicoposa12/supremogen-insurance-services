@@ -535,9 +535,14 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
   const rawRecords = response?.data?.data ?? [];
   const records = rawRecords
-    .filter((r) => (completedOnly ? r.status === 'completed' : r.status !== 'completed'))
     .filter((r) => {
-      if (completedOnly && completedDocFilter && completedDocFilter !== 'all') {
+      if (completedOnly) return r.status === 'completed';
+      if (params.status === 'completed') return r.status === 'completed';
+      if (!params.status || params.status === 'all') return r.status !== 'completed';
+      return r.status === params.status;
+    })
+    .filter((r) => {
+      if ((completedOnly || params.status === 'completed') && completedDocFilter && completedDocFilter !== 'all') {
         const atts = r.attachments || [];
         const target = completedDocFilter.trim().toUpperCase();
         return atts.some((att: any) => {
@@ -3052,6 +3057,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   <option value="resubmitted">Resubmitted</option>
                   <option value="returned">Returned</option>
                   <option value="acknowledged">Acknowledged</option>
+                  {!isClaimsOfficer && <option value="completed">Completed</option>}
                 </>
               )}
             </select>
