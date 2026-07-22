@@ -19,6 +19,7 @@ import {
   getClaimNotifications,
   createClaimNotification,
   acknowledgeClaimNotification,
+  completeClaimNotificationRequirements,
   returnClaimNotification,
   getClaimNotification,
   updateClaimNotification,
@@ -169,7 +170,11 @@ interface CustomAttachmentInput {
   note: string;
 }
 
-export default function ClaimNotificationsPage() {
+interface ClaimNotificationsPageProps {
+  completedOnly?: boolean;
+}
+
+export default function ClaimNotificationsPage({ completedOnly = false }: ClaimNotificationsPageProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { roles, user, token } = useAuth();
@@ -185,7 +190,7 @@ export default function ClaimNotificationsPage() {
     page: Number(searchParams.get('page')) || 1,
     per_page: 15,
     search: querySearch,
-    status: searchParams.get('status') || 'all',
+    status: completedOnly ? 'completed' : (searchParams.get('status') || 'all'),
     claim_count: searchParams.get('claim_count') || undefined,
     created_date: searchParams.get('created_date') || undefined,
     sort_by: searchParams.get('sort_by') || 'created_at',
@@ -502,16 +507,23 @@ export default function ClaimNotificationsPage() {
   };
 
   // ─── Queries & Mutations ────────────────────
+  const effectiveStatus = completedOnly
+    ? 'completed'
+    : (params.status === 'all' ? undefined : params.status);
+
   const { data: response, isLoading } = useQuery({
-    queryKey: ['claim-notifications', params],
+    queryKey: ['claim-notifications', params, completedOnly],
     queryFn: () => getClaimNotifications({
       ...params,
-      status: params.status === 'all' ? undefined : params.status,
+      status: effectiveStatus,
     }),
     placeholderData: (prev) => prev,
   });
 
-  const records = response?.data?.data ?? [];
+  const rawRecords = response?.data?.data ?? [];
+  const records = rawRecords.filter((r) =>
+    completedOnly ? r.status === 'completed' : r.status !== 'completed'
+  );
   const pagination = response?.data;
 
   const { data: detailResponse, isLoading: isDetailLoading } = useQuery({
@@ -594,6 +606,18 @@ export default function ClaimNotificationsPage() {
       }
     },
     onError: (err: any) => showToast(err.response?.data?.message ?? 'Failed to acknowledge.', 'error'),
+  });
+
+  const completeMut = useMutation({
+    mutationFn: (id: number) => completeClaimNotificationRequirements(id),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['claim-notifications'] });
+      showToast(res.message || 'Requirements marked as completed successfully.');
+      if (selectedRecord) {
+        setSelectedRecord(res.data);
+      }
+    },
+    onError: (err: any) => showToast(err.response?.data?.message ?? 'Failed to mark requirements completed.', 'error'),
   });
 
   const returnMut = useMutation({
@@ -1634,6 +1658,25 @@ export default function ClaimNotificationsPage() {
             <p className="text-sm text-slate-500">Claim Notification Detail</p>
           </div>
           <div className="flex items-center gap-2">
+            {isClaimsOfficer && selectedRecord.status === 'acknowledged' && (
+              <button
+                onClick={() => completeMut.mutate(selectedRecord.id)}
+                disabled={completeMut.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm shadow-emerald-700/20 transition cursor-pointer"
+              >
+                {completeMut.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Completing...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-200" />
+                    <span>Mark Requirements Completed</span>
+                  </>
+                )}
+              </button>
+            )}
             <button
               onClick={() => window.print()}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl border border-slate-200 shadow-sm transition cursor-pointer"
@@ -2973,12 +3016,16 @@ export default function ClaimNotificationsPage() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Claim Notifications</h1>
+          <h1 className="text-xl font-bold text-slate-800">
+            {completedOnly ? 'Completed Requirements' : 'Claim Notifications'}
+          </h1>
           <p className="text-sm text-slate-500">
-            {canSubmit ? 'Submit claim notifications to the Claims Officer' : 'Review incoming claim notifications'}
+            {completedOnly
+              ? 'View and audit all completed claim notifications & requirement files'
+              : (canSubmit ? 'Submit claim notifications to the Claims Officer' : 'Review incoming claim notifications')}
           </p>
         </div>
-        {canSubmit && (
+        {canSubmit && !completedOnly && (
           <button onClick={() => setActiveView('form')}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-medium rounded-xl shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer">
             <Plus className="h-4 w-4" /> New Notification
@@ -3003,7 +3050,8 @@ export default function ClaimNotificationsPage() {
 
           <div className="relative w-full sm:w-48 shrink-0">
             <select
-              value={params.status || 'all'}
+              value={completedOnly ? 'completed' : (params.status || 'all')}
+              disabled={completedOnly}
               onChange={(e) => {
                 const val = e.target.value;
                 setParams((p) => ({ ...p, status: val === 'all' ? undefined : val, page: 1 }));
@@ -3018,13 +3066,19 @@ export default function ClaimNotificationsPage() {
                   return next;
                 }, { replace: true });
               }}
-              className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition appearance-none cursor-pointer font-medium"
+              className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition appearance-none cursor-pointer font-medium disabled:opacity-80"
             >
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="resubmitted">Resubmitted</option>
-              <option value="returned">Returned</option>
-              <option value="acknowledged">Acknowledged</option>
+              {completedOnly ? (
+                <option value="completed">Completed Requirements</option>
+              ) : (
+                <>
+                  <option value="all">Active Notifications</option>
+                  <option value="pending">Pending</option>
+                  <option value="resubmitted">Resubmitted</option>
+                  <option value="returned">Returned</option>
+                  <option value="acknowledged">Acknowledged</option>
+                </>
+              )}
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-505">
               <ChevronDown className="h-4 w-4" />

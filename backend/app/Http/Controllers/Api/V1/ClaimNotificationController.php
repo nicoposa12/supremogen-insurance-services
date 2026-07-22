@@ -246,6 +246,40 @@ class ClaimNotificationController extends Controller
     }
 
     /**
+     * Claims Officer marks the claim notification requirements as completed.
+     */
+    public function completeRequirements(Request $request, string $id)
+    {
+        $record = ClaimNotification::find($id);
+
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'Claim notification not found.'], 404);
+        }
+
+        $record->update([
+            'status' => 'completed',
+        ]);
+
+        try {
+            \App\Models\Notification::create([
+                'user_id' => $record->submitted_by,
+                'title'   => 'Claim Requirements Completed',
+                'message' => "The requirements for claim notification {$record->reference_number} have been marked as completed by the Claims Officer.",
+                'type'    => 'success',
+                'read_at' => null,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to notify claim notification submitter on completion: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Claim notification requirements marked as completed.',
+            'data'    => $record->fresh(['submittedBy:id,name', 'acknowledgedBy:id,name']),
+        ]);
+    }
+
+    /**
      * Claims Officer returns a pending claim notification to the agent/submitter.
      */
     public function returnToAgent(Request $request, string $id)

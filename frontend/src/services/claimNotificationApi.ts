@@ -38,6 +38,15 @@ export async function acknowledgeClaimNotification(
   return data;
 }
 
+export async function completeClaimNotificationRequirements(
+  id: number
+): Promise<SingleResponse<ClaimNotification>> {
+  const { data } = await axios.post<SingleResponse<ClaimNotification>>(
+    `${BASE}/${id}/complete-requirements`
+  );
+  return data;
+}
+
 export async function returnClaimNotification(
   id: number,
   reason?: string

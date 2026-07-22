@@ -66,6 +66,7 @@ const navItems: NavItem[] = [
   { label: 'Accounting', path: '/dashboard/invoices', icon: Receipt },
   { label: 'Claims', path: '/dashboard/claims', icon: ShieldHalf },
   { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+  { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
   { label: 'Renewals', path: '/dashboard/renewals', icon: RefreshCw },
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
   { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
@@ -115,6 +116,7 @@ const adminNavGroups: NavGroup[] = [
     accent: '#ef4444', // red
     children: [
       { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+      { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
     ],
   },
   {
@@ -316,7 +318,7 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   } else if (isCollection) {
     isForbidden = !['Collection Module', 'Collection Ledger'].includes(item.label);
   } else if (isClaimsOfficer) {
-    isForbidden = !['Dashboard', 'Claim Notifications'].includes(item.label);
+    isForbidden = !['Dashboard', 'Claim Notifications', 'Completed Requirements'].includes(item.label);
   }
 
   if (isForbidden) {

@@ -53,6 +53,7 @@ const ClaimsPage = lazy(() => import('./pages/claims/ClaimsPage'));
 const ClaimFormPage = lazy(() => import('./pages/claims/ClaimFormPage'));
 const ClaimDetailPage = lazy(() => import('./pages/claims/ClaimDetailPage'));
 const ClaimNotificationsPage = lazy(() => import('./pages/claims/ClaimNotificationsPage'));
+const CompletedRequirementsPage = lazy(() => import('./pages/claims/CompletedRequirementsPage'));
 
 // Renewals (Phase 2 — Claims & Renewals)
 const RenewalsPage = lazy(() => import('./pages/renewals/RenewalsPage'));
@@ -151,6 +152,7 @@ export default function App() {
 
                 {/* Claim Notifications */}
                 <Route path="claim-notifications" element={<ProtectedRoute forbiddenRoles={['Underwriter', 'Collection']}><ClaimNotificationsPage /></ProtectedRoute>} />
+                <Route path="completed-requirements" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Collection']}><CompletedRequirementsPage /></ProtectedRoute>} />
 
                 {/* Renewals */}
                 <Route path="renewals" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><RenewalsPage /></ProtectedRoute>} />

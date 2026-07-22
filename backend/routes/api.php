@@ -93,6 +93,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/claim-notifications', [ClaimNotificationController::class, 'store']);
         Route::get('/claim-notifications/{id}', [ClaimNotificationController::class, 'show']);
         Route::post('/claim-notifications/{id}/acknowledge', [ClaimNotificationController::class, 'acknowledge']);
+        Route::post('/claim-notifications/{id}/complete-requirements', [ClaimNotificationController::class, 'completeRequirements']);
         Route::post('/claim-notifications/{id}/return', [ClaimNotificationController::class, 'returnToAgent']);
         Route::post('/claim-notifications/{id}/send-email', [ClaimNotificationController::class, 'sendEmailToProvider']);
         Route::put('/claim-notifications/{id}', [ClaimNotificationController::class, 'update']);
