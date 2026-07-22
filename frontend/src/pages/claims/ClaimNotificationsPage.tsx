@@ -223,6 +223,7 @@ export default function ClaimNotificationsPage() {
   const [returnTarget, setReturnTarget] = useState<ClaimNotification | null>(null);
   const [returnReason, setReturnReason] = useState('');
   const [claimType, setClaimType] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
   const [requirementFiles, setRequirementFiles] = useState<Record<string, File[]>>({});
   const [requirementNotes, setRequirementNotes] = useState<Record<string, string>>({});
   const [customAttachments, setCustomAttachments] = useState<CustomAttachmentInput[]>([]);
@@ -274,6 +275,13 @@ export default function ClaimNotificationsPage() {
     if (upper.includes('CNC (CERTIFICATE OF NO CLAIM)') || upper.includes('[CNC (CERTIFICATE OF NO CLAIM)]')) {
       return 'CNC (CERTIFICATE OF NO CLAIM)';
     }
+    return '';
+  };
+
+  const parsePaymentStatus = (nature: string | undefined): string => {
+    if (!nature) return '';
+    if (nature.includes('NOT YET PAID TO SUPREMO')) return 'NOT YET PAID TO SUPREMO';
+    if (nature.includes('FULLY PAID')) return 'FULLY PAID';
     return '';
   };
 
@@ -356,6 +364,13 @@ export default function ClaimNotificationsPage() {
       claim_count: record.claim_count || '',
     });
     setClaimType(determineClaimType(record.nature_of_claims));
+    if (record.nature_of_claims?.includes('NOT YET PAID TO SUPREMO')) {
+      setPaymentStatus('NOT YET PAID TO SUPREMO');
+    } else if (record.nature_of_claims?.includes('FULLY PAID')) {
+      setPaymentStatus('FULLY PAID');
+    } else {
+      setPaymentStatus('');
+    }
     setActiveView('form');
   };
 
@@ -401,6 +416,7 @@ export default function ClaimNotificationsPage() {
     setShowPlateSuggestions(false);
     setValidationErrors({});
     setClaimType('');
+    setPaymentStatus('');
     setRequirementFiles({});
     setRequirementNotes({});
     setCustomAttachments([]);
@@ -611,6 +627,7 @@ export default function ClaimNotificationsPage() {
     if (!form.policy_number.trim()) newErrors.policy_number = true;
     if (!form.accident_date) newErrors.accident_date = true;
     if (!form.claim_count) newErrors.claim_count = true;
+    if (!paymentStatus) newErrors.payment_status = true;
     if (!claimType) newErrors.claim_type = true;
 
     setValidationErrors(newErrors);
@@ -621,6 +638,7 @@ export default function ClaimNotificationsPage() {
       else if (newErrors.policy_number) { showToast('Please enter the Policy Number.', 'error'); }
       else if (newErrors.accident_date) { showToast('Please set the Accident Date.', 'error'); }
       else if (newErrors.claim_count) { showToast('Please select the Claim Count.', 'error'); }
+      else if (newErrors.payment_status) { showToast('Please select the Payment Status.', 'error'); }
       else if (newErrors.claim_type) { showToast('Please select the Type of Claim.', 'error'); }
       return;
     }
@@ -631,7 +649,7 @@ export default function ClaimNotificationsPage() {
       assured_name: form.assured_name.toUpperCase(),
       policy_number: form.policy_number.toUpperCase(),
       plate_number: (form.plate_number || '').toUpperCase(),
-      nature_of_claims: prefix + form.nature_of_claims,
+      nature_of_claims: `${prefix}[Payment Status: ${paymentStatus}]`,
     };
     submitMut.mutate(payload);
   };
@@ -1616,33 +1634,6 @@ export default function ClaimNotificationsPage() {
             <p className="text-sm text-slate-500">Claim Notification Detail</p>
           </div>
           <div className="flex items-center gap-2">
-            {isClaimsOfficer && (selectedRecord.status === 'acknowledged' || selectedRecord.status === 'pending' || selectedRecord.status === 'resubmitted') && (
-              <button
-                onClick={() => {
-                  const config = getProviderConfig(selectedRecord.insurance_provider);
-                  setAvailableTo(config.to);
-                  setAvailableCc(config.cc);
-                  setSelectedTo([...config.to]);
-                  setSelectedCc([...config.cc]);
-                  setEmailModalProvider(selectedRecord.insurance_provider);
-                  setIsEmailModalOpen(true);
-                }}
-                disabled={sendEmailMut.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] disabled:opacity-50 text-white text-sm font-medium rounded-xl shadow-sm transition cursor-pointer"
-              >
-                {sendEmailMut.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Sending Email...</span>
-                  </>
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4" />
-                    <span>Email Insurance Provider</span>
-                  </>
-                )}
-              </button>
-            )}
             <button
               onClick={() => window.print()}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl border border-slate-200 shadow-sm transition cursor-pointer"
@@ -1992,166 +1983,6 @@ export default function ClaimNotificationsPage() {
             </div>
           );
         })()}
-
-        {/* Email Selection Modal */}
-        {isEmailModalOpen && selectedRecord && (
-          <div
-            onClick={() => setIsEmailModalOpen(false)}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print cursor-pointer"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up cursor-default"
-            >
-              {/* Modal Header */}
-              <div className="bg-gradient-to-r from-[#4A0E17] to-[#7A1C2E] px-5 py-4 flex items-center justify-between text-white">
-                <div className="flex items-center gap-2.5">
-                  <Mail className="h-5 w-5 text-white/90" />
-                  <div>
-                    <h3 className="text-base font-bold">Email Insurance Provider</h3>
-                    <p className="text-[11px] text-white/70 mt-0.5">Select recipients for {emailModalProvider}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsEmailModalOpen(false)}
-                  disabled={sendEmailMut.isPending}
-                  className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
-                {/* Select All Section */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Recipients Selection</span>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTo([...availableTo]);
-                        setSelectedCc([...availableCc]);
-                      }}
-                      className="text-xs font-semibold text-[#4A0E17] hover:underline cursor-pointer"
-                    >
-                      Select All
-                    </button>
-                    <span className="text-slate-300">|</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTo([]);
-                        setSelectedCc([]);
-                      }}
-                      className="text-xs font-semibold text-slate-500 hover:underline cursor-pointer"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                </div>
-
-                {/* TO List */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-slate-705">TO: Recipients</h4>
-                  {availableTo.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">No TO emails configured.</p>
-                  ) : (
-                    <div className="space-y-1.5 bg-slate-50/50 border border-slate-150 rounded-xl p-3">
-                      {availableTo.map((email) => {
-                        const isChecked = selectedTo.includes(email);
-                        return (
-                          <label key={email} className="flex items-center gap-3 py-1 cursor-pointer select-none group text-xs text-slate-650">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedTo((prev) => [...prev, email]);
-                                } else {
-                                  setSelectedTo((prev) => prev.filter((item) => item !== email));
-                                }
-                              }}
-                              className="rounded border-slate-300 text-[#4A0E17] focus:ring-[#4A0E17]/20 h-4 w-4 cursor-pointer"
-                            />
-                            <span className="group-hover:text-slate-900 transition">{email}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* CC List */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-slate-705">CC: Recipients</h4>
-                  {availableCc.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">No CC emails configured.</p>
-                  ) : (
-                    <div className="space-y-1.5 bg-slate-50/50 border border-[#CBD5E1] rounded-xl p-3">
-                      {availableCc.map((email) => {
-                        const isChecked = selectedCc.includes(email);
-                        return (
-                          <label key={email} className="flex items-center gap-3 py-1 cursor-pointer select-none group text-xs text-slate-650">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedCc((prev) => [...prev, email]);
-                                } else {
-                                  setSelectedCc((prev) => prev.filter((item) => item !== email));
-                                }
-                              }}
-                              className="rounded border-slate-300 text-[#4A0E17] focus:ring-[#4A0E17]/20 h-4 w-4 cursor-pointer"
-                            />
-                            <span className="group-hover:text-slate-900 transition">{email}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="bg-slate-50 px-5 py-4 border-t border-slate-150 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsEmailModalOpen(false)}
-                  disabled={sendEmailMut.isPending}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100/80 text-slate-700 text-sm font-medium rounded-xl transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    sendEmailMut.mutate({
-                      id: selectedRecord.id,
-                      to: selectedTo,
-                      cc: selectedCc,
-                    })
-                  }
-                  disabled={selectedTo.length === 0 || sendEmailMut.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
-                >
-                  {sendEmailMut.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Sending...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      <span>Send Email</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -2345,6 +2176,23 @@ export default function ClaimNotificationsPage() {
                     </select>
                   </div>
                   <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Payment Status *</label>
+                    <select
+                      value={paymentStatus}
+                      onChange={(e) => {
+                        setPaymentStatus(e.target.value);
+                        if (validationErrors.payment_status) {
+                          setValidationErrors((prev) => ({ ...prev, payment_status: false }));
+                        }
+                      }}
+                      className={getInputClass('payment_status') + " cursor-pointer"}
+                    >
+                      <option value="">Select Payment Status</option>
+                      <option value="FULLY PAID">FULLY PAID</option>
+                      <option value="NOT YET PAID TO SUPREMO">NOT YET PAID TO SUPREMO</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Type of Claim *</label>
                     <select
                       value={claimType}
@@ -2365,18 +2213,6 @@ export default function ClaimNotificationsPage() {
                       <option value="THEFT AND LOSS">THEFT AND LOSS</option>
                       <option value="CNC (CERTIFICATE OF NO CLAIM)">CNC (CERTIFICATE OF NO CLAIM)</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nature of Claims / Details</label>
-                    <textarea value={form.nature_of_claims}
-                      onChange={(e) => {
-                        setForm({ ...form, nature_of_claims: e.target.value });
-                        if (validationErrors.nature_of_claims) {
-                          setValidationErrors((prev) => ({ ...prev, nature_of_claims: false }));
-                        }
-                      }}
-                      rows={8} className={getInputClass('nature_of_claims')}
-                      placeholder="Describe the nature of the claim or requirements..." />
                   </div>
                 </div>
 
@@ -3013,11 +2849,17 @@ export default function ClaimNotificationsPage() {
                   </table>
                 </div>
 
-                {/* Nature of claims */}
+                {/* Payment Status */}
                 <div className="space-y-1">
-                  <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nature of Claims</h5>
-                  <div className="bg-slate-50/80 border border-slate-150 rounded-xl p-3 text-xs text-slate-600 leading-relaxed whitespace-pre-wrap min-h-[60px]">
-                    {form.nature_of_claims || 'No nature of claims described yet...'}
+                  <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Payment Status</h5>
+                  <div className="bg-slate-50/80 border border-slate-150 rounded-xl p-3 text-xs font-bold uppercase tracking-wide">
+                    {paymentStatus ? (
+                      <span className={paymentStatus === 'FULLY PAID' ? 'text-emerald-700' : 'text-amber-700'}>
+                        {paymentStatus}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic font-normal">Select payment status above...</span>
+                    )}
                   </div>
                 </div>
 
