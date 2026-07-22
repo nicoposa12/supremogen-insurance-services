@@ -2380,13 +2380,557 @@ export default function ClaimNotificationsPage() {
                   </div>
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">NOTE:</label>
-                  <textarea value={form.notes}
-                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    rows={3} className={getInputClass('notes')}
-                    placeholder="Additional notes or remarks..." />
-                </div>
+                {/* Claim Requirements Upload Section when submitting notification */}
+                {claimType && (
+                  <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-[#4A0E17]" />
+                      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Upload Claim Requirements ({claimType})
+                      </h4>
+                    </div>
+
+                    {/* Own Damage Requirements */}
+                    {(claimType === 'OWN DAMAGE' || claimType === 'OWN DAMAGE & TTPD') && (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                        <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">
+                          Own Damage Claim Requirements (Upload Attachments)
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {OWN_DAMAGE_REQUIREMENTS.map((req) => (
+                            <div key={req.key} className="space-y-1">
+                              <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="file"
+                                    id={`form-file-${req.key}`}
+                                    multiple
+                                    onChange={(e) => {
+                                      const files = Array.from(e.target.files || []);
+                                      if (files.length > 0) {
+                                        setRequirementFiles((prev) => ({
+                                          ...prev,
+                                          [req.key]: [...(prev[req.key] || []), ...files],
+                                        }));
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor={`form-file-${req.key}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                                  >
+                                    <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                    <span>Choose File</span>
+                                  </label>
+                                  {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                                    <span className="text-xs text-slate-400 italic">No files selected</span>
+                                  )}
+                                </div>
+
+                                {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {requirementFiles[req.key].map((file, idx) => (
+                                      <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900 shadow-2xs">
+                                        <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                        <span className="truncate max-w-[120px]">{file.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRequirementFiles((prev) => {
+                                              const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                              const copy = { ...prev };
+                                              if (list.length === 0) {
+                                                delete copy[req.key];
+                                              } else {
+                                                copy[req.key] = list;
+                                              }
+                                              return copy;
+                                            });
+                                          }}
+                                          className="text-emerald-700 hover:text-red-500 transition cursor-pointer"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                <div className="mt-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Add a brief note for this file..."
+                                    value={requirementNotes[req.key] || ''}
+                                    onChange={(e) => {
+                                      setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                    }}
+                                    className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Third Party (TTPD) Requirements */}
+                    {(claimType === 'TPPD' || claimType === 'OWN DAMAGE & TTPD') && (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                        <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">
+                          Third Party (TTPD) Claim Requirements (Upload Attachments)
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {TTPD_REQUIREMENTS.map((req) => (
+                            <div key={req.key} className="space-y-1">
+                              <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="file"
+                                    id={`form-file-${req.key}`}
+                                    multiple
+                                    onChange={(e) => {
+                                      const files = Array.from(e.target.files || []);
+                                      if (files.length > 0) {
+                                        setRequirementFiles((prev) => ({
+                                          ...prev,
+                                          [req.key]: [...(prev[req.key] || []), ...files],
+                                        }));
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor={`form-file-${req.key}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                                  >
+                                    <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                    <span>Choose File</span>
+                                  </label>
+                                  {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                                    <span className="text-xs text-slate-400 italic">No files selected</span>
+                                  )}
+                                </div>
+
+                                {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {requirementFiles[req.key].map((file, idx) => (
+                                      <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900 shadow-2xs">
+                                        <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                        <span className="truncate max-w-[120px]">{file.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRequirementFiles((prev) => {
+                                              const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                              const copy = { ...prev };
+                                              if (list.length === 0) {
+                                                delete copy[req.key];
+                                              } else {
+                                                copy[req.key] = list;
+                                              }
+                                              return copy;
+                                            });
+                                          }}
+                                          className="text-emerald-700 hover:text-red-500 transition cursor-pointer"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                <div className="mt-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Add a brief note for this file..."
+                                    value={requirementNotes[req.key] || ''}
+                                    onChange={(e) => {
+                                      setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                    }}
+                                    className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Act of Nature Requirements */}
+                    {claimType === 'ACT OF NATURE' && (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                        <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">
+                          Act of Nature Claim Requirements (Upload Attachments)
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {ACT_OF_NATURE_REQUIREMENTS.map((req) => (
+                            <div key={req.key} className="space-y-1">
+                              <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="file"
+                                    id={`form-file-${req.key}`}
+                                    multiple
+                                    onChange={(e) => {
+                                      const files = Array.from(e.target.files || []);
+                                      if (files.length > 0) {
+                                        setRequirementFiles((prev) => ({
+                                          ...prev,
+                                          [req.key]: [...(prev[req.key] || []), ...files],
+                                        }));
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor={`form-file-${req.key}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                                  >
+                                    <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                    <span>Choose File</span>
+                                  </label>
+                                  {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                                    <span className="text-xs text-slate-400 italic">No files selected</span>
+                                  )}
+                                </div>
+
+                                {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {requirementFiles[req.key].map((file, idx) => (
+                                      <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900 shadow-2xs">
+                                        <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                        <span className="truncate max-w-[120px]">{file.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRequirementFiles((prev) => {
+                                              const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                              const copy = { ...prev };
+                                              if (list.length === 0) {
+                                                delete copy[req.key];
+                                              } else {
+                                                copy[req.key] = list;
+                                              }
+                                              return copy;
+                                            });
+                                          }}
+                                          className="text-emerald-700 hover:text-red-500 transition cursor-pointer"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                <div className="mt-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Add a brief note for this file..."
+                                    value={requirementNotes[req.key] || ''}
+                                    onChange={(e) => {
+                                      setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                    }}
+                                    className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Theft and Loss Requirements */}
+                    {claimType === 'THEFT AND LOSS' && (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                        <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">
+                          Theft and Loss Claim Requirements (Upload Attachments)
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {THEFT_AND_LOSS_REQUIREMENTS.map((req) => (
+                            <div key={req.key} className="space-y-1">
+                              <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="file"
+                                    id={`form-file-${req.key}`}
+                                    multiple
+                                    onChange={(e) => {
+                                      const files = Array.from(e.target.files || []);
+                                      if (files.length > 0) {
+                                        setRequirementFiles((prev) => ({
+                                          ...prev,
+                                          [req.key]: [...(prev[req.key] || []), ...files],
+                                        }));
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor={`form-file-${req.key}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                                  >
+                                    <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                    <span>Choose File</span>
+                                  </label>
+                                  {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                                    <span className="text-xs text-slate-400 italic">No files selected</span>
+                                  )}
+                                </div>
+
+                                {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {requirementFiles[req.key].map((file, idx) => (
+                                      <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900 shadow-2xs">
+                                        <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                        <span className="truncate max-w-[120px]">{file.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRequirementFiles((prev) => {
+                                              const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                              const copy = { ...prev };
+                                              if (list.length === 0) {
+                                                delete copy[req.key];
+                                              } else {
+                                                copy[req.key] = list;
+                                              }
+                                              return copy;
+                                            });
+                                          }}
+                                          className="text-emerald-700 hover:text-red-500 transition cursor-pointer"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                <div className="mt-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Add a brief note for this file..."
+                                    value={requirementNotes[req.key] || ''}
+                                    onChange={(e) => {
+                                      setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                    }}
+                                    className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CNC Requirements */}
+                    {claimType === 'CNC (CERTIFICATE OF NO CLAIM)' && (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                        <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">
+                          CNC Requirements (Upload Attachments)
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {CNC_REQUIREMENTS.map((req) => (
+                            <div key={req.key} className="space-y-1">
+                              <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="file"
+                                    id={`form-file-${req.key}`}
+                                    multiple
+                                    onChange={(e) => {
+                                      const files = Array.from(e.target.files || []);
+                                      if (files.length > 0) {
+                                        setRequirementFiles((prev) => ({
+                                          ...prev,
+                                          [req.key]: [...(prev[req.key] || []), ...files],
+                                        }));
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor={`form-file-${req.key}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                                  >
+                                    <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                    <span>Choose File</span>
+                                  </label>
+                                  {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                                    <span className="text-xs text-slate-400 italic">No files selected</span>
+                                  )}
+                                </div>
+
+                                {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {requirementFiles[req.key].map((file, idx) => (
+                                      <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900 shadow-2xs">
+                                        <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                        <span className="truncate max-w-[120px]">{file.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRequirementFiles((prev) => {
+                                              const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                              const copy = { ...prev };
+                                              if (list.length === 0) {
+                                                delete copy[req.key];
+                                              } else {
+                                                copy[req.key] = list;
+                                              }
+                                              return copy;
+                                            });
+                                          }}
+                                          className="text-emerald-700 hover:text-red-500 transition cursor-pointer"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                                <div className="mt-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Add a brief note for this file..."
+                                    value={requirementNotes[req.key] || ''}
+                                    onChange={(e) => {
+                                      setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                                    }}
+                                    className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Custom Attachments */}
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Paperclip className="h-4 w-4 text-[#4A0E17]" />
+                          <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">Additional Attachments</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomAttachments((prev) => [
+                              ...prev,
+                              {
+                                id: Math.random().toString(36).substring(2, 9),
+                                label: '',
+                                file: null,
+                                note: '',
+                              },
+                            ]);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#4A0E17]/30 hover:bg-[#4A0E17]/5 text-[#4A0E17] text-xs font-semibold rounded-xl shadow-sm cursor-pointer transition"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          <span>Add Attachment</span>
+                        </button>
+                      </div>
+
+                      {customAttachments.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {customAttachments.map((att) => (
+                            <div key={att.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 relative">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCustomAttachments((prev) => prev.filter((c) => c.id !== att.id));
+                                }}
+                                className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition cursor-pointer"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+
+                              <div className="space-y-1">
+                                <label className="block text-[10px] font-bold text-slate-500">Document Label</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Excess Liability, Owner Photo..."
+                                  value={att.label}
+                                  onChange={(e) => {
+                                    setCustomAttachments((prev) =>
+                                      prev.map((c) => (c.id === att.id ? { ...c, label: e.target.value } : c))
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="block text-[10px] font-bold text-slate-500">File</label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="file"
+                                    id={`custom-file-form-${att.id}`}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0] || null;
+                                      setCustomAttachments((prev) =>
+                                        prev.map((c) => (c.id === att.id ? { ...c, file } : c))
+                                      );
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor={`custom-file-form-${att.id}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                                  >
+                                    <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                    <span>Choose File</span>
+                                  </label>
+                                  <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                                    {att.file ? att.file.name : 'No file chosen'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="block text-[10px] font-bold text-slate-500">Note / Remarks (Optional)</label>
+                                <input
+                                  type="text"
+                                  placeholder="Additional details..."
+                                  value={att.note}
+                                  onChange={(e) => {
+                                    setCustomAttachments((prev) =>
+                                      prev.map((c) => (c.id === att.id ? { ...c, note: e.target.value } : c))
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">No additional custom attachments added yet.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button onClick={() => { setActiveView('list'); resetForm(); }}
