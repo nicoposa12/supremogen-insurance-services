@@ -15,6 +15,7 @@ import {
   Paperclip,
   ChevronDown,
   Calendar,
+  MapPin,
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -448,6 +449,10 @@ export default function CustomersPage() {
     data.middle_name = parsed.middleName;
     data.last_name = parsed.lastName;
     data.suffix = parsed.suffix;
+
+    if (!data.landmark || !data.landmark.trim()) {
+      data.landmark = 'N/A';
+    }
 
     if (!formEditTarget && (!orcrFile || !ellaScreenshotFile)) {
       showToast('Please upload all required attachments (ORCR and Ella Langrio Screenshot).', 'error');
@@ -1509,42 +1514,23 @@ export default function CustomersPage() {
                     </div>
 
                     {/* Address row */}
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                      <div className="md:col-span-2">
-                        <label className={labelClass}>Address Line 1 *</label>
+                    <div className="space-y-1">
+                      <label className={labelClass}>Complete Address *</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                          <MapPin className="w-4.5 h-4.5" />
+                        </div>
                         <input
-                          {...register('address_line_1', { required: 'Address Line 1 is required' })}
-                          className={inputClass(errors.address_line_1)}
-                          placeholder="Street Address, P.O. Box, etc."
-                        />
-                        {errors.address_line_1 && <p className="text-xs text-red-500 mt-1">{errors.address_line_1.message}</p>}
-                      </div>
-                      <div>
-                        <label className={labelClass}>City *</label>
-                        <input
-                          {...register('city', { required: 'City is required' })}
-                          className={inputClass(errors.city)}
-                          placeholder="City"
-                        />
-                        {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city.message}</p>}
-                      </div>
-                      <div>
-                        <label className={labelClass}>Province *</label>
-                        <input
-                          {...register('province', { required: 'Province is required' })}
-                          className={inputClass(errors.province)}
-                          placeholder="Province"
-                        />
-                        {errors.province && <p className="text-xs text-red-500 mt-1">{errors.province.message}</p>}
-                      </div>
-                      <div>
-                        <label className={labelClass}>Zip Code</label>
-                        <input
-                          {...register('zip_code')}
-                          className={inputClass()}
-                          placeholder="Zip code"
+                          {...register('address_line_1', { required: 'Address is required' })}
+                          className={`${inputClass(errors.address_line_1)} pl-10 text-slate-800 placeholder:text-slate-400 font-medium`}
+                          placeholder="e.g. Unit 12B High Street Bldg., Brgy. Fort Bonifacio, Taguig City, Metro Manila 1634"
                         />
                       </div>
+                      <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                        Format: House/Unit No., Street Name, Barangay, City/Municipality, Province, Zip Code
+                      </p>
+                      {errors.address_line_1 && <p className="text-xs text-red-500 mt-1">{errors.address_line_1.message}</p>}
                     </div>
                   </div>
 
@@ -1842,13 +1828,12 @@ export default function CustomersPage() {
                         {errors.delivery_address && <p className="text-xs text-red-500 mt-1">{errors.delivery_address.message}</p>}
                       </div>
                       <div>
-                        <label className={labelClass}>Landmark *</label>
+                        <label className={labelClass}>Landmark</label>
                         <input
-                          {...register('landmark', { required: 'Landmark is required' })}
+                          {...register('landmark')}
                           className={inputClass(errors.landmark)}
                           placeholder="Nearby landmark description"
                         />
-                        {errors.landmark && <p className="text-xs text-red-500 mt-1">{errors.landmark.message}</p>}
                       </div>
                     </div>
                   </div>

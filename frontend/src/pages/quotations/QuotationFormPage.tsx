@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Send, Calculator, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Loader2, Send, Calculator, UploadCloud, MapPin } from 'lucide-react';
 
 import { useToast } from '../../components/ui/Toast';
 import { getQuotation, createQuotation, updateQuotation, submitQuotation } from '../../services/quotationApi';
@@ -614,7 +614,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       sub_agent_name: subAgentName,
       receiver_name: receiverName,
       delivery_address: deliveryAddress,
-      landmark: landmark,
+      landmark: landmark.trim() ? landmark.trim() : 'N/A',
       backup_phone: backupPhone,
       fb_link: fbLink,
       used_rate_type: usedRateType,
@@ -761,9 +761,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       { value: fullName, name: 'Assured Full Name' },
       { value: email, name: 'Email Address' },
       { value: mobile, name: 'Contact No.#' },
-      { value: addressLine1, name: 'Address Line 1' },
-      { value: city, name: 'City' },
-      { value: province, name: 'Province' },
+      { value: addressLine1, name: 'Address' },
       { value: unit, name: 'Year Model & Make' },
       { value: chassisNo, name: 'Chassis #' },
       { value: engineNo, name: 'Engine #' },
@@ -777,7 +775,6 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       { value: usedRate, name: 'Used Rate' },
       { value: receiverName, name: "Receiver's Name" },
       { value: deliveryAddress, name: 'Delivery Address' },
-      { value: landmark, name: 'Landmark' },
     ];
 
     const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(ownership);
@@ -981,25 +978,29 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         </div>
 
         {/* Card 3: Assured Address */}
-        <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Assured Address</h3>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2">
-              <label className={labelClass}>Address Line 1 *</label>
-              <input type="text" value={addressLine1} onChange={(e) => setAddressLine1(e.target.value)} className={getInputClass(addressLine1)} placeholder="Street Address" />
+        <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-3">
+          <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider mb-3 border-b border-slate-100 pb-2 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-[#8B1D2C]" />
+            Assured Address
+          </h3>
+          <div>
+            <label className={labelClass}>Complete Address *</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <MapPin className="w-4.5 h-4.5" />
+              </div>
+              <input
+                type="text"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                className={`${getInputClass(addressLine1)} pl-10 text-slate-800 placeholder:text-slate-400 font-medium`}
+                placeholder="e.g. Unit 12B High Street Bldg., Brgy. Fort Bonifacio, Taguig City, Metro Manila 1634"
+              />
             </div>
-            <div>
-              <label className={labelClass}>City *</label>
-              <input type="text" value={city} onChange={(e) => setCity(e.target.value)} className={getInputClass(city)} placeholder="City" />
-            </div>
-            <div>
-              <label className={labelClass}>Province *</label>
-              <input type="text" value={province} onChange={(e) => setProvince(e.target.value)} className={getInputClass(province)} placeholder="Province" />
-            </div>
-            <div>
-              <label className={labelClass}>Zip Code</label>
-              <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} className={getInputClass(zipCode, false)} placeholder="Zip code" />
-            </div>
+            <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+              Format: House/Unit No., Street Name, Barangay, City/Municipality, Province, Zip Code
+            </p>
           </div>
         </div>
 
@@ -1122,8 +1123,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
               <input type="text" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className={getInputClass(deliveryAddress)} placeholder="Complete delivery address" />
             </div>
             <div>
-              <label className={labelClass}>Landmark *</label>
-              <input type="text" value={landmark} onChange={(e) => setLandmark(e.target.value)} className={getInputClass(landmark)} placeholder="Nearby landmark description" />
+              <label className={labelClass}>Landmark</label>
+              <input type="text" value={landmark} onChange={(e) => setLandmark(e.target.value)} className={getInputClass(landmark, false)} placeholder="Nearby landmark description" />
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save, Loader2, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, UploadCloud, MapPin } from 'lucide-react';
 
 import { useToast } from '../../components/ui/Toast';
 import { getCustomer, createCustomer, updateCustomer } from '../../services/customerApi';
@@ -249,6 +249,10 @@ export default function CustomerFormPage() {
     data.last_name = parsed.lastName;
     data.suffix = parsed.suffix;
 
+    if (!data.landmark || !data.landmark.trim()) {
+      data.landmark = 'N/A';
+    }
+
     if (!isEdit && (!orcrFile || !ellaScreenshotFile)) {
       showToast('Please upload all required attachments (ORCR and Ella Langrio Screenshot).', 'error');
       return;
@@ -455,44 +459,28 @@ export default function CustomerFormPage() {
         </div>
 
         {/* Section 3: Assured Address */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-[#4A0E17] uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Assured Address</h3>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2">
-              <label className={labelClass}>Address Line 1 *</label>
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-3">
+          <h3 className="text-sm font-semibold text-[#4A0E17] uppercase tracking-wider mb-3 border-b border-slate-100 pb-2 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-[#8B1D2C]" />
+            Assured Address
+          </h3>
+          <div>
+            <label className={labelClass}>Complete Address *</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <MapPin className="w-4.5 h-4.5" />
+              </div>
               <input
-                {...register('address_line_1', { required: 'Address Line 1 is required' })}
-                className={inputClass(errors.address_line_1)}
-                placeholder="Street Address, P.O. Box, etc."
-              />
-              {errors.address_line_1 && <p className="text-xs text-red-500 mt-1">{errors.address_line_1.message}</p>}
-            </div>
-            <div>
-              <label className={labelClass}>City *</label>
-              <input
-                {...register('city', { required: 'City is required' })}
-                className={inputClass(errors.city)}
-                placeholder="City"
-              />
-              {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city.message}</p>}
-            </div>
-            <div>
-              <label className={labelClass}>Province *</label>
-              <input
-                {...register('province', { required: 'Province is required' })}
-                className={inputClass(errors.province)}
-                placeholder="Province"
-              />
-              {errors.province && <p className="text-xs text-red-500 mt-1">{errors.province.message}</p>}
-            </div>
-            <div>
-              <label className={labelClass}>Zip Code</label>
-              <input
-                {...register('zip_code')}
-                className={inputClass()}
-                placeholder="Zip code"
+                {...register('address_line_1', { required: 'Address is required' })}
+                className={`${inputClass(errors.address_line_1)} pl-10 text-slate-800 placeholder:text-slate-400 font-medium`}
+                placeholder="e.g. Unit 12B High Street Bldg., Brgy. Fort Bonifacio, Taguig City, Metro Manila 1634"
               />
             </div>
+            <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+              Format: House/Unit No., Street Name, Barangay, City/Municipality, Province, Zip Code
+            </p>
+            {errors.address_line_1 && <p className="text-xs text-red-500 mt-1">{errors.address_line_1.message}</p>}
           </div>
         </div>
 
@@ -787,13 +775,12 @@ export default function CustomerFormPage() {
               {errors.delivery_address && <p className="text-xs text-red-500 mt-1">{errors.delivery_address.message}</p>}
             </div>
             <div>
-              <label className={labelClass}>Landmark *</label>
+              <label className={labelClass}>Landmark</label>
               <input
-                {...register('landmark', { required: 'Landmark is required' })}
+                {...register('landmark')}
                 className={inputClass(errors.landmark)}
                 placeholder="Nearby landmark description"
               />
-              {errors.landmark && <p className="text-xs text-red-500 mt-1">{errors.landmark.message}</p>}
             </div>
           </div>
         </div>
