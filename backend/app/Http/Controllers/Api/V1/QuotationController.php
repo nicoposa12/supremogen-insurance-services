@@ -460,17 +460,37 @@ class QuotationController extends Controller
                 ]);
             }
 
-            // If approved, also notify all Collection officers about the generated invoice
-            if ($action === 'approve' && $invoice) {
-                $collectionOfficers = \App\Models\User::role('Collection')->get();
-                foreach ($collectionOfficers as $officer) {
+            // If approved, notify creator, Accounting officers, and Collection officers
+            if ($action === 'approve') {
+                $customerName = $quotation->customer
+                    ? trim($quotation->customer->first_name . ' ' . $quotation->customer->last_name)
+                    : 'Customer';
+                $refNo = $quotation->quotation_number ?: ($quotation->ir_number ?: "IR-{$quotation->id}");
+
+                // 1. Notify all Accounting Officers about the newly approved policy statement
+                $accountingOfficers = \App\Models\User::role('Accounting Officer')->get();
+                foreach ($accountingOfficers as $officer) {
                     \App\Models\Notification::create([
                         'user_id' => $officer->id,
-                        'title' => 'Invoice Issued',
-                        'message' => "A new invoice {$invoice->invoice_number} has been generated for " . ($quotation->customer ? ($quotation->customer->first_name . ' ' . $quotation->customer->last_name) : 'Customer') . " with balance ₱" . number_format($invoice->balance, 2) . ".",
-                        'type' => 'info',
+                        'title'   => 'Policy Statement Ready',
+                        'message' => "New policy billing statement for {$refNo} (Assured: {$customerName}) is ready for accounting processing.",
+                        'type'    => 'success',
                         'read_at' => null,
                     ]);
+                }
+
+                // 2. Notify all Collection officers about the generated invoice
+                if ($invoice) {
+                    $collectionOfficers = \App\Models\User::role('Collection')->get();
+                    foreach ($collectionOfficers as $officer) {
+                        \App\Models\Notification::create([
+                            'user_id' => $officer->id,
+                            'title'   => 'Invoice Issued',
+                            'message' => "A new invoice {$invoice->invoice_number} has been generated for {$customerName} with balance ₱" . number_format($invoice->balance, 2) . ".",
+                            'type'    => 'info',
+                            'read_at' => null,
+                        ]);
+                    }
                 }
             }
         } catch (\Exception $e) {

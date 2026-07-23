@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   FileSpreadsheet, Search, Eye, Printer, Loader2, ArrowLeft,
@@ -58,9 +59,17 @@ const getCbicTariffPremiums = (coverageAmt: number, isCV: boolean) => {
 };
 
 export default function PolicyStatementsPage() {
-  const [searchInput, setSearchInput] = useState('');
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') || '';
+  const [searchInput, setSearchInput] = useState(urlSearch);
   const [selectedProvider, setSelectedProvider] = useState<'ALL' | 'ALPHA' | 'CBIC'>('ALL');
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
+
+  useEffect(() => {
+    if (urlSearch) {
+      setSearchInput(urlSearch);
+    }
+  }, [urlSearch]);
 
   // Fetch approved Policy Issuance Requests
   const { data: response, isLoading, refetch } = useQuery({

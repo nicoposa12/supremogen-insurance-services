@@ -506,6 +506,9 @@ export default function DashboardLayout() {
       queryClient.invalidateQueries({ queryKey: ['claims'] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['insurance-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['policies'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['approved-statements'] });
     }
   }, [notificationsRes, showToast, queryClient]);
 
@@ -794,9 +797,14 @@ export default function DashboardLayout() {
                               const matchClaim = message.match(/CLM-\d{4}-\d{5}/);
                               const matchPolicy = message.match(/POL-\d{4}-\d{5}/);
 
+                              // For Accounting Officer role, route policy/statement/quotation notifications directly to Policy Statements
+                              const isAccounting = roles.includes('Accounting Officer') || roles.includes('Accounting');
+
                               if (matchQuotation) {
                                 const code = matchQuotation[0];
-                                if (roles.includes('Underwriter')) {
+                                if (isAccounting) {
+                                  navigate(`/dashboard/policy-statements?search=${code}`);
+                                } else if (roles.includes('Underwriter')) {
                                   navigate(`/dashboard/insurance-requests?search=${code}`);
                                 } else {
                                   navigate(`/dashboard/quotations?search=${code}`);
@@ -816,9 +824,15 @@ export default function DashboardLayout() {
                                 navigate(`/dashboard/claims?search=${code}`);
                               } else if (matchPolicy) {
                                 const code = matchPolicy[0];
-                                navigate(`/dashboard/renewals?search=${code}`);
-                              } else if (title.toLowerCase().includes('quotation')) {
-                                if (roles.includes('Underwriter')) {
+                                if (isAccounting) {
+                                  navigate(`/dashboard/policy-statements?search=${code}`);
+                                } else {
+                                  navigate(`/dashboard/renewals?search=${code}`);
+                                }
+                              } else if (title.toLowerCase().includes('quotation') || title.toLowerCase().includes('statement') || title.toLowerCase().includes('policy')) {
+                                if (isAccounting) {
+                                  navigate('/dashboard/policy-statements');
+                                } else if (roles.includes('Underwriter')) {
                                   navigate('/dashboard/insurance-requests');
                                 } else {
                                   navigate('/dashboard/quotations');

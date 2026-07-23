@@ -144,6 +144,19 @@ class PolicyController extends Controller
                     'read_at' => null,
                 ]);
             }
+
+            // Also notify all Accounting Officers about the newly issued policy statement
+            $accountingOfficers = \App\Models\User::role('Accounting Officer')->get();
+            $customerName = $policy->customer ? trim($policy->customer->first_name . ' ' . $policy->customer->last_name) : 'Customer';
+            foreach ($accountingOfficers as $officer) {
+                \App\Models\Notification::create([
+                    'user_id' => $officer->id,
+                    'title'   => 'Policy Statement Ready',
+                    'message' => "New policy billing statement for Policy {$policy->policy_number} (Assured: {$customerName}) is ready for accounting processing.",
+                    'type'    => 'success',
+                    'read_at' => null,
+                ]);
+            }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to send policy issuance notification: ' . $e->getMessage());
         }
