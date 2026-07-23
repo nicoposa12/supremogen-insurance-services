@@ -164,6 +164,10 @@ class InvoiceController extends Controller
                     }
                 }
             }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to dispatch DST warning notifications: ' . $e->getMessage());
+        }
+
         // Auto-check for 1st Payment Alarms (No 1st payment by 20th of following month)
         try {
             $unpaidFirstInvoices = Invoice::where('amount_paid', 0)
