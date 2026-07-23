@@ -73,6 +73,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send']);
         Route::post('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
         Route::post('/invoices/{invoice}/send-reminder', [InvoiceController::class, 'sendReminder']);
+        Route::post('/invoices/{invoice}/notify-dst-warning', [InvoiceController::class, 'notifyDstWarning']);
 
         // Payments
         Route::get('/payments', [PaymentController::class, 'index']);

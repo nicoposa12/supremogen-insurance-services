@@ -29,7 +29,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
-import { getInvoices, sendInvoiceReminder } from '../../services/invoiceApi';
+import { getInvoices, sendInvoiceReminder, notifyDstWarning as notifyDstWarningApi } from '../../services/invoiceApi';
 import { recordPayment, updatePayment } from '../../services/paymentApi';
 import { downloadAttachment, getAttachmentPreview } from '../../services/attachmentApi';
 import { getReportSummary } from '../../services/reportApi';
@@ -584,18 +584,85 @@ export default function CollectionLedgerPage() {
       page: page,
       per_page: perPage,
       search: searchVal,
-      status: invoiceStatus === 'all' ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid' : invoiceStatus),
+      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm') ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid' : invoiceStatus),
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
     placeholderData: (prev) => prev,
   });
 
+  const firstPaymentAlarmCount = useMemo(() => {
+    const rawList = invoicesRes?.data?.data ?? [];
+    return rawList.filter((row: Invoice) => {
+      const customer = row.customer;
+      if (Number(row.amount_paid) > 0 || Number(row.balance) <= 0) return false;
+      const reqDateStr = customer?.writing_date || customer?.inception_date || row.created_at;
+      if (!reqDateStr) return false;
+      const reqDate = new Date(reqDateStr);
+      if (isNaN(reqDate.getTime())) return false;
+
+      const targetYear = reqDate.getMonth() === 11 ? reqDate.getFullYear() + 1 : reqDate.getFullYear();
+      const targetMonth = (reqDate.getMonth() + 1) % 12;
+      const alarmDate = new Date(targetYear, targetMonth, 20);
+
+      const today = new Date();
+      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const alarmMidnight = new Date(alarmDate.getFullYear(), alarmDate.getMonth(), alarmDate.getDate());
+
+      return todayMidnight >= alarmMidnight;
+    }).length;
+  }, [invoicesRes]);
+
+  const dstWarningCount = useMemo(() => {
+    const rawList = invoicesRes?.data?.data ?? [];
+    return rawList.filter((row: Invoice) => {
+      const customer = row.customer;
+      if (Number(row.balance) <= 0 || !customer?.inception_date) return false;
+      const inDate = new Date(customer.inception_date);
+      if (isNaN(inDate.getTime())) return false;
+      const today = new Date();
+      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const inMidnight = new Date(inDate.getFullYear(), inDate.getMonth(), inDate.getDate());
+      const diffTime = todayMidnight.getTime() - inMidnight.getTime();
+      return Math.floor(diffTime / (1000 * 60 * 60 * 24)) >= 80;
+    }).length;
+  }, [invoicesRes]);
+
   // Client-side filtering for Agent, Type, Assured Name, and Plate Number columns
   const filteredInvoices = useMemo(() => {
     const rawList = invoicesRes?.data?.data ?? [];
     return rawList.filter((row: Invoice) => {
       const customer = row.customer;
+
+      // 1st Payment Alarm filter (No 1st payment by 20th of following month)
+      if (invoiceStatus === 'first_payment_alarm') {
+        if (Number(row.amount_paid) > 0 || Number(row.balance) <= 0) return false;
+        const reqDateStr = customer?.writing_date || customer?.inception_date || row.created_at;
+        if (!reqDateStr) return false;
+        const reqDate = new Date(reqDateStr);
+        if (isNaN(reqDate.getTime())) return false;
+
+        const targetYear = reqDate.getMonth() === 11 ? reqDate.getFullYear() + 1 : reqDate.getFullYear();
+        const targetMonth = (reqDate.getMonth() + 1) % 12;
+        const alarmDate = new Date(targetYear, targetMonth, 20);
+
+        const today = new Date();
+        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const alarmMidnight = new Date(alarmDate.getFullYear(), alarmDate.getMonth(), alarmDate.getDate());
+
+        if (todayMidnight < alarmMidnight) return false;
+      }
+
+      // DST Warning filter
+      if (invoiceStatus === 'dst_warning') {
+        if (Number(row.balance) <= 0 || !customer?.inception_date) return false;
+        const inDate = new Date(customer.inception_date);
+        if (isNaN(inDate.getTime())) return false;
+        const today = new Date();
+        const diffTime = today.getTime() - inDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays < 80) return false;
+      }
 
       // Agent filter
       if (agentFilter) {
@@ -1212,107 +1279,172 @@ export default function CollectionLedgerPage() {
       {/* Main Ledger Section */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-5 space-y-4 shadow-sm animate-fade-in">
         {/* Search & Filter Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by assured name, plate, invoice number..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition"
-            />
-            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
-              <button
-                onClick={handleClearSearchAndFilters}
-                title="Clear all search and column filters"
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <Filter className="h-4 w-4 text-slate-400" />
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status:</span>
-              <select
-                value={invoiceStatus}
-                onChange={(e) => {
-                  setInvoiceStatus(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
-              >
-                <option value="every">All Invoices</option>
-                <option value="all">All Outstanding</option>
-                <option value="sent">Sent (Unpaid)</option>
-                <option value="partial">Partially Paid</option>
-                <option value="overdue">Overdue</option>
-                <option value="paid">Paid</option>
-              </select>
+        <div className="space-y-3">
+          <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by assured name, plate, policy, agent, invoice #..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition"
+              />
+              {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
+                <button
+                  onClick={handleClearSearchAndFilters}
+                  title="Clear all search and filters"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Status */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                <Filter className="h-3.5 w-3.5 text-slate-400" />
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Status:</span>
+                <select
+                  value={invoiceStatus}
+                  onChange={(e) => { setInvoiceStatus(e.target.value); setPage(1); }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                >
+                  <option value="every">All Invoices</option>
+                  <option value="all">All Outstanding</option>
+                  <option value="first_payment_alarm">🚨 1st Payment Alarm (20th Day)</option>
+                  <option value="dst_warning">⚠️ DST Warning (80+ Days Unpaid)</option>
+                  <option value="sent">Sent (Unpaid)</option>
+                  <option value="partial">Partially Paid</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="paid">Paid</option>
+                </select>
+              </div>
 
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Due Month:</span>
-              <select
-                value={dueMonthFilter}
-                onChange={(e) => {
-                  setDueMonthFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
-              >
-                <option value="">All Months</option>
-                <option value="1">January</option>
-                <option value="2">February</option>
-                <option value="3">March</option>
-                <option value="4">April</option>
-                <option value="5">May</option>
-                <option value="6">June</option>
-                <option value="7">July</option>
-                <option value="8">August</option>
-                <option value="9">September</option>
-                <option value="10">October</option>
-                <option value="11">November</option>
-                <option value="12">December</option>
-              </select>
-            </div>
+              {firstPaymentAlarmCount > 0 && (
+                <button
+                  onClick={() => {
+                    setInvoiceStatus(invoiceStatus === 'first_payment_alarm' ? 'every' : 'first_payment_alarm');
+                    setPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                    invoiceStatus === 'first_payment_alarm'
+                      ? 'bg-red-600 text-white ring-2 ring-red-600/20'
+                      : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                  }`}
+                  title="Filter records with no 1st payment by the 20th of the following month"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 text-red-600 animate-bounce" />
+                  <span>1st Payment Alarm</span>
+                  <span className="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {firstPaymentAlarmCount}
+                  </span>
+                </button>
+              )}
 
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Due Day:</span>
-              <select
-                value={dueDayFilter}
-                onChange={(e) => {
-                  setDueDayFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
-              >
-                <option value="">All Days</option>
-                {Array.from({ length: 31 }, (_, i) => String(i + 1)).map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
+              {dstWarningCount > 0 && (
+                <button
+                  onClick={() => {
+                    setInvoiceStatus(invoiceStatus === 'dst_warning' ? 'every' : 'dst_warning');
+                    setPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                    invoiceStatus === 'dst_warning'
+                      ? 'bg-rose-700 text-white ring-2 ring-rose-700/20'
+                      : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+                  }`}
+                  title="Filter records with 80+ days unpaid since inception"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 text-rose-600 animate-pulse" />
+                  <span>DST Warning</span>
+                  <span className="bg-rose-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {dstWarningCount}
+                  </span>
+                </button>
+              )}
 
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Due Year:</span>
-              <select
-                value={dueYearFilter}
-                onChange={(e) => {
-                  setDueYearFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10"
-              >
-                <option value="">All Years</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-                <option value="2028">2028</option>
-              </select>
+              {/* Type */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Type:</span>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                >
+                  <option value="">All Types</option>
+                  <option value="NEW ACCOUNT">New Account</option>
+                  <option value="RENEWAL">Renewal</option>
+                </select>
+              </div>
+
+              {/* Terms */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Terms:</span>
+                <select
+                  value={termFilter}
+                  onChange={(e) => setTermFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                >
+                  <option value="">All Terms</option>
+                  <option value="1">1 Month</option>
+                  <option value="2">2 Months</option>
+                  <option value="3">3 Months</option>
+                  <option value="4">4 Months</option>
+                  <option value="5">5 Months</option>
+                  <option value="6">6 Months</option>
+                </select>
+              </div>
+
+              {/* Due Month */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Month:</span>
+                <select
+                  value={dueMonthFilter}
+                  onChange={(e) => { setDueMonthFilter(e.target.value); setPage(1); }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                >
+                  <option value="">All Months</option>
+                  <option value="1">Jan</option>
+                  <option value="2">Feb</option>
+                  <option value="3">Mar</option>
+                  <option value="4">Apr</option>
+                  <option value="5">May</option>
+                  <option value="6">Jun</option>
+                  <option value="7">Jul</option>
+                  <option value="8">Aug</option>
+                  <option value="9">Sep</option>
+                  <option value="10">Oct</option>
+                  <option value="11">Nov</option>
+                  <option value="12">Dec</option>
+                </select>
+              </div>
+
+              {/* Due Year */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Year:</span>
+                <select
+                  value={dueYearFilter}
+                  onChange={(e) => { setDueYearFilter(e.target.value); setPage(1); }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                >
+                  <option value="">All Years</option>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2028">2028</option>
+                </select>
+              </div>
+
+              {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
+                <button
+                  onClick={handleClearSearchAndFilters}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1326,126 +1458,31 @@ export default function CollectionLedgerPage() {
         ) : (
           <>
             <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
-              <table className="min-w-full divide-y divide-slate-200 text-left text-xs font-medium text-slate-500">
-                <thead className="bg-[#4A0E17]/5 text-slate-700 uppercase tracking-wider text-[10px] font-bold">
+              <table className="min-w-full divide-y divide-slate-200 text-left text-xs font-medium text-slate-600">
+                <thead className="bg-slate-50/90 text-slate-600 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200">
                   <tr>
-                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[140px]">
-                      <div className="flex flex-col gap-1.5">
-                        <span>Agent</span>
-                        <input
-                          type="text"
-                          placeholder="Filter Agent..."
-                          value={agentFilter}
-                          onChange={(e) => setAgentFilter(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
-                        />
-                      </div>
-                    </th>
-                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[110px] vertical-align-top">
-                      <div className="flex flex-col gap-1.5 h-full justify-between">
-                        <span>Date Request</span>
-                        <div className="h-7" /> {/* spacer to align with input rows */}
-                      </div>
-                    </th>
-                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[140px]">
-                      <div className="flex flex-col gap-1.5">
-                        <span>Type</span>
-                        <select
-                          value={typeFilter}
-                          onChange={(e) => setTypeFilter(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
-                        >
-                          <option value="">All Types</option>
-                          <option value="NEW ACCOUNT">NEW ACCOUNT</option>
-                          <option value="RENEWAL">RENEWAL</option>
-                        </select>
-                      </div>
-                    </th>
-                    <th className="px-4 py-2.5 border-r border-slate-200 min-w-[210px]">
-                      <div className="flex flex-col gap-1.5">
-                        <span>Assured Name</span>
-                        <input
-                          type="text"
-                          placeholder="Filter Name..."
-                          value={nameFilter}
-                          onChange={(e) => setNameFilter(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
-                        />
-                      </div>
-                    </th>
-                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[140px]">
-                      <div className="flex flex-col gap-1.5">
-                        <span>Policy Number</span>
-                        <input
-                          type="text"
-                          placeholder="Filter Policy..."
-                          value={policyFilter}
-                          onChange={(e) => setPolicyFilter(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
-                        />
-                      </div>
-                    </th>
-                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[130px]">
-                      <div className="flex flex-col gap-1.5">
-                        <span>Plate Number</span>
-                        <input
-                          type="text"
-                          placeholder="Filter Plate..."
-                          value={plateFilter}
-                          onChange={(e) => setPlateFilter(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
-                        />
-                      </div>
-                    </th>
-                    <th className="px-3 py-2.5 border-r border-slate-200 min-w-[150px]">
-                      <div className="flex flex-col gap-1.5 h-full justify-between">
-                        <span>Inception Date</span>
-                        <div className="h-7" />
-                      </div>
-                    </th>
-                    <th className="px-3 py-2.5 border-r border-slate-200">
-                      <div className="flex flex-col gap-1.5 h-full justify-between">
-                        <span>Total Premium</span>
-                        <div className="h-7" />
-                      </div>
-                    </th>
-                    <th className="px-2 py-2.5 border-r border-slate-200 text-center min-w-[80px]">
-                      <div className="flex flex-col gap-1.5 items-center">
-                        <span>Terms</span>
-                        <select
-                          value={termFilter}
-                          onChange={(e) => setTermFilter(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full max-w-[70px] px-1 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-normal normal-case focus:outline-none focus:ring-1 focus:ring-[#4A0E17]"
-                        >
-                          <option value="">All</option>
-                          <option value="1">1</option>
-                          <option value="2">2</option>
-                          <option value="3">3</option>
-                          <option value="4">4</option>
-                          <option value="5">5</option>
-                          <option value="6">6</option>
-                        </select>
-                      </div>
-                    </th>
-                    <th className="px-3 py-3 border-r border-slate-200">Amount of Payment</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">1st</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">2nd</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">3rd</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">4th</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">5th</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center min-w-[120px]">6th</th>
-                    <th className="px-3 py-3 border-r border-slate-200">Remaining Balance</th>
-                    <th className="px-3 py-2.5 border-r border-slate-200 text-[#4A0E17] font-extrabold bg-[#4A0E17]/10 min-w-[130px]">Due {currentMonthName} {currentYear}</th>
-                    <th className="px-4 py-3 text-center">Action</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Agent</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Date Request</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Type</th>
+                    <th className="px-4 py-3 border-r border-slate-200 whitespace-nowrap">Assured Name</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Policy Number</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Plate Number</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Inception Date</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Total Premium</th>
+                    <th className="px-2.5 py-3 border-r border-slate-200 text-center whitespace-nowrap">Terms</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Installment</th>
+                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">1st</th>
+                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">2nd</th>
+                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">3rd</th>
+                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">4th</th>
+                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">5th</th>
+                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">6th</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Remaining Balance</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 text-[#4A0E17] font-bold bg-[#4A0E17]/10 whitespace-nowrap">Due {currentMonthName} {currentYear}</th>
+                    <th className="px-4 py-3 text-center whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y-2 divide-slate-200 bg-white">
+                <tbody className="divide-y divide-slate-100 bg-white">
                   {filteredInvoices.length === 0 ? (
                     <tr className="bg-white">
                       <td colSpan={19} className="px-4 py-16 text-center">
@@ -1483,7 +1520,7 @@ export default function CollectionLedgerPage() {
                             index: i + 1,
                             monthName: monthNames[d.getMonth()],
                             year: d.getFullYear(),
-                            formattedDate: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                            formattedDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                           });
                         }
                       }
@@ -1501,6 +1538,38 @@ export default function CollectionLedgerPage() {
                         }
                         return terms + 1; // All paid
                       })();
+
+                      // 1st Payment Alarm check (No 1st payment by 20th of following month)
+                      const isFirstPaymentAlarm = (() => {
+                        if (Number(row.amount_paid) > 0 || Number(row.balance) <= 0) return false;
+                        const reqDateStr = customer?.writing_date || customer?.inception_date || row.created_at;
+                        if (!reqDateStr) return false;
+                        const reqDate = new Date(reqDateStr);
+                        if (isNaN(reqDate.getTime())) return false;
+
+                        const targetYear = reqDate.getMonth() === 11 ? reqDate.getFullYear() + 1 : reqDate.getFullYear();
+                        const targetMonth = (reqDate.getMonth() + 1) % 12;
+                        const alarmDate = new Date(targetYear, targetMonth, 20);
+
+                        const today = new Date();
+                        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const alarmMidnight = new Date(alarmDate.getFullYear(), alarmDate.getMonth(), alarmDate.getDate());
+
+                        return todayMidnight >= alarmMidnight;
+                      })();
+
+                      // DST Warning calculation (80+ days from inception with unpaid balance)
+                      const dstWarningDays = (() => {
+                        if (Number(row.balance) <= 0 || !inceptionDateStr) return 0;
+                        const inDate = new Date(inceptionDateStr);
+                        if (isNaN(inDate.getTime())) return 0;
+                        const today = new Date();
+                        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const inMidnight = new Date(inDate.getFullYear(), inDate.getMonth(), inDate.getDate());
+                        const diffTime = todayMidnight.getTime() - inMidnight.getTime();
+                        return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                      })();
+                      const isDstWarning = dstWarningDays >= 80 && Number(row.balance) > 0;
 
                       // Grace period check for highlighting (3-6 terms, 3 day grace period)
                       let isHighlighted = false;
@@ -1523,19 +1592,23 @@ export default function CollectionLedgerPage() {
                           {/* Row 1: Header row / General Details */}
                           <tr
                             onClick={() => handleOpenCollection(row)}
-                            className={`transition-colors font-bold cursor-pointer ${isHighlighted
-                              ? 'bg-rose-50/90 hover:bg-rose-100 text-rose-950'
-                              : 'bg-slate-50/50 hover:bg-slate-100 text-slate-800 hover:text-slate-900'
+                            className={`transition-colors text-xs cursor-pointer ${isFirstPaymentAlarm
+                              ? 'bg-rose-50/50 hover:bg-rose-50/80 text-slate-800 border-l-4 border-l-rose-600'
+                              : isDstWarning
+                                ? 'bg-amber-50/40 hover:bg-amber-50/70 text-slate-800 border-l-4 border-l-amber-500'
+                                : isHighlighted
+                                  ? 'bg-rose-50/30 hover:bg-rose-50/60 text-slate-800 border-l-4 border-l-rose-400'
+                                  : 'bg-white hover:bg-slate-50 text-slate-800'
                               }`}
                           >
-                            <td className="px-3 py-3 border-r border-slate-200 text-slate-700">
+                            <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium">
                               <div className="flex items-center gap-1.5">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     toggleExpand(row.id);
                                   }}
-                                  className="p-1 rounded hover:bg-slate-250 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                                  className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer"
                                 >
                                   {isExpanded ? (
                                     <ChevronDown className="h-3.5 w-3.5 text-[#4A0E17]" />
@@ -1546,32 +1619,54 @@ export default function CollectionLedgerPage() {
                                 <span>{customer?.agent || '—'}</span>
                               </div>
                             </td>
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
-                              {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-500 font-medium whitespace-nowrap">
+                              {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                             </td>
-                            <td className="px-3 py-3 border-r border-slate-200">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+                            <td className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700 border border-blue-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'
                                 }`}>
                                 {customer?.request_type || '—'}
                               </span>
                             </td>
-                            <td className="px-4 py-3 border-r border-slate-200 font-black uppercase text-slate-900 tracking-tight">
-                              <div>{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
+                            <td className="px-4 py-3 border-r border-slate-200 font-bold uppercase tracking-tight">
+                              <div className="text-slate-900 font-bold">{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
+                              {isFirstPaymentAlarm && (
+                                <div className="mt-1">
+                                  <span
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 tracking-wide"
+                                    title="Request was made in previous month and no 1st payment has been recorded as of the 20th of this month."
+                                  >
+                                    <span className="h-1.5 w-1.5 rounded-full bg-rose-600 animate-pulse" />
+                                    Unpaid 1st Payment (Overdue 20th)
+                                  </span>
+                                </div>
+                              )}
+                              {isDstWarning && !isFirstPaymentAlarm && (
+                                <div className="mt-1">
+                                  <span
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 tracking-wide"
+                                    title={`DST WARNING: ${dstWarningDays} days passed since inception date with unpaid balance.`}
+                                  >
+                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
+                                    DST Warning ({dstWarningDays}d Unpaid)
+                                  </span>
+                                </div>
+                              )}
                               {customer && (
-                                <div className="text-[10px] text-slate-500 font-normal normal-case mt-0.5 space-y-0.5">
+                                <div className="text-[10px] text-slate-400 font-normal normal-case mt-0.5 space-y-0.5">
                                   <p>{customer.mobile || customer.phone || 'No contact'}</p>
                                   <p className="truncate max-w-[180px]">{customer.email || 'No email'}</p>
                                 </div>
                               )}
                             </td>
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-800 uppercase">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-600 uppercase">{customer?.plate_no || '—'}</td>
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-[11px] text-slate-500">
-                              {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-700 font-semibold uppercase whitespace-nowrap">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
+                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-600 font-medium uppercase whitespace-nowrap">{customer?.plate_no || '—'}</td>
+                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-500 font-medium whitespace-nowrap">
+                              {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                             </td>
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-extrabold text-slate-700">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            <td className="px-2 py-3 border-r border-slate-200 text-center font-mono font-extrabold text-slate-600">{terms}</td>
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono text-slate-650 font-bold">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-3.5 py-3 border-r border-slate-200 font-bold text-slate-800 whitespace-nowrap">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-2.5 py-3 border-r border-slate-200 text-center font-semibold text-slate-600">{terms}</td>
+                            <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium whitespace-nowrap">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
 
                             {[1, 2, 3, 4, 5, 6].map((idx) => {
                               const monthInfo = installmentMonths[idx - 1];
@@ -1658,6 +1753,22 @@ export default function CollectionLedgerPage() {
                                 >
                                   <FileText className="h-3 w-3" /> Receipt
                                 </button>
+                                {isDstWarning && (
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const res = await notifyDstWarningApi(row.id);
+                                        showToast(res.message || 'DST Warning notification dispatched to Collection team!', 'success');
+                                      } catch (err: any) {
+                                        showToast(err.response?.data?.message ?? 'Failed to dispatch DST notification.', 'error');
+                                      }
+                                    }}
+                                    className="w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-xl shadow-sm transition-all hover:scale-[1.03] cursor-pointer"
+                                    title="Dispatch urgent DST Warning notification to all Collection officers"
+                                  >
+                                    <Mail className="h-3 w-3" /> Notify DST
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>

@@ -43,3 +43,8 @@ export async function sendInvoiceReminder(id: number): Promise<SingleResponse<In
   const { data } = await axios.post<SingleResponse<Invoice>>(`${BASE}/${id}/send-reminder`);
   return data;
 }
+
+export async function notifyDstWarning(id: number): Promise<SingleResponse<Invoice>> {
+  const { data } = await axios.post<SingleResponse<Invoice>>(`${BASE}/${id}/notify-dst-warning`);
+  return data;
+}

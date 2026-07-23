@@ -121,6 +121,108 @@ class InvoiceController extends Controller
             ->paginate($perPage)
             ->appends($request->query());
 
+        // Auto-check for DST Warnings (80+ days past inception with unpaid balance) and notify Collection officers
+        try {
+            $eightyDaysAgo = \Carbon\Carbon::now()->subDays(80)->toDateString();
+            $dstInvoices = Invoice::where('balance', '>', 0)
+                ->whereHas('customer', function ($q) use ($eightyDaysAgo) {
+                    $q->whereNotNull('inception_date')
+                      ->where('inception_date', '<=', $eightyDaysAgo);
+                })
+                ->with(['customer', 'policy'])
+                ->get();
+
+            if ($dstInvoices->isNotEmpty()) {
+                $collectionOfficers = \App\Models\User::role('Collection')->get();
+                if ($collectionOfficers->isNotEmpty()) {
+                    foreach ($dstInvoices as $dstInv) {
+                        $cust = $dstInv->customer;
+                        $custName = $cust ? trim($cust->first_name . ' ' . $cust->last_name) : 'Customer';
+                        $policyNo = $cust?->policy_no ?: ($dstInv->policy?->policy_number ?: 'N/A');
+                        $daysPassed = $cust?->inception_date ? \Carbon\Carbon::parse($cust->inception_date)->diffInDays(now()) : 80;
+                        
+                        $title = 'DST Warning: 80+ Days Unpaid';
+                        $msg = "CRITICAL: Policy {$policyNo} for Assured {$custName} is {$daysPassed} days past inception date with unpaid balance of ₱" . number_format($dstInv->balance, 2) . ". Please review BIR EDST compliance.";
+
+                        foreach ($collectionOfficers as $officer) {
+                            $alreadySentToday = \App\Models\Notification::where('user_id', $officer->id)
+                                ->where('title', 'DST Warning: 80+ Days Unpaid')
+                                ->where('message', 'like', "%{$policyNo}%")
+                                ->whereDate('created_at', \Carbon\Carbon::today())
+                                ->exists();
+
+                            if (!$alreadySentToday) {
+                                \App\Models\Notification::create([
+                                    'user_id' => $officer->id,
+                                    'title' => $title,
+                                    'message' => $msg,
+                                    'type' => 'error',
+                                    'read_at' => null,
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+        // Auto-check for 1st Payment Alarms (No 1st payment by 20th of following month)
+        try {
+            $unpaidFirstInvoices = Invoice::where('amount_paid', 0)
+                ->where('balance', '>', 0)
+                ->whereHas('customer', function ($q) {
+                    $q->whereNotNull('writing_date')
+                      ->orWhereNotNull('inception_date');
+                })
+                ->with(['customer', 'policy'])
+                ->get();
+
+            if ($unpaidFirstInvoices->isNotEmpty()) {
+                $today = \Carbon\Carbon::today();
+                $collectionOfficers = \App\Models\User::role('Collection')->get();
+
+                if ($collectionOfficers->isNotEmpty()) {
+                    foreach ($unpaidFirstInvoices as $inv) {
+                        $cust = $inv->customer;
+                        $reqDateStr = $cust?->writing_date ?? $cust?->inception_date ?? $inv->created_at;
+                        if (!$reqDateStr) continue;
+
+                        $reqDate = \Carbon\Carbon::parse($reqDateStr);
+                        // 20th day of the following month
+                        $alarmDate = $reqDate->copy()->addMonthNoOverflow()->startOfMonth()->addDays(19);
+
+                        if ($today->greaterThanOrEqualTo($alarmDate)) {
+                            $custName = $cust ? trim($cust->first_name . ' ' . $cust->last_name) : 'Customer';
+                            $policyNo = $cust?->policy_no ?: ($inv->policy?->policy_number ?: 'N/A');
+                            $reqMonthName = $reqDate->format('F Y');
+                            $alarmDateStr = $alarmDate->format('M 20, Y');
+
+                            $title = '1st Payment Overdue Alarm';
+                            $msg = "ALARM: Assured {$custName} (Policy: {$policyNo}, Request Date: {$reqMonthName}) has NO 1st payment recorded as of {$alarmDateStr}.";
+
+                            foreach ($collectionOfficers as $officer) {
+                                $alreadySentToday = \App\Models\Notification::where('user_id', $officer->id)
+                                    ->where('title', '1st Payment Overdue Alarm')
+                                    ->where('message', 'like', "%{$policyNo}%")
+                                    ->whereDate('created_at', \Carbon\Carbon::today())
+                                    ->exists();
+
+                                if (!$alreadySentToday) {
+                                    \App\Models\Notification::create([
+                                        'user_id' => $officer->id,
+                                        'title' => $title,
+                                        'message' => $msg,
+                                        'type' => 'error',
+                                        'read_at' => null,
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to dispatch 1st Payment Alarm notifications: ' . $e->getMessage());
+        }
+
         return response()->json(['success' => true, 'data' => $invoices]);
     }
 
@@ -412,6 +514,42 @@ class InvoiceController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Payment reminder email successfully sent to {$email} for the {$installmentOrdinal} installment."
+        ]);
+    }
+
+    /**
+     * Dispatch an immediate DST Warning notification to Collection Officers.
+     */
+    public function notifyDstWarning(Request $request, string $id)
+    {
+        $invoice = Invoice::with(['customer', 'policy'])->find($id);
+        if (!$invoice) {
+            return response()->json(['success' => false, 'message' => 'Invoice not found.'], 404);
+        }
+
+        $customer = $invoice->customer;
+        $customerName = $customer ? trim($customer->first_name . ' ' . $customer->last_name) : 'Customer';
+        $policyNumber = $customer?->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
+        $daysPassed = $customer?->inception_date ? \Carbon\Carbon::parse($customer->inception_date)->diffInDays(now()) : 80;
+
+        $collectionOfficers = \App\Models\User::role('Collection')->get();
+        if ($collectionOfficers->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'No collection officers found to notify.'], 422);
+        }
+
+        foreach ($collectionOfficers as $officer) {
+            \App\Models\Notification::create([
+                'user_id' => $officer->id,
+                'title' => 'DST Warning: 80+ Days Unpaid',
+                'message' => "CRITICAL: Policy {$policyNumber} for Assured {$customerName} is {$daysPassed} days past inception date with unpaid balance of ₱" . number_format($invoice->balance, 2) . ". Please review BIR EDST compliance.",
+                'type' => 'error',
+                'read_at' => null,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "DST Warning notification successfully sent to " . $collectionOfficers->count() . " Collection Officer(s).",
         ]);
     }
 }
