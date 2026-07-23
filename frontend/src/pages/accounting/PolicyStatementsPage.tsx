@@ -149,11 +149,10 @@ export default function PolicyStatementsPage() {
               <button
                 key={prov}
                 onClick={() => setSelectedProvider(prov)}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg transition uppercase cursor-pointer ${
-                  selectedProvider === prov
+                className={`px-4 py-2 text-xs font-semibold rounded-lg transition uppercase cursor-pointer ${selectedProvider === prov
                     ? 'bg-[#4A0E17] text-white shadow-xs'
                     : 'text-slate-600 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 {prov}
               </button>
@@ -222,11 +221,10 @@ export default function PolicyStatementsPage() {
                           {getAssuredName(q)}
                         </td>
                         <td className="px-5 py-4 text-xs">
-                          <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg uppercase border ${
-                            isCBIC
+                          <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg uppercase border ${isCBIC
                               ? 'bg-amber-50 text-amber-800 border-amber-200/80'
                               : 'bg-blue-50 text-blue-800 border-blue-200/80'
-                          }`}>
+                            }`}>
                             {provider}
                           </span>
                         </td>
@@ -267,10 +265,10 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
 
   // Detect default provider mode and CBIC type (PRIVATE vs TNVS)
   const initialProvider = (cov.insurance_provider || cov.provider || custAny.insurance_provider || 'ALPHA').toUpperCase();
-  const [providerMode, setProviderMode] = useState<'ALPHA' | 'CBIC'>(initialProvider.includes('CBIC') ? 'CBIC' : 'ALPHA');
-  
+  const providerMode: 'ALPHA' | 'CBIC' = initialProvider.includes('CBIC') ? 'CBIC' : 'ALPHA';
+
   const initialUsage = ((custAny.usage || '') + ' ' + (custAny.quotation_used || '') + ' ' + (cov.usage || '')).toUpperCase();
-  const [cbicType, setCbicType] = useState<'PRIVATE' | 'TNVS'>(initialUsage.includes('TNVS') || initialUsage.includes('HIRE') || initialUsage.includes('YELLOW') ? 'TNVS' : 'PRIVATE');
+  const cbicType: 'PRIVATE' | 'TNVS' = initialUsage.includes('TNVS') || initialUsage.includes('HIRE') || initialUsage.includes('YELLOW') ? 'TNVS' : 'PRIVATE';
 
   // Extract initial parameters or set smart defaults matching Excel calculations
   const assuredName = getAssuredName(quotation);
@@ -400,202 +398,184 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
           <ArrowLeft className="h-4 w-4" /> Back to Statements List
         </button>
 
-        {/* Provider Mode Selector Toggle */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-600 uppercase">Provider Template:</span>
-            <select
-              value={providerMode}
-              onChange={(e) => setProviderMode(e.target.value as 'ALPHA' | 'CBIC')}
-              className="px-3 py-1.5 bg-slate-100 border border-slate-300 rounded-xl text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20"
-            >
-              <option value="ALPHA">ALPHA PROVIDER</option>
-              <option value="CBIC">CBIC PROVIDER</option>
-            </select>
-          </div>
-
-          {providerMode === 'CBIC' && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-600 uppercase">Type:</span>
-              <select
-                value={cbicType}
-                onChange={(e) => setCbicType(e.target.value as 'PRIVATE' | 'TNVS')}
-                className="px-3 py-1.5 bg-yellow-100 border border-yellow-400 rounded-xl text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
-              >
-                <option value="PRIVATE">PRIVATE USE (TABLE A)</option>
-                <option value="TNVS">TNVS / CV (TABLE B)</option>
-              </select>
-            </div>
-          )}
-
-          <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
-          >
-            <Printer className="h-4 w-4" /> Print Accounting Statement
-          </button>
-        </div>
+        <button
+          onClick={handlePrint}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
+        >
+          <Printer className="h-4 w-4" /> Print Accounting Statement
+        </button>
       </div>
 
       {/* Spreadsheet Billing Document Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-10 space-y-6 print:p-0 print:border-none print:shadow-none font-mono">
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-lg p-6 sm:p-10 space-y-6 print:p-0 print:border-none print:shadow-none font-sans">
         {/* Header Branding */}
-        <div className="flex items-center justify-between border-b-2 border-slate-800 pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-slate-900 pb-5 gap-4">
           <div className="flex items-center gap-4">
             <img src={logoImg} alt="Supremogen" className="h-12 w-auto object-contain" />
             <div>
-              <h2 className="text-lg font-black text-slate-900 tracking-wider">
-                {providerMode === 'CBIC' ? 'COUNTRY BANKERS INSURANCE CORPORATION' : 'SUPREMOGEN INSURANCE SERVICES'}
-              </h2>
-              <p className="text-xs text-slate-600 font-sans">
-                {providerMode === 'CBIC' ? `CBIC POLICY STATEMENT (${cbicType})` : 'POLICY BILLING & ACCOUNTING STATEMENT'}
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                  {providerMode === 'CBIC' ? 'COUNTRY BANKERS INSURANCE CORPORATION' : 'SUPREMOGEN INSURANCE SERVICES'}
+                </h2>
+                <span className={`px-2.5 py-0.5 text-[11px] font-black rounded-md uppercase tracking-wider border ${
+                  providerMode === 'CBIC'
+                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-blue-100 text-blue-900 border-blue-300'
+                }`}>
+                  {providerMode} PROVIDER
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-600 mt-0.5">
+                {providerMode === 'CBIC' ? `CBIC POLICY STATEMENT (${cbicType})` : 'POLICY BILLING & ACCOUNTING STATEMENT (ALPHA)'}
               </p>
             </div>
           </div>
-          <div className="text-right text-xs text-slate-700 font-sans">
-            <p className="font-bold text-slate-900">REF: {quotation.quotation_number || quotation.ir_number || `IR-${quotation.id}`}</p>
-            <p>Date: {new Date(quotation.created_at).toLocaleDateString()}</p>
+          <div className="text-left sm:text-right text-xs text-slate-600 space-y-1">
+            <div className="inline-block px-2.5 py-1 bg-slate-100 rounded-md font-mono font-bold text-slate-800 border border-slate-200/80">
+              REF: {quotation.quotation_number || quotation.ir_number || `IR-${quotation.id}`}
+            </div>
+            <p className="text-slate-500">Date: <span className="font-semibold text-slate-700">{new Date(quotation.created_at).toLocaleDateString()}</span></p>
           </div>
         </div>
 
         {/* Dynamic Provider Layout Rendering */}
         {providerMode === 'CBIC' ? (
           /* ─── CBIC STATEMENT LAYOUT ─────────────────────────────────────────── */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-300 rounded-xl overflow-hidden print:grid-cols-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs print:grid-cols-2">
             {/* PAGE 1: Policy Info & Perils Table */}
-            <div className="p-5 space-y-5 border-r border-slate-300 bg-white">
-              <div className="bg-slate-100 px-3 py-1.5 font-bold uppercase tracking-wider text-slate-800 text-center border border-slate-300">
+            <div className="p-6 space-y-5 border-r border-slate-200/80 bg-white">
+              <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 PAGE 1 — POLICY & VEHICLE DETAILS ({cbicType})
               </div>
 
-              <div className="space-y-1 divide-y divide-slate-200 text-slate-800">
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">ASSURED:</span>
-                  <span className="font-bold uppercase text-right flex-1">{assuredName}</span>
+              <div className="space-y-1.5 divide-y divide-slate-100 text-slate-700 text-xs">
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">ASSURED:</span>
+                  <span className="font-bold text-slate-900 uppercase text-right flex-1">{assuredName}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">ADDRESS:</span>
-                  <span className="font-semibold text-right flex-1">{address}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">ADDRESS:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{address}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">MODEL/MAKE/BODY:</span>
-                  <span className="font-semibold text-right flex-1">{vehicleUnit}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">MODEL/MAKE/BODY:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{vehicleUnit}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">PLATE NO.:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{plateNo}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">PLATE NO.:</span>
+                  <span className="font-semibold text-slate-900 text-right flex-1 uppercase font-mono">{plateNo}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">SERIAL/CHASSIS NO.:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{chassisNo}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">SERIAL/CHASSIS NO.:</span>
+                  <span className="font-semibold text-slate-900 text-right flex-1 uppercase font-mono">{chassisNo}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">MOTOR NO.:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{engineNo}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">MOTOR NO.:</span>
+                  <span className="font-semibold text-slate-900 text-right flex-1 uppercase font-mono">{engineNo}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">COLOR:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{color}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">COLOR:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1 uppercase">{color}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">EFFECTIVITY DATE:</span>
-                  <span className="font-semibold text-right flex-1">{new Date(quotation.created_at).toLocaleDateString()}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">EFFECTIVITY DATE:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{new Date(quotation.created_at).toLocaleDateString()}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">MORTGAGEE:</span>
-                  <span className="font-semibold text-right flex-1">{mortgagee}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">MORTGAGEE:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{mortgagee}</span>
                 </div>
               </div>
 
               {/* CBIC Perils Table */}
-              <div className="border border-slate-300 rounded-lg overflow-hidden">
-                <table className="w-full border-collapse text-[10px]">
+              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                <table className="w-full border-collapse text-xs">
                   <thead>
-                    <tr className="bg-pink-100/80 text-slate-900 font-bold border-b border-slate-300">
-                      <th className="p-1.5 text-left border-r border-slate-300">Perils</th>
-                      <th className="p-1.5 text-right border-r border-slate-300">Sum Insured</th>
-                      <th className="p-1.5 text-center border-r border-slate-300" colSpan={2}>Writing - CBIC</th>
-                      <th className="p-1.5 text-center" colSpan={2}>Net Rate</th>
+                    <tr className="bg-slate-800 text-white font-semibold text-[11px] uppercase tracking-wider">
+                      <th className="py-2 px-2.5 text-left border-r border-slate-700">Perils</th>
+                      <th className="py-2 px-2.5 text-right border-r border-slate-700">Sum Insured</th>
+                      <th className="py-2 px-2.5 text-center border-r border-slate-700" colSpan={2}>Writing — CBIC</th>
+                      <th className="py-2 px-2.5 text-center" colSpan={2}>Net Rate</th>
                     </tr>
-                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
-                      <th className="p-1 text-left border-r border-slate-300"></th>
-                      <th className="p-1 text-right border-r border-slate-300"></th>
-                      <th className="p-1 text-center border-r border-slate-300">Rate</th>
-                      <th className="p-1 text-right border-r border-slate-300">Premium</th>
-                      <th className="p-1 text-center border-r border-slate-300">Rate</th>
-                      <th className="p-1 text-right">Premium</th>
+                    <tr className="bg-slate-100 text-slate-600 font-semibold text-[10px] border-b border-slate-200 uppercase tracking-wider">
+                      <th className="py-1 px-2.5 text-left border-r border-slate-200"></th>
+                      <th className="py-1 px-2.5 text-right border-r border-slate-200"></th>
+                      <th className="py-1 px-2.5 text-center border-r border-slate-200">Rate</th>
+                      <th className="py-1 px-2.5 text-right border-r border-slate-200">Premium</th>
+                      <th className="py-1 px-2.5 text-center border-r border-slate-200">Rate</th>
+                      <th className="py-1 px-2.5 text-right">Premium</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    <tr>
-                      <td className="p-1.5 font-bold border-r border-slate-300">I/D</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(sumInsured)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">1.424584%</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicWritingODPrem)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">{cbicNetODRate.toFixed(2)}%</td>
-                      <td className="p-1.5 text-right font-semibold">{formatCurrency(cbicNetODPrem)}</td>
+                  <tbody className="divide-y divide-slate-100 text-slate-700 text-[11px]">
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-1.5 px-2.5 font-bold text-slate-900 border-r border-slate-100">I/D</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(sumInsured)}</td>
+                      <td className="py-1.5 px-2.5 text-center border-r border-slate-100">1.424584%</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(cbicWritingODPrem)}</td>
+                      <td className="py-1.5 px-2.5 text-center border-r border-slate-100">{cbicNetODRate.toFixed(2)}%</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums font-semibold text-slate-900">{formatCurrency(cbicNetODPrem)}</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-1.5 px-2.5 font-bold text-slate-900 border-r border-slate-100">AON</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(sumInsured)}</td>
+                      <td className="py-1.5 px-2.5 text-center border-r border-slate-100">{cbicWritingAONRate.toFixed(2)}%</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(cbicWritingAONPrem)}</td>
+                      <td className="py-1.5 px-2.5 text-center border-r border-slate-100">{cbicNetAONRate.toFixed(2)}%</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums font-semibold text-slate-900">{formatCurrency(cbicNetAONPrem)}</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-1.5 px-2.5 font-bold text-slate-900 border-r border-slate-100">EBI</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(covBIVal)}</td>
+                      <td className="py-1.5 px-2.5 text-center text-slate-500 border-r border-slate-100">Tariff</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(cbicEBI)}</td>
+                      <td className="py-1.5 px-2.5 text-center text-slate-500 border-r border-slate-100">Tariff</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums font-semibold text-slate-900">{formatCurrency(cbicEBI)}</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-1.5 px-2.5 font-bold text-slate-900 border-r border-slate-100">TPPD</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(covPDVal)}</td>
+                      <td className="py-1.5 px-2.5 text-center text-slate-500 border-r border-slate-100">Tariff</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(cbicTPPD)}</td>
+                      <td className="py-1.5 px-2.5 text-center text-slate-500 border-r border-slate-100">Tariff</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums font-semibold text-slate-900">{formatCurrency(cbicTPPD)}</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-1.5 px-2.5 font-bold text-slate-900 border-r border-slate-100">PA</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100">{formatCurrency(covPAVal)}</td>
+                      <td className="py-1.5 px-2.5 text-center text-slate-400 border-r border-slate-100">free</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums text-slate-400 border-r border-slate-100">0.00</td>
+                      <td className="py-1.5 px-2.5 text-center text-slate-400 border-r border-slate-100">free</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums text-slate-400">0.00</td>
+                    </tr>
+                    <tr className="bg-slate-100/90 font-bold border-t-2 border-slate-300 text-slate-900">
+                      <td className="py-1.5 px-2.5 border-r border-slate-200 uppercase text-[10px] tracking-wider" colSpan={3}>Basic Premium</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-200">{formatCurrency(cbicWritingBasicPrem)}</td>
+                      <td className="py-1.5 px-2.5 border-r border-slate-200"></td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums">{formatCurrency(cbicNetBasicPrem)}</td>
                     </tr>
                     <tr>
-                      <td className="p-1.5 font-bold border-r border-slate-300">AON</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(sumInsured)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">{cbicWritingAONRate.toFixed(2)}%</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicWritingAONPrem)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">{cbicNetAONRate.toFixed(2)}%</td>
-                      <td className="p-1.5 text-right font-semibold">{formatCurrency(cbicNetAONPrem)}</td>
+                      <td className="py-1.5 px-2.5 border-r border-slate-100 text-slate-600" colSpan={3}>Documentary Stamp (12.50%)</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100 text-slate-600">{formatCurrency(cbicWritingDocStamp)}</td>
+                      <td className="py-1.5 px-2.5 border-r border-slate-100 text-center text-slate-400">"</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums text-slate-600">{formatCurrency(cbicNetDocStamp)}</td>
                     </tr>
                     <tr>
-                      <td className="p-1.5 font-bold border-r border-slate-300">EBI</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(covBIVal)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">Tariff</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicEBI)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">Tariff</td>
-                      <td className="p-1.5 text-right font-semibold">{formatCurrency(cbicEBI)}</td>
+                      <td className="py-1.5 px-2.5 border-r border-slate-100 text-slate-600" colSpan={3}>E-VAT (12.00%)</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100 text-slate-600">{formatCurrency(cbicWritingEVat)}</td>
+                      <td className="py-1.5 px-2.5 border-r border-slate-100 text-center text-slate-400">"</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums text-slate-600">{formatCurrency(cbicNetEVat)}</td>
                     </tr>
                     <tr>
-                      <td className="p-1.5 font-bold border-r border-slate-300">TPPD</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(covPDVal)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">Tariff</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicTPPD)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">Tariff</td>
-                      <td className="p-1.5 text-right font-semibold">{formatCurrency(cbicTPPD)}</td>
+                      <td className="py-1.5 px-2.5 border-r border-slate-100 text-slate-600" colSpan={3}>Local Gov't Tax (0.11%)</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums border-r border-slate-100 text-slate-600">{formatCurrency(cbicWritingLGT)}</td>
+                      <td className="py-1.5 px-2.5 border-r border-slate-100 text-center text-slate-400">"</td>
+                      <td className="py-1.5 px-2.5 text-right font-mono tabular-nums text-slate-600">{formatCurrency(cbicNetLGT)}</td>
                     </tr>
-                    <tr>
-                      <td className="p-1.5 font-bold border-r border-slate-300">PA</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(covPAVal)}</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">free</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">0.00</td>
-                      <td className="p-1.5 text-center border-r border-slate-300">free</td>
-                      <td className="p-1.5 text-right font-semibold">0.00</td>
-                    </tr>
-                    <tr className="bg-pink-50/60 font-bold border-t-2 border-slate-400">
-                      <td className="p-1.5 border-r border-slate-300" colSpan={3}>Basic Premium</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicWritingBasicPrem)}</td>
-                      <td className="p-1.5 border-r border-slate-300"></td>
-                      <td className="p-1.5 text-right">{formatCurrency(cbicNetBasicPrem)}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1.5 border-r border-slate-300" colSpan={3}>Documentary Stamp (12.50%)</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicWritingDocStamp)}</td>
-                      <td className="p-1.5 border-r border-slate-300 text-center">"</td>
-                      <td className="p-1.5 text-right">{formatCurrency(cbicNetDocStamp)}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1.5 border-r border-slate-300" colSpan={3}>E-VAT (12.00%)</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicWritingEVat)}</td>
-                      <td className="p-1.5 border-r border-slate-300 text-center">"</td>
-                      <td className="p-1.5 text-right">{formatCurrency(cbicNetEVat)}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1.5 border-r border-slate-300" colSpan={3}>Local Gov't Tax (0.11%)</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicWritingLGT)}</td>
-                      <td className="p-1.5 border-r border-slate-300 text-center">"</td>
-                      <td className="p-1.5 text-right">{formatCurrency(cbicNetLGT)}</td>
-                    </tr>
-                    <tr className="bg-pink-100 font-black border-t-2 border-slate-800 text-slate-900">
-                      <td className="p-1.5 border-r border-slate-300" colSpan={3}>GROSS PREMIUM</td>
-                      <td className="p-1.5 text-right border-r border-slate-300">{formatCurrency(cbicWritingGrossPrem)}</td>
-                      <td className="p-1.5 border-r border-slate-300"></td>
-                      <td className="p-1.5 text-right">₱{formatCurrency(cbicNetGrossPrem)}</td>
+                    <tr className="bg-slate-900 font-bold text-white">
+                      <td className="py-2 px-2.5 border-r border-slate-800 uppercase text-[10px] tracking-wider" colSpan={3}>GROSS PREMIUM</td>
+                      <td className="py-2 px-2.5 text-right font-mono tabular-nums border-r border-slate-800">{formatCurrency(cbicWritingGrossPrem)}</td>
+                      <td className="py-2 px-2.5 border-r border-slate-800"></td>
+                      <td className="py-2 px-2.5 text-right font-mono tabular-nums text-emerald-400 font-extrabold">₱{formatCurrency(cbicNetGrossPrem)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -603,291 +583,291 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
             </div>
 
             {/* PAGE 2: CBIC Commissions & Accounting Breakdown */}
-            <div className="p-5 space-y-5 bg-white">
-              <div className="bg-slate-100 px-3 py-1.5 font-bold uppercase tracking-wider text-slate-800 text-center border border-slate-300">
+            <div className="p-6 space-y-5 bg-white">
+              <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 PAGE 2 — CBIC REMITTANCE & COMPANY INCOME
               </div>
 
               {/* Tariff Commissions Block */}
-              <div className="space-y-2 border border-slate-300 p-3.5 rounded-lg bg-slate-50">
-                <p className="font-bold text-slate-800 uppercase text-[11px] border-b border-slate-200 pb-1.5">
+              <div className="space-y-2.5 border border-slate-200 p-4 rounded-xl bg-slate-50/50">
+                <p className="font-bold text-slate-800 uppercase text-[11px] tracking-wider border-b border-slate-200/80 pb-2">
                   Tariff Commission Deductions
                 </p>
-                <div className="flex justify-between text-slate-700 font-semibold">
+                <div className="flex justify-between text-slate-600 font-medium text-xs">
                   <span>EBI Commission (30%)</span>
-                  <span>₱{formatCurrency(cbicEBIComm)}</span>
+                  <span className="font-mono tabular-nums text-slate-900">₱{formatCurrency(cbicEBIComm)}</span>
                 </div>
-                <div className="flex justify-between text-slate-700 font-semibold">
+                <div className="flex justify-between text-slate-600 font-medium text-xs">
                   <span>TPPD Commission (20%)</span>
-                  <span>₱{formatCurrency(cbicTPPDComm)}</span>
+                  <span className="font-mono tabular-nums text-slate-900">₱{formatCurrency(cbicTPPDComm)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-slate-900 border-t border-slate-200 pt-1.5">
+                <div className="flex justify-between font-bold text-slate-900 text-xs border-t border-slate-200 pt-2">
                   <span>Total Tariff Commission</span>
-                  <span>₱{formatCurrency(cbicTotalTariffComm)}</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(cbicTotalTariffComm)}</span>
                 </div>
-                <div className="flex justify-between text-slate-600 text-[11px]">
+                <div className="flex justify-between text-slate-500 text-[11px]">
                   <span>Less Withholding Tax (10%)</span>
-                  <span>₱{formatCurrency(cbicWHTax)}</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(cbicWHTax)}</span>
                 </div>
-                <div className="flex justify-between font-black text-xs bg-yellow-200/80 p-2 rounded border border-yellow-300 text-slate-900">
-                  <span>NET TARIFF COMMISSION</span>
-                  <span>₱{formatCurrency(cbicNetTariffComm)}</span>
+                <div className="flex justify-between font-bold text-xs bg-amber-50/90 p-2.5 rounded-lg border border-amber-200/80 text-amber-950 mt-1">
+                  <span className="uppercase tracking-wider">NET TARIFF COMMISSION</span>
+                  <span className="font-mono tabular-nums font-extrabold text-amber-900">₱{formatCurrency(cbicNetTariffComm)}</span>
                 </div>
               </div>
 
               {/* Final CBIC Remittance & Income Summary */}
-              <div className="space-y-2.5 border-t-2 border-slate-800 pt-4 text-xs">
-                <div className="flex justify-between font-black p-3 bg-red-700 text-white rounded-lg shadow-2xs">
-                  <span>NET REMITTANCE TO CBIC</span>
-                  <span>₱{formatCurrency(cbicNetRemittance)}</span>
+              <div className="space-y-2.5 border-t border-slate-200 pt-4 text-xs">
+                <div className="flex justify-between font-bold p-3 bg-slate-800 text-white rounded-xl shadow-2xs">
+                  <span className="uppercase tracking-wider text-[11px]">NET REMITTANCE TO CBIC</span>
+                  <span className="font-mono tabular-nums text-sm">₱{formatCurrency(cbicNetRemittance)}</span>
                 </div>
 
-                <div className="flex justify-between font-bold p-2.5 bg-lime-500 text-slate-950 rounded-lg shadow-2xs">
-                  <span>TOTAL PREMIUM ON POLICY</span>
-                  <span>₱{formatCurrency(totalPolicyPremium)}</span>
+                <div className="flex justify-between font-semibold p-3 bg-slate-100 text-slate-800 rounded-xl border border-slate-200">
+                  <span className="uppercase tracking-wider text-[11px]">TOTAL PREMIUM ON POLICY</span>
+                  <span className="font-mono tabular-nums font-bold">₱{formatCurrency(totalPolicyPremium)}</span>
                 </div>
 
-                <div className="flex justify-between font-black text-sm p-3 bg-yellow-300 text-slate-950 rounded-lg border border-yellow-400 shadow-2xs">
-                  <span>COMPANY INCOME</span>
-                  <span>₱{formatCurrency(cbicCompanyIncome)}</span>
+                <div className="flex justify-between font-bold p-3 bg-amber-50 text-amber-950 rounded-xl border border-amber-200/80">
+                  <span className="uppercase tracking-wider text-xs">COMPANY INCOME</span>
+                  <span className="font-mono tabular-nums text-sm font-black text-amber-900">₱{formatCurrency(cbicCompanyIncome)}</span>
                 </div>
 
-                <div className="flex justify-between text-slate-700 text-[11px] px-1 font-semibold pt-1">
+                <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
                   <span>LESS SUB-AGENT MARK UP</span>
-                  <span>₱{formatCurrency(subAgentMarkup)}</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(subAgentMarkup)}</span>
                 </div>
 
-                <div className="flex justify-between text-slate-700 text-[11px] px-1 font-semibold">
+                <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
                   <span>LESS FREEBIE & CASHBACK</span>
-                  <span>₱{formatCurrency(freebieCashback)}</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(freebieCashback)}</span>
                 </div>
 
-                <div className="flex justify-between font-black text-sm p-3 bg-emerald-400 text-slate-950 rounded-lg border border-emerald-500 shadow-2xs">
-                  <span>NET INCOME</span>
-                  <span>₱{formatCurrency(cbicNetIncome)}</span>
+                <div className="flex justify-between font-extrabold text-sm p-3.5 bg-[#064e3b] text-white rounded-xl shadow-xs border border-emerald-800">
+                  <span className="uppercase tracking-wider text-xs">NET INCOME</span>
+                  <span className="font-mono tabular-nums text-base">₱{formatCurrency(cbicNetIncome)}</span>
                 </div>
               </div>
             </div>
           </div>
         ) : (
           /* ─── ALPHA STATEMENT LAYOUT ────────────────────────────────────────── */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-300 rounded-xl overflow-hidden print:grid-cols-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs print:grid-cols-2">
             {/* PAGE 1: Policy & Customer Info + Primary Tariffs */}
-            <div className="p-5 space-y-5 border-r border-slate-300 bg-white">
-              <div className="bg-slate-100 px-3 py-1.5 font-bold uppercase tracking-wider text-slate-800 text-center border border-slate-300">
+            <div className="p-6 space-y-5 border-r border-slate-200/80 bg-white">
+              <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 Page 1 — Policy & Vehicle Details (ALPHA)
               </div>
 
               {/* Basic Info Key-Value Table */}
-              <div className="space-y-1 divide-y divide-slate-200 text-slate-800">
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">TERM:</span>
-                  <span className="font-semibold text-right flex-1">
+              <div className="space-y-1.5 divide-y divide-slate-100 text-slate-700 text-xs">
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">TERM:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">
                     {quotation.valid_until ? new Date(quotation.created_at).toLocaleDateString() + ' to ' + new Date(quotation.valid_until).toLocaleDateString() : '1 YEAR'}
                   </span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">DATE OF ISSUANCE:</span>
-                  <span className="font-semibold text-right flex-1">{new Date(quotation.created_at).toLocaleDateString()}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">DATE OF ISSUANCE:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{new Date(quotation.created_at).toLocaleDateString()}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">ASSURED:</span>
-                  <span className="font-bold uppercase text-right flex-1">{assuredName}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">ASSURED:</span>
+                  <span className="font-bold text-slate-900 uppercase text-right flex-1">{assuredName}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">ADDRESS:</span>
-                  <span className="font-semibold text-right flex-1">{address}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">ADDRESS:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{address}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">DETAILS:</span>
-                  <span className="font-semibold text-right flex-1">{vehicleUnit}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">DETAILS:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{vehicleUnit}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">MORTGAGEE:</span>
-                  <span className="font-semibold text-right flex-1">{mortgagee}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">MORTGAGEE:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{mortgagee}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">AGENT:</span>
-                  <span className="font-bold uppercase text-right flex-1">{agentName}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">AGENT:</span>
+                  <span className="font-bold text-slate-900 uppercase text-right flex-1">{agentName}</span>
                 </div>
               </div>
 
-              <div className="border-t border-slate-300 pt-3 space-y-1 divide-y divide-slate-200">
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">VEHICLE:</span>
-                  <span className="font-semibold text-right flex-1">{vehicleUnit}</span>
+              <div className="border-t border-slate-200 pt-3 space-y-1.5 divide-y divide-slate-100 text-slate-700 text-xs">
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">VEHICLE:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1">{vehicleUnit}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">PLATE NO.:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{plateNo}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">PLATE NO.:</span>
+                  <span className="font-semibold text-slate-900 text-right flex-1 uppercase font-mono">{plateNo}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">ENGINE NO.:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{engineNo}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">ENGINE NO.:</span>
+                  <span className="font-semibold text-slate-900 text-right flex-1 uppercase font-mono">{engineNo}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">CHASSIS NO.:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{chassisNo}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">CHASSIS NO.:</span>
+                  <span className="font-semibold text-slate-900 text-right flex-1 uppercase font-mono">{chassisNo}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">MV FILE NO.:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{mvFileNo}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">MV FILE NO.:</span>
+                  <span className="font-semibold text-slate-900 text-right flex-1 uppercase font-mono">{mvFileNo}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="font-bold text-slate-600 w-36">COLOR:</span>
-                  <span className="font-semibold text-right flex-1 uppercase">{color}</span>
+                <div className="flex justify-between py-1.5">
+                  <span className="font-bold text-slate-500 w-36 uppercase text-[11px]">COLOR:</span>
+                  <span className="font-medium text-slate-800 text-right flex-1 uppercase">{color}</span>
                 </div>
               </div>
 
               {/* Coverage Table */}
-              <div className="border border-slate-300 rounded-lg overflow-hidden">
-                <table className="w-full border-collapse text-[11px]">
+              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                <table className="w-full border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-200 text-slate-800 font-bold border-b border-slate-300">
-                      <th className="p-2 text-left">Coverage</th>
-                      <th className="p-2 text-right">Sum Insured</th>
-                      <th className="p-2 text-center">Rate</th>
-                      <th className="p-2 text-right">Premium</th>
+                    <tr className="bg-slate-800 text-white font-semibold text-[11px] uppercase tracking-wider">
+                      <th className="py-2.5 px-3 text-left">Coverage</th>
+                      <th className="py-2.5 px-3 text-right">Sum Insured</th>
+                      <th className="py-2.5 px-3 text-center">Rate</th>
+                      <th className="py-2.5 px-3 text-right">Premium</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    <tr className="bg-lime-50/60">
-                      <td className="p-2 font-bold text-slate-900">Own Damage/Theft</td>
-                      <td className="p-2 text-right">{formatCurrency(sumInsured)}</td>
-                      <td className="p-2 text-center">{rateOD.toFixed(2)}%</td>
-                      <td className="p-2 text-right font-bold">{formatCurrency(premOD)}</td>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-2 px-3 font-bold text-slate-900">Own Damage/Theft</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums">{formatCurrency(sumInsured)}</td>
+                      <td className="py-2 px-3 text-center">{rateOD.toFixed(2)}%</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatCurrency(premOD)}</td>
                     </tr>
-                    <tr>
-                      <td className="p-2 font-bold text-slate-900">Acts of Nature</td>
-                      <td className="p-2 text-right">{formatCurrency(sumInsured)}</td>
-                      <td className="p-2 text-center">{rateAON.toFixed(2)}%</td>
-                      <td className="p-2 text-right font-bold">{formatCurrency(premAON)}</td>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-2 px-3 font-bold text-slate-900">Acts of Nature</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums">{formatCurrency(sumInsured)}</td>
+                      <td className="py-2 px-3 text-center">{rateAON.toFixed(2)}%</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatCurrency(premAON)}</td>
                     </tr>
-                    <tr className="bg-lime-50/60">
-                      <td className="p-2 font-bold text-slate-900">Excess Bodily Injury</td>
-                      <td className="p-2 text-right">{formatCurrency(covBIVal)}</td>
-                      <td className="p-2 text-center">—</td>
-                      <td className="p-2 text-right font-bold">{formatCurrency(premBIVal)}</td>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-2 px-3 font-bold text-slate-900">Excess Bodily Injury</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums">{formatCurrency(covBIVal)}</td>
+                      <td className="py-2 px-3 text-center text-slate-400">—</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatCurrency(premBIVal)}</td>
                     </tr>
-                    <tr>
-                      <td className="p-2 font-bold text-slate-900">Property Damage</td>
-                      <td className="p-2 text-right">{formatCurrency(covPDVal)}</td>
-                      <td className="p-2 text-center">—</td>
-                      <td className="p-2 text-right font-bold">{formatCurrency(premPDVal)}</td>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-2 px-3 font-bold text-slate-900">Property Damage</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums">{formatCurrency(covPDVal)}</td>
+                      <td className="py-2 px-3 text-center text-slate-400">—</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatCurrency(premPDVal)}</td>
                     </tr>
-                    <tr className="bg-lime-50/60">
-                      <td className="p-2 font-bold text-slate-900">APA (for 10 Passengers)</td>
-                      <td className="p-2 text-right">{formatCurrency(covPAVal)}</td>
-                      <td className="p-2 text-center">—</td>
-                      <td className="p-2 text-right font-bold">{formatCurrency(premPAVal)}</td>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-2 px-3 font-bold text-slate-900">APA (for 10 Passengers)</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums">{formatCurrency(covPAVal)}</td>
+                      <td className="py-2 px-3 text-center text-slate-400">—</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatCurrency(premPAVal)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Premium Charges Subtotal */}
-              <div className="space-y-1.5 border-t-2 border-slate-800 pt-3 text-xs">
-                <div className="flex justify-between font-bold text-slate-900">
+              <div className="space-y-1.5 border-t border-slate-200 pt-3 text-xs">
+                <div className="flex justify-between font-semibold text-slate-700">
                   <span>PREMIUM</span>
-                  <span>{formatCurrency(subtotalPremium)}</span>
+                  <span className="font-mono tabular-nums">{formatCurrency(subtotalPremium)}</span>
                 </div>
-                <div className="flex justify-between text-slate-700">
+                <div className="flex justify-between text-slate-500">
                   <span>CHARGES ({(chargesRate * 100).toFixed(2)}%)</span>
-                  <span>{formatCurrency(chargesAmount)}</span>
+                  <span className="font-mono tabular-nums">{formatCurrency(chargesAmount)}</span>
                 </div>
-                <div className="flex justify-between text-slate-700">
+                <div className="flex justify-between text-slate-500">
                   <span>TOWING (Auto Assist)</span>
-                  <span>{formatCurrency(towingFee)}</span>
+                  <span className="font-mono tabular-nums">{formatCurrency(towingFee)}</span>
                 </div>
-                <div className="flex justify-between font-black text-sm text-slate-900 border-t border-slate-300 pt-1.5">
-                  <span>TOTAL</span>
-                  <span>₱{formatCurrency(grossTotal)}</span>
+                <div className="flex justify-between font-black text-sm text-slate-900 border-t border-slate-200 pt-2">
+                  <span className="uppercase tracking-wider">TOTAL</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(grossTotal)}</span>
                 </div>
               </div>
             </div>
 
             {/* PAGE 2: Commission, Remittance & Company Income Calculations */}
-            <div className="p-5 space-y-5 bg-white">
-              <div className="bg-slate-100 px-3 py-1.5 font-bold uppercase tracking-wider text-slate-800 text-center border border-slate-300">
+            <div className="p-6 space-y-5 bg-white">
+              <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 Page 2 — Tariff Commissions & Company Remittance (ALPHA)
               </div>
 
               {/* Commissions Breakdown Table */}
-              <div className="border border-slate-300 rounded-lg overflow-hidden">
-                <table className="w-full border-collapse text-[11px]">
+              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                <table className="w-full border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-200 text-slate-800 font-bold border-b border-slate-300">
-                      <th className="p-2 text-left">Tariff Item</th>
-                      <th className="p-2 text-center">Comm %</th>
-                      <th className="p-2 text-right">Comm Amount</th>
+                    <tr className="bg-slate-800 text-white font-semibold text-[11px] uppercase tracking-wider">
+                      <th className="py-2.5 px-3 text-left">Tariff Item</th>
+                      <th className="py-2.5 px-3 text-center">Comm %</th>
+                      <th className="py-2.5 px-3 text-right">Comm Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    <tr>
-                      <td className="p-2 font-medium">Acts of Nature (30% comm on TARIFF)</td>
-                      <td className="p-2 text-center">—</td>
-                      <td className="p-2 text-right font-medium">—</td>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-2 px-3 font-medium text-slate-500">Acts of Nature (30% comm on TARIFF)</td>
+                      <td className="py-2 px-3 text-center text-slate-400">—</td>
+                      <td className="py-2 px-3 text-right font-medium text-slate-400">—</td>
                     </tr>
-                    <tr className="bg-slate-50">
-                      <td className="p-2 font-bold text-slate-900">Excess Bodily Injury</td>
-                      <td className="p-2 text-center font-bold">{commBIPct}%</td>
-                      <td className="p-2 text-right font-bold">{formatCurrency(commBI)}</td>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-2 px-3 font-bold text-slate-900">Excess Bodily Injury</td>
+                      <td className="py-2 px-3 text-center font-semibold text-slate-700">{commBIPct}%</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatCurrency(commBI)}</td>
                     </tr>
-                    <tr>
-                      <td className="p-2 font-bold text-slate-900">Property Damage</td>
-                      <td className="p-2 text-center font-bold">{commPDPct}%</td>
-                      <td className="p-2 text-right font-bold">{formatCurrency(commPD)}</td>
+                    <tr className="hover:bg-slate-50/60 transition">
+                      <td className="py-2 px-3 font-bold text-slate-900">Property Damage</td>
+                      <td className="py-2 px-3 text-center font-semibold text-slate-700">{commPDPct}%</td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatCurrency(commPD)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Commission Totals Block */}
-              <div className="space-y-2 border border-slate-300 p-3 rounded-lg bg-slate-50/50">
-                <div className="flex justify-between font-bold text-slate-800">
+              <div className="space-y-2 border border-slate-200 p-4 rounded-xl bg-slate-50/50">
+                <div className="flex justify-between font-bold text-slate-800 text-xs">
                   <span>COMM ON TARIFF</span>
-                  <span>{formatCurrency(commOnTariff)}</span>
+                  <span className="font-mono tabular-nums">{formatCurrency(commOnTariff)}</span>
                 </div>
-                <div className="flex justify-between text-slate-600 text-[11px]">
+                <div className="flex justify-between text-slate-500 text-[11px]">
                   <span>LESS WITHHOLDING TAX ({wHTaxPct}%)</span>
-                  <span>{formatCurrency(withholdingTax)}</span>
+                  <span className="font-mono tabular-nums">{formatCurrency(withholdingTax)}</span>
                 </div>
-                <div className="flex justify-between font-black text-sm bg-yellow-200/80 p-2 rounded border border-yellow-300 text-slate-900">
-                  <span>TOTAL COMM ON TARIFF</span>
-                  <span>₱{formatCurrency(totalCommOnTariff)}</span>
+                <div className="flex justify-between font-bold text-xs bg-amber-50/90 p-2.5 rounded-lg border border-amber-200/80 text-amber-950 mt-1">
+                  <span className="uppercase tracking-wider">TOTAL COMM ON TARIFF</span>
+                  <span className="font-mono tabular-nums font-extrabold text-amber-900">₱{formatCurrency(totalCommOnTariff)}</span>
                 </div>
               </div>
 
               {/* Final Accounting Breakdown */}
-              <div className="space-y-2 border-t-2 border-slate-800 pt-4 text-xs">
-                <div className="flex justify-between font-bold p-2.5 bg-blue-600 text-white rounded-lg shadow-2xs">
-                  <span>REMITTANCE TO ALPHA</span>
-                  <span>₱{formatCurrency(alphaRemittanceToProvider)}</span>
+              <div className="space-y-2.5 border-t border-slate-200 pt-4 text-xs">
+                <div className="flex justify-between font-bold p-3 bg-slate-800 text-white rounded-xl shadow-2xs">
+                  <span className="uppercase tracking-wider text-[11px]">REMITTANCE TO ALPHA</span>
+                  <span className="font-mono tabular-nums text-sm">₱{formatCurrency(alphaRemittanceToProvider)}</span>
                 </div>
 
-                <div className="flex justify-between font-bold p-2.5 bg-lime-500 text-slate-950 rounded-lg shadow-2xs">
-                  <span>TOTAL PREMIUM ON POLICY</span>
-                  <span>₱{formatCurrency(totalPolicyPremium)}</span>
+                <div className="flex justify-between font-semibold p-3 bg-slate-100 text-slate-800 rounded-xl border border-slate-200">
+                  <span className="uppercase tracking-wider text-[11px]">TOTAL PREMIUM ON POLICY</span>
+                  <span className="font-mono tabular-nums font-bold">₱{formatCurrency(totalPolicyPremium)}</span>
                 </div>
 
-                <div className="flex justify-between font-black text-sm p-3 bg-yellow-300 text-slate-950 rounded-lg border border-yellow-400 shadow-2xs">
-                  <span>COMPANY INCOME</span>
-                  <span>₱{formatCurrency(alphaCompanyIncome)}</span>
+                <div className="flex justify-between font-bold p-3 bg-amber-50 text-amber-950 rounded-xl border border-amber-200/80">
+                  <span className="uppercase tracking-wider text-xs">COMPANY INCOME</span>
+                  <span className="font-mono tabular-nums text-sm font-black text-amber-900">₱{formatCurrency(alphaCompanyIncome)}</span>
                 </div>
 
-                <div className="flex justify-between text-slate-700 text-[11px] px-1 font-semibold pt-1">
+                <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
                   <span>LESS SUB-AGENT MARK UP</span>
-                  <span>₱{formatCurrency(subAgentMarkup)}</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(subAgentMarkup)}</span>
                 </div>
 
-                <div className="flex justify-between text-slate-700 text-[11px] px-1 font-semibold">
+                <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
                   <span>LESS FREEBIE & CASHBACK</span>
-                  <span>₱{formatCurrency(freebieCashback)}</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(freebieCashback)}</span>
                 </div>
 
-                <div className="flex justify-between font-black text-sm p-3 bg-emerald-400 text-slate-950 rounded-lg border border-emerald-500 shadow-2xs">
-                  <span>NET INCOME</span>
-                  <span>₱{formatCurrency(alphaNetIncome)}</span>
+                <div className="flex justify-between font-extrabold text-sm p-3.5 bg-[#064e3b] text-white rounded-xl shadow-xs border border-emerald-800">
+                  <span className="uppercase tracking-wider text-xs">NET INCOME</span>
+                  <span className="font-mono tabular-nums text-base">₱{formatCurrency(alphaNetIncome)}</span>
                 </div>
               </div>
             </div>
