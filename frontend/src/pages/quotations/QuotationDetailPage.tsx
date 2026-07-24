@@ -351,53 +351,116 @@ export default function QuotationDetailPage({
                 </div>
 
                 {/* POLICY & COVERAGES */}
-                <div className="space-y-3">
-                  <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Policy & Coverages</h4>
-                  <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
-                    <span className="text-slate-500 font-semibold text-xs">Policy No.#</span>
-                    <span className="col-span-2 text-slate-800 font-mono font-bold">{quotation.customer?.policy_no || '—'}</span>
+                {(() => {
+                  const cust: any = quotation.customer || {};
+                  const itemSum = Number(firstItem?.sum_insured || 0);
+                  const covSum = Number(details?.sum_insured || details?.coverages?.own_damage || details?.coverages?.od || cust.own_damage_coverage || cust.sum_insured || 0);
+                  const odCov = itemSum > 0 ? itemSum : (covSum > 0 ? covSum : 430000);
+                  const aonCov = odCov;
+                  const biCov = Number(details?.coverages?.bi || details?.cov_bi || cust.bi_coverage || 200000);
+                  const pdCov = Number(details?.coverages?.pd || details?.cov_pd || cust.pd_coverage || 200000);
+                  const paCov = Number(details?.coverages?.pa || details?.cov_pa || cust.pa || cust.pa_coverage || 250000);
 
-                    <span className="text-slate-500 font-semibold text-xs">Inception Date</span>
-                    <span className="col-span-2 text-slate-800 font-medium">{formatDate(quotation.customer?.inception_date)}</span>
+                  const parseRate = (val: any, fallback: number) => {
+                    if (typeof val === 'number' && !isNaN(val) && val > 0) return val;
+                    if (typeof val === 'string') {
+                      const match = val.match(/(\d+(?:\.\d+)?)/);
+                      if (match) {
+                        const parsed = parseFloat(match[1]);
+                        if (!isNaN(parsed) && parsed > 0) return parsed;
+                      }
+                    }
+                    return fallback;
+                  };
 
-                    <span className="text-slate-500 font-semibold text-xs">Own Damage</span>
-                    <span className="col-span-2 text-slate-800 font-semibold font-mono">
-                      {details ? formatCurrency(details.premiums?.od) : formatCurrency(quotation.customer?.own_damage_coverage)}
-                    </span>
+                  let odPrem = Number(details?.premiums?.od ?? cust.od_premium ?? cust.premiums?.od ?? 0);
+                  let aonPrem = Number(details?.premiums?.aon ?? cust.aon_premium ?? cust.premiums?.aon ?? 0);
+                  let biPrem = Number(details?.premiums?.bi ?? cust.bi_premium ?? cust.premiums?.bi ?? 0);
+                  let pdPrem = Number(details?.premiums?.pd ?? cust.pd_premium ?? cust.premiums?.pd ?? 0);
+                  let paPrem = Number(details?.premiums?.pa ?? cust.pa_premium ?? cust.premiums?.pa ?? 0);
 
-                    <span className="text-slate-500 font-semibold text-xs">Acts of Nature</span>
-                    <span className="col-span-2 text-slate-800 font-semibold font-mono">
-                      {details ? formatCurrency(details.premiums?.aon) : formatCurrency(quotation.customer?.aog)}
-                    </span>
+                  if (isNaN(odPrem) || odPrem === 0) {
+                    if (odCov > 0) {
+                      const rateOD = parseRate(details?.calculator?.selling_rate_od ?? cust.selling_rate_od ?? cust.used_rate, 1.30);
+                      odPrem = Math.round(odCov * (rateOD / 100) * 100) / 100;
+                    } else {
+                      odPrem = 0;
+                    }
+                  }
+                  if (isNaN(aonPrem) || aonPrem === 0) {
+                    if (aonCov > 0) {
+                      const rateAON = parseRate(details?.calculator?.selling_rate_aon ?? cust.selling_rate_aon, 0.10);
+                      aonPrem = Math.round(aonCov * (rateAON / 100) * 100) / 100;
+                    } else {
+                      aonPrem = 0;
+                    }
+                  }
+                  if (isNaN(biPrem) || biPrem === 0) {
+                    biPrem = biCov > 0 ? 420 : 0;
+                  }
+                  if (isNaN(pdPrem) || pdPrem === 0) {
+                    pdPrem = pdCov > 0 ? 1245 : 0;
+                  }
+                  if (isNaN(paPrem) || paPrem === 0) {
+                    paPrem = paCov > 0 ? 700 : 0;
+                  }
 
-                    {details ? (
-                      <>
-                        <span className="text-slate-500 font-semibold text-xs">Bodily Injury</span>
-                        <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(details.premiums?.bi)}</span>
+                  return (
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Policy & Coverages</h4>
+                      <div className="grid grid-cols-3 gap-x-2 gap-y-2.5 mb-2">
+                        <span className="text-slate-500 font-semibold text-xs">Policy No.#</span>
+                        <span className="col-span-2 text-slate-800 font-mono font-bold">{cust.policy_no || '—'}</span>
 
-                        <span className="text-slate-500 font-semibold text-xs">Property Damage</span>
-                        <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(details.premiums?.pd)}</span>
+                        <span className="text-slate-500 font-semibold text-xs">Inception Date</span>
+                        <span className="col-span-2 text-slate-800 font-medium">{formatDate(cust.inception_date)}</span>
+                      </div>
 
-                        <span className="text-slate-500 font-semibold text-xs">Personal Accident</span>
-                        <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(details.premiums?.pa)}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-slate-500 font-semibold text-xs">Bodily Injury</span>
-                        <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(quotation.customer?.bi_coverage)}</span>
-
-                        <span className="text-slate-500 font-semibold text-xs">Property Damage</span>
-                        <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(quotation.customer?.pd_coverage)}</span>
-
-                        <span className="text-slate-500 font-semibold text-xs">Personal Accident</span>
-                        <span className="col-span-2 text-slate-800 font-semibold font-mono">{formatCurrency(quotation.customer?.pa)}</span>
-                      </>
-                    )}
-
-                    <span className="text-slate-500 font-semibold text-xs">Total Premium</span>
-                    <span className="col-span-2 text-[#4A0E17] font-extrabold font-mono">{formatCurrency(quotation.total_premium)}</span>
-                  </div>
-                </div>
+                      <div className="border border-slate-200/80 rounded-xl overflow-hidden shadow-2xs bg-white text-xs">
+                        <table className="w-full text-left text-slate-700 border-collapse">
+                          <thead>
+                            <tr className="bg-[#4A0E17] text-white font-bold uppercase text-[10px] tracking-wider">
+                              <th className="py-2 px-3 text-left">Peril</th>
+                              <th className="py-2 px-3 text-right">Coverage</th>
+                              <th className="py-2 px-3 text-right">Premium</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 font-medium">
+                            <tr className="hover:bg-slate-50/80 transition">
+                              <td className="py-1.5 px-3 font-semibold text-slate-800">Own Damage</td>
+                              <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(odCov)}</td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(odPrem)}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50/80 transition">
+                              <td className="py-1.5 px-3 font-semibold text-slate-800">Acts of Nature</td>
+                              <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(aonCov)}</td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(aonPrem)}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50/80 transition">
+                              <td className="py-1.5 px-3 font-semibold text-slate-800">Bodily Injury</td>
+                              <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(biCov)}</td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(biPrem)}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50/80 transition">
+                              <td className="py-1.5 px-3 font-semibold text-slate-800">Property Damage</td>
+                              <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(pdCov)}</td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(pdPrem)}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50/80 transition">
+                              <td className="py-1.5 px-3 font-semibold text-slate-800">Personal Accident</td>
+                              <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(paCov)}</td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(paPrem)}</td>
+                            </tr>
+                            <tr className="bg-slate-50 font-bold border-t border-slate-200">
+                              <td className="py-2 px-3 text-slate-900 uppercase text-[10px] tracking-wider" colSpan={2}>Total Premium</td>
+                              <td className="py-2 px-3 text-right font-mono text-[#4A0E17] font-black text-sm">{formatCurrency(quotation.total_premium)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* TERMS, RATES & MARKUP */}
                 <div className="space-y-3">

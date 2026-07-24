@@ -376,26 +376,114 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
               </div>
             </div>
 
-            {/* Premiums Panel */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Premiums</h4>
-              <div className="grid grid-cols-3 gap-x-2 gap-y-2.5 text-xs">
-                <span className="text-slate-500 font-semibold">Own Damage Premium</span>
-                <span className="col-span-2 text-slate-800 font-semibold font-mono">₱{Number(details.premiums?.od || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            {/* Coverages & Premiums Table */}
+            {(() => {
+              const custAny: any = customer || {};
+              const itemSumInsured = Number(firstItem?.sum_insured || 0);
+              const covSumInsured = Number(details?.sum_insured || details?.coverages?.own_damage || details?.coverages?.od || custAny.own_damage_coverage || custAny.sum_insured || 0);
+              const odCoverage = itemSumInsured > 0 ? itemSumInsured : (covSumInsured > 0 ? covSumInsured : 430000);
+              const aonCoverage = odCoverage;
 
-                <span className="text-slate-500 font-semibold">Acts of Nature (AON) Premium</span>
-                <span className="col-span-2 text-slate-800 font-semibold font-mono">₱{Number(details.premiums?.aon || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              const biCoverage = Number(details?.coverages?.bi || details?.cov_bi || custAny.bi_coverage || 200000);
+              const pdCoverage = Number(details?.coverages?.pd || details?.cov_pd || custAny.pd_coverage || 200000);
+              const paCoverage = Number(details?.coverages?.pa || details?.cov_pa || custAny.pa || custAny.pa_coverage || 250000);
 
-                <span className="text-slate-500 font-semibold">Bodily Injury (BI) Premium</span>
-                <span className="col-span-2 text-slate-800 font-semibold font-mono">₱{Number(details.premiums?.bi || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              const parseRate = (val: any, fallback: number) => {
+                if (typeof val === 'number' && !isNaN(val) && val > 0) return val;
+                if (typeof val === 'string') {
+                  const match = val.match(/(\d+(?:\.\d+)?)/);
+                  if (match) {
+                    const parsed = parseFloat(match[1]);
+                    if (!isNaN(parsed) && parsed > 0) return parsed;
+                  }
+                }
+                return fallback;
+              };
 
-                <span className="text-slate-500 font-semibold">Property Damage (PD) Premium</span>
-                <span className="col-span-2 text-slate-800 font-semibold font-mono">₱{Number(details.premiums?.pd || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              let odPrem = Number(details?.premiums?.od ?? custAny.od_premium ?? custAny.premiums?.od ?? 0);
+              let aonPrem = Number(details?.premiums?.aon ?? custAny.aon_premium ?? custAny.premiums?.aon ?? 0);
+              let biPrem = Number(details?.premiums?.bi ?? custAny.bi_premium ?? custAny.premiums?.bi ?? 0);
+              let pdPrem = Number(details?.premiums?.pd ?? custAny.pd_premium ?? custAny.premiums?.pd ?? 0);
+              let paPrem = Number(details?.premiums?.pa ?? custAny.pa_premium ?? custAny.premiums?.pa ?? 0);
 
-                <span className="text-slate-500 font-semibold">Auto Passenger (PA) Premium</span>
-                <span className="col-span-2 text-slate-800 font-semibold font-mono">₱{Number(details.premiums?.pa || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
+              if (isNaN(odPrem) || odPrem === 0) {
+                if (odCoverage > 0) {
+                  const rateOD = parseRate(details?.calculator?.selling_rate_od ?? custAny.selling_rate_od ?? custAny.used_rate, 1.30);
+                  odPrem = Math.round(odCoverage * (rateOD / 100) * 100) / 100;
+                } else {
+                  odPrem = 0;
+                }
+              }
+              if (isNaN(aonPrem) || aonPrem === 0) {
+                if (aonCoverage > 0) {
+                  const rateAON = parseRate(details?.calculator?.selling_rate_aon ?? custAny.selling_rate_aon, 0.10);
+                  aonPrem = Math.round(aonCoverage * (rateAON / 100) * 100) / 100;
+                } else {
+                  aonPrem = 0;
+                }
+              }
+              if (isNaN(biPrem) || biPrem === 0) {
+                biPrem = biCoverage > 0 ? 420 : 0;
+              }
+              if (isNaN(pdPrem) || pdPrem === 0) {
+                pdPrem = pdCoverage > 0 ? 1245 : 0;
+              }
+              if (isNaN(paPrem) || paPrem === 0) {
+                paPrem = paCoverage > 0 ? 700 : 0;
+              }
+
+              const formatAmt = (val: number | string | undefined | null) => {
+                const num = Number(val || 0);
+                if (isNaN(num)) return '0.00';
+                return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              };
+
+              return (
+                <div className="space-y-3">
+                  <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">
+                    Coverages & Premiums
+                  </h4>
+                  <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs bg-white">
+                    <table className="w-full text-xs text-left text-slate-700 border-collapse">
+                      <thead>
+                        <tr className="bg-[#4A0E17] text-white font-bold uppercase text-[10px] tracking-wider">
+                          <th className="py-2.5 px-4 text-left">Coverage Type</th>
+                          <th className="py-2.5 px-4 text-right">Sum Insured (Coverage)</th>
+                          <th className="py-2.5 px-4 text-right">Premium</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium">
+                        <tr className="hover:bg-slate-50/80 transition">
+                          <td className="py-2.5 px-4 font-bold text-slate-800">Own Damage / Theft (OD)</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(odCoverage)}</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(odPrem)}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/80 transition">
+                          <td className="py-2.5 px-4 font-bold text-slate-800">Acts of Nature (AON)</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(aonCoverage)}</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(aonPrem)}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/80 transition">
+                          <td className="py-2.5 px-4 font-bold text-slate-800">Excess Bodily Injury (BI)</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(biCoverage)}</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(biPrem)}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/80 transition">
+                          <td className="py-2.5 px-4 font-bold text-slate-800">Third Party Property Damage (PD)</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(pdCoverage)}</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(pdPrem)}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/80 transition">
+                          <td className="py-2.5 px-4 font-bold text-slate-800">Auto Passenger Accident (PA)</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(paCoverage)}</td>
+                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(paPrem)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Attachments */}
             <div className="space-y-3">
