@@ -22,7 +22,8 @@ import {
   Mail,
   FileText,
   Paperclip,
-  Download
+  Download,
+  XCircle
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -1597,14 +1598,19 @@ export default function CollectionLedgerPage() {
                         }
                       }
 
+                      const isCancelledPolicy = (row as any).status === 'voided' || (row as any).status === 'cancelled' || row.policy?.status === 'cancelled' || (row as any).policy?.quotation?.status === 'cancelled';
+
                       return (
                         <span key={row.id} className="contents">
                           {/* Row 1: Header row / General Details */}
                           <tr
                             onClick={() => handleOpenCollection(row)}
-                            className={`transition-colors text-xs cursor-pointer ${isFirstPaymentAlarm || isDstWarning || isHighlighted
-                              ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-4 border-l-rose-500 font-medium'
-                              : 'bg-white hover:bg-slate-50 text-slate-800'
+                            className={`transition-colors text-xs cursor-pointer ${
+                              isCancelledPolicy
+                                ? 'bg-rose-50/40 hover:bg-rose-50 text-slate-800 border-l-4 border-l-rose-600'
+                                : (isFirstPaymentAlarm || isDstWarning || isHighlighted
+                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-4 border-l-rose-500 font-medium'
+                                  : 'bg-white hover:bg-slate-50 text-slate-800')
                               }`}
                           >
                             <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium">
@@ -1629,14 +1635,26 @@ export default function CollectionLedgerPage() {
                               {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                             </td>
                             <td className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700 border border-blue-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                                }`}>
-                                {customer?.request_type || '—'}
-                              </span>
+                              {isCancelledPolicy ? (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                                  CANCELLED
+                                </span>
+                              ) : (
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700 border border-blue-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'}`}>
+                                  {customer?.request_type || '—'}
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 border-r border-slate-200 font-bold uppercase tracking-tight">
                               <div className="text-slate-900 font-bold">{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
-                              {isFirstPaymentAlarm && (
+                              {isCancelledPolicy && (
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 tracking-wide whitespace-nowrap uppercase shadow-2xs">
+                                    <XCircle className="h-3 w-3 text-rose-600" /> CANCELLED POLICY
+                                  </span>
+                                </div>
+                              )}
+                              {isFirstPaymentAlarm && !isCancelledPolicy && (
                                 <div className="mt-1">
                                   <span
                                     className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 tracking-wide whitespace-nowrap"
@@ -1647,7 +1665,7 @@ export default function CollectionLedgerPage() {
                                   </span>
                                 </div>
                               )}
-                              {isDstWarning && !isFirstPaymentAlarm && (
+                              {isDstWarning && !isFirstPaymentAlarm && !isCancelledPolicy && (
                                 <div className="mt-1">
                                   <span
                                     className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 tracking-wide whitespace-nowrap"

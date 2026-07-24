@@ -689,7 +689,26 @@ class QuotationController extends Controller
                     $quotation->policy->update([
                         'status' => 'cancelled',
                         'cancellation_reason' => $quotation->cancellation_reason,
+                        'cancelled_at' => now(),
                     ]);
+
+                    // Automatically void invoice in Collection and Accounting
+                    \App\Models\Invoice::where('policy_id', $quotation->policy->id)
+                        ->update([
+                            'status' => 'voided',
+                            'balance' => 0,
+                            'notes' => 'Invoice automatically voided due to approved policy cancellation request.',
+                        ]);
+                }
+
+                // Also void any open invoices for this customer
+                if ($quotation->customer_id) {
+                    \App\Models\Invoice::where('customer_id', $quotation->customer_id)
+                        ->whereIn('status', ['sent', 'unpaid', 'partially_paid', 'overdue', 'draft'])
+                        ->update([
+                            'status' => 'voided',
+                            'balance' => 0,
+                        ]);
                 }
             } else {
                 // Reject cancellation -> restore status back to approved

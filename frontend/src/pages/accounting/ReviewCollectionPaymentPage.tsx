@@ -155,12 +155,21 @@ export default function ReviewCollectionPaymentPage() {
         const policyNo = cust?.policy_no || (p.invoice as any)?.policy?.policy_number || p.invoice?.invoice_number || '—';
         const reqNo = (p.invoice as any)?.policy?.quotation?.quotation_number || (p.invoice as any)?.policy?.quotation?.ir_number;
 
+        const isCancelled = (p.invoice as any)?.policy?.status === 'cancelled' || (p.invoice as any)?.policy?.quotation?.status === 'cancelled' || (p.invoice as any)?.status === 'voided';
+
         return (
           <div>
             <p className="font-bold text-slate-800 text-xs uppercase tracking-tight">{clientName}</p>
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">
               Policy: {policyNo} {reqNo && <span className="text-slate-350 font-normal"> • </span>} {reqNo && <span className="text-blue-700 font-semibold">{reqNo}</span>}
             </p>
+            {isCancelled && (
+              <div className="mt-1">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 uppercase tracking-wider shadow-2xs">
+                  <XCircle className="h-3 w-3 text-rose-600" /> CANCELLED POLICY
+                </span>
+              </div>
+            )}
           </div>
         );
       },

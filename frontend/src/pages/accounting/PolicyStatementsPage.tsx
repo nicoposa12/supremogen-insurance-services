@@ -91,8 +91,8 @@ export default function PolicyStatementsPage() {
   const allQuotations = response?.data?.data ?? [];
   const approvedQuotations = useMemo(() => {
     return allQuotations.filter((q) => {
-      const isApproved = q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review';
-      if (!isApproved) return false;
+      const isRelevant = q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review' || q.status === 'cancelled' || q.status === 'cancellation_requested';
+      if (!isRelevant) return false;
 
       const firstItem = q.items?.[0];
       const cov = firstItem?.coverage_details || {};
@@ -328,10 +328,15 @@ export default function PolicyStatementsPage() {
                         <tr
                           key={q.id}
                           onClick={() => setSelectedQuotation(q)}
-                          className="hover:bg-slate-50 cursor-pointer transition group"
+                          className={`hover:bg-slate-50 cursor-pointer transition group ${q.status === 'cancelled' ? 'bg-rose-50/30' : ''}`}
                         >
                           <td className="px-5 py-4 font-bold text-slate-800 group-hover:text-[#4A0E17] transition">
-                            {q.quotation_number || q.ir_number || `IR-${q.id}`}
+                            <div>{q.quotation_number || q.ir_number || `IR-${q.id}`}</div>
+                            {q.status === 'cancelled' && (
+                              <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 uppercase tracking-wider">
+                                CANCELLED
+                              </span>
+                            )}
                           </td>
                           <td className="px-5 py-4 font-semibold text-slate-700">
                             {getAssuredName(q)}
@@ -540,6 +545,24 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
           <Printer className="h-4 w-4" /> Print Accounting Statement
         </button>
       </div>
+
+      {/* Cancellation Notice Banner */}
+      {quotation.status === 'cancelled' && (
+        <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 flex items-center justify-between text-rose-900 shadow-xs print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-rose-100 text-rose-700 rounded-xl">
+              <X className="h-6 w-6" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm uppercase tracking-wide text-rose-900">CANCELLED POLICY STATEMENT</h4>
+              <p className="text-xs text-rose-700 font-medium mt-0.5">This policy issuance request has been cancelled upon Underwriter approval. Associated billing schedules and remittances are voided.</p>
+            </div>
+          </div>
+          <span className="px-3 py-1 bg-rose-600 text-white font-extrabold text-xs rounded-xl uppercase tracking-wider shadow-xs">
+            CANCELLED
+          </span>
+        </div>
+      )}
 
       {/* Spreadsheet Billing Document Container */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-lg p-6 sm:p-10 space-y-6 print:p-2 print:m-0 print:border-none print:shadow-none print:space-y-4 font-sans printable-document">

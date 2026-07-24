@@ -111,8 +111,8 @@ class InvoiceController extends Controller
 
         $invoices = Invoice::with([
                 'customer',
-                'policy:id,policy_number,quotation_id',
-                'policy.quotation:id,quotation_number,ir_number',
+                'policy:id,policy_number,quotation_id,status',
+                'policy.quotation:id,quotation_number,ir_number,status',
                 'createdBy:id,name',
                 'payments.attachments',
             ])
