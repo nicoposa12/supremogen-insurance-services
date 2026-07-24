@@ -1776,23 +1776,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
             </table>
           </div>
 
-          {/* Reason of Accident */}
-          {selectedRecord.accident_reason && (
-            <div className="space-y-1.5 print:hidden">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Reason / Cause of Accident</h4>
-              <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
-                {selectedRecord.accident_reason}
-              </div>
-            </div>
-          )}
 
-          {/* Nature of claims */}
-          <div className="space-y-1.5 print:hidden">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nature of Claims</h4>
-            <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
-              {stripRequirementsPrefix(selectedRecord.nature_of_claims) || 'No details provided...'}
-            </div>
-          </div>
 
           {/* Notes */}
           {selectedRecord.notes && (

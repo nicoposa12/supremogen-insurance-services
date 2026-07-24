@@ -1099,8 +1099,10 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
               <label className={labelClass}>Used Rate Type *</label>
               <select value={usedRateType} onChange={(e) => setUsedRateType(e.target.value)} className={getInputClass(usedRateType)}>
                 <option value="">Select Rate Type</option>
+                <option value="REGULAR QUOTA RATE">REGULAR QUOTA RATE</option>
+                <option value="APPROVED RATE BY SIR JESS">APPROVED RATE BY SIR JESS</option>
                 <option value="PARTNER'S RATE">PARTNER'S RATE</option>
-                <option value="OLD CAR">OLD CAR</option>
+                <option value="OLD CAR QUOTATION">OLD CAR QUOTATION</option>
               </select>
             </div>
             <div>

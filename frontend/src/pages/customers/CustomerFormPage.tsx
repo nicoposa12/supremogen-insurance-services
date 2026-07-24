@@ -727,8 +727,10 @@ export default function CustomerFormPage() {
               <label className={labelClass}>Used Rate Type *</label>
               <select {...register('used_rate_type', { required: 'Used rate type is required' })} className={inputClass(errors.used_rate_type)}>
                 <option value="">Select Rate Type</option>
+                <option value="REGULAR QUOTA RATE">REGULAR QUOTA RATE</option>
+                <option value="APPROVED RATE BY SIR JESS">APPROVED RATE BY SIR JESS</option>
                 <option value="PARTNER'S RATE">PARTNER'S RATE</option>
-                <option value="OLD CAR">OLD CAR</option>
+                <option value="OLD CAR QUOTATION">OLD CAR QUOTATION</option>
               </select>
               {errors.used_rate_type && <p className="text-xs text-red-500 mt-1">{errors.used_rate_type.message}</p>}
             </div>
