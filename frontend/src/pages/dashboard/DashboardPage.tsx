@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -36,6 +36,7 @@ import {
 
 import StatCard from '../../components/ui/StatCard';
 import StatusBadge from '../../components/ui/StatusBadge';
+import Pagination from '../../components/ui/Pagination';
 import { getDashboardData } from '../../services/dashboardApi';
 import { getQuotations } from '../../services/quotationApi';
 import type { DashboardData } from '../../types/CustomerTypes';
@@ -99,7 +100,7 @@ export default function DashboardPage() {
   // Fetch quotations for accounting metrics
   const { data: qResponse } = useQuery({
     queryKey: ['quotations', 'accounting-dashboard-data'],
-    queryFn: () => getQuotations({ per_page: 100 }),
+    queryFn: () => getQuotations({ per_page: 500 }),
     enabled: roles.includes('Accounting Officer'),
   });
 
@@ -838,6 +839,13 @@ export default function DashboardPage() {
                     </tr>
                   );
                 })}
+                {ledgerQuotations.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-slate-400 font-medium">
+                      No policy ledger records found for the selected timeframe.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

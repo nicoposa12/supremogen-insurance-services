@@ -8,6 +8,7 @@ import {
 
 import { getQuotations } from '../../services/quotationApi';
 import type { Quotation } from '../../types/SalesTypes';
+import Pagination from '../../components/ui/Pagination';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 
 const roundTwo = (num: number): number => Math.round(num * 100 + 1e-9) / 100;
@@ -65,16 +66,23 @@ export default function PolicyStatementsPage() {
   const [selectedProvider, setSelectedProvider] = useState<'ALL' | 'ALPHA' | 'CBIC'>('ALL');
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+
   useEffect(() => {
     if (urlSearch) {
       setSearchInput(urlSearch);
     }
   }, [urlSearch]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchInput, selectedProvider]);
+
   // Fetch approved Policy Issuance Requests
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['quotations', 'approved-statements'],
-    queryFn: () => getQuotations({ per_page: 100 }),
+    queryFn: () => getQuotations({ per_page: 500 }),
   });
 
   const allQuotations = response?.data?.data ?? [];
@@ -111,6 +119,16 @@ export default function PolicyStatementsPage() {
       totalPrem: Math.round(totalPrem),
     };
   }, [approvedQuotations]);
+
+  const total = approvedQuotations.length;
+  const lastPage = Math.ceil(total / perPage) || 1;
+  const from = total > 0 ? (currentPage - 1) * perPage + 1 : 0;
+  const to = Math.min(currentPage * perPage, total);
+
+  const paginatedQuotations = useMemo(() => {
+    const start = (currentPage - 1) * perPage;
+    return approvedQuotations.slice(start, start + perPage);
+  }, [approvedQuotations, currentPage, perPage]);
 
   return (
     <div className="space-y-4">
@@ -201,65 +219,83 @@ export default function PolicyStatementsPage() {
               <p className="text-slate-400 text-xs mt-1">Approved policy issuance requests will automatically appear here.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-600">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
-                  <tr>
-                    <th className="px-5 py-3.5">Ref / IR No.</th>
-                    <th className="px-5 py-3.5">Assured Name</th>
-                    <th className="px-5 py-3.5">Insurance Provider</th>
-                    <th className="px-5 py-3.5">Total Premium</th>
-                    <th className="px-5 py-3.5">Agent</th>
-                    <th className="px-5 py-3.5">Date</th>
-                    <th className="px-5 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {approvedQuotations.map((q) => {
-                    const firstItem = q.items?.[0];
-                    const cov = firstItem?.coverage_details || {};
-                    const provider = cov.insurance_provider || cov.provider || q.customer?.insurance_provider || 'ALPHA';
-                    const isCBIC = provider.toUpperCase().includes('CBIC');
-                    const agentName = typeof q.prepared_by === 'object' ? q.prepared_by?.name : 'Sales Agent';
-                    return (
-                      <tr key={q.id} className="hover:bg-slate-50/80 transition">
-                        <td className="px-5 py-4 font-bold text-slate-800">
-                          {q.quotation_number || q.ir_number || `IR-${q.id}`}
-                        </td>
-                        <td className="px-5 py-4 font-semibold text-slate-700">
-                          {getAssuredName(q)}
-                        </td>
-                        <td className="px-5 py-4 text-xs">
-                          <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg uppercase border ${isCBIC
-                              ? 'bg-amber-50 text-amber-800 border-amber-200/80'
-                              : 'bg-blue-50 text-blue-800 border-blue-200/80'
-                            }`}>
-                            {provider}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 font-bold text-emerald-700">
-                          ₱{formatCurrency(q.total_premium)}
-                        </td>
-                        <td className="px-5 py-4 font-medium text-slate-600 text-xs">
-                          {agentName}
-                        </td>
-                        <td className="px-5 py-4 text-xs text-slate-500">
-                          {new Date(q.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            onClick={() => setSelectedQuotation(q)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl shadow-2xs transition cursor-pointer"
-                          >
-                            <Eye className="h-3.5 w-3.5" /> View Statement
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
+                    <tr>
+                      <th className="px-5 py-3.5">Ref / IR No.</th>
+                      <th className="px-5 py-3.5">Assured Name</th>
+                      <th className="px-5 py-3.5">Insurance Provider</th>
+                      <th className="px-5 py-3.5">Total Premium</th>
+                      <th className="px-5 py-3.5">Agent</th>
+                      <th className="px-5 py-3.5">Date</th>
+                      <th className="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedQuotations.map((q) => {
+                      const firstItem = q.items?.[0];
+                      const cov = firstItem?.coverage_details || {};
+                      const provider = cov.insurance_provider || cov.provider || q.customer?.insurance_provider || 'ALPHA';
+                      const isCBIC = provider.toUpperCase().includes('CBIC');
+                      const agentName = typeof q.prepared_by === 'object' ? q.prepared_by?.name : 'Sales Agent';
+                      return (
+                        <tr key={q.id} className="hover:bg-slate-50/80 transition">
+                          <td className="px-5 py-4 font-bold text-slate-800">
+                            {q.quotation_number || q.ir_number || `IR-${q.id}`}
+                          </td>
+                          <td className="px-5 py-4 font-semibold text-slate-700">
+                            {getAssuredName(q)}
+                          </td>
+                          <td className="px-5 py-4 text-xs">
+                            <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg uppercase border ${isCBIC
+                                ? 'bg-amber-50 text-amber-800 border-amber-200/80'
+                                : 'bg-blue-50 text-blue-800 border-blue-200/80'
+                              }`}>
+                              {provider}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 font-bold text-emerald-700">
+                            ₱{formatCurrency(q.total_premium)}
+                          </td>
+                          <td className="px-5 py-4 font-medium text-slate-600 text-xs">
+                            {agentName}
+                          </td>
+                          <td className="px-5 py-4 text-xs text-slate-500">
+                            {new Date(q.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              onClick={() => setSelectedQuotation(q)}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl shadow-2xs transition cursor-pointer"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> View Statement
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="p-3 border-t border-slate-100">
+                <Pagination
+                  currentPage={currentPage}
+                  lastPage={lastPage}
+                  perPage={perPage}
+                  total={total}
+                  from={from}
+                  to={to}
+                  onPageChange={(p) => setCurrentPage(p)}
+                  onPerPageChange={(n) => {
+                    setPerPage(n);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+            </>
           )}
         </div>
       )}
