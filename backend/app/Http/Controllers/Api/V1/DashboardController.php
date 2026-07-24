@@ -270,6 +270,7 @@ class DashboardController extends Controller
 
             $acknowledgedClaims = (int) (clone $claimNotificationQuery)->where('status', 'acknowledged')->count();
             $returnedClaims = (int) (clone $claimNotificationQuery)->where('status', 'returned')->count();
+            $completedClaims = (int) (clone $claimNotificationQuery)->where('status', 'completed')->count();
 
             // Group claims by provider
             $providerCounts = (clone $claimNotificationQuery)
@@ -538,6 +539,7 @@ class DashboardController extends Controller
                     'pending_claims_trend' => $claimsTrend,
                     'acknowledged_claims' => $acknowledgedClaims,
                     'returned_claims' => $returnedClaims,
+                    'completed_claims' => $completedClaims,
                     'total_claims' => (int) (clone $claimNotificationQuery)->count(),
                     'monthly_revenue' => (float) $monthlyRevenue,
                     'revenue_trend' => $revenueTrend,

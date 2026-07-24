@@ -18,6 +18,7 @@ import {
   ArrowUpRight,
   Eye,
   Calendar,
+  FileCheck,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -440,11 +441,11 @@ export default function DashboardPage() {
             iconBg="bg-amber-50"
           />
           <StatCard
-            label="Total Claims Filed"
-            value={dashboard?.stats?.total_claims ?? 0}
-            icon={FileText}
-            iconColor="text-blue-600"
-            iconBg="bg-blue-50"
+            label="Total Completed Req."
+            value={dashboard?.stats?.completed_claims ?? 0}
+            icon={FileCheck}
+            iconColor="text-emerald-700"
+            iconBg="bg-emerald-50"
           />
         </div>
 

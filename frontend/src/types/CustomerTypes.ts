@@ -171,6 +171,7 @@ export interface DashboardStats {
   };
   acknowledged_claims?: number;
   returned_claims?: number;
+  completed_claims?: number;
   total_claims?: number;
 }
 
