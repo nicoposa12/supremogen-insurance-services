@@ -213,7 +213,10 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [sellingRateOD, setSellingRateOD] = useState<number>(1.90);
   const [sellingRateAON, setSellingRateAON] = useState<number>(0.10);
   const [towingFee, setTowingFee] = useState<string>('');
+  const [agentMarkup, setAgentMarkup] = useState<string>('');
   const [subAgentMarkup, setSubAgentMarkup] = useState<string>('');
+  const [freebieAmount, setFreebieAmount] = useState<string>('');
+  const [cashbackAmount, setCashbackAmount] = useState<string>('');
   const [freebieCashback, setFreebieCashback] = useState<string>('');
 
   const [policyPremium, setPolicyPremium] = useState<number>(0);
@@ -295,7 +298,10 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         setSellingRateOD(Number(calc.selling_rate_od) || 1.90);
         setSellingRateAON(Number(calc.selling_rate_aon) || 0.10);
         setTowingFee(Number(calc.towing_fee) ? Number(calc.towing_fee).toLocaleString('en-US') : '');
+        setAgentMarkup(Number(calc.agent_markup) ? Number(calc.agent_markup).toLocaleString('en-US') : '');
         setSubAgentMarkup(Number(calc.sub_agent_markup) ? Number(calc.sub_agent_markup).toLocaleString('en-US') : '');
+        setFreebieAmount(Number(calc.freebie_amount) ? Number(calc.freebie_amount).toLocaleString('en-US') : '');
+        setCashbackAmount(Number(calc.cashback_amount) ? Number(calc.cashback_amount).toLocaleString('en-US') : '');
         setFreebieCashback(Number(calc.freebie_cashback) ? Number(calc.freebie_cashback).toLocaleString('en-US') : '');
 
         setPolicyPremium(Number(firstItem.premium_amount) || 0);
@@ -512,8 +518,13 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const numPremPD = parseStringToNumber(premPD);
   const numPremPA = parseStringToNumber(premPA);
   const numTowingFee = parseStringToNumber(towingFee);
+  const numAgentMarkup = parseStringToNumber(agentMarkup);
   const numSubAgentMarkup = parseStringToNumber(subAgentMarkup);
-  const numFreebieCashback = parseStringToNumber(freebieCashback);
+  const numFreebie = parseStringToNumber(freebieAmount);
+  const numCashback = parseStringToNumber(cashbackAmount);
+  const numFreebieCashbackLegacy = parseStringToNumber(freebieCashback);
+
+  const effectiveFreebieCashback = (numFreebie || numCashback) ? (numFreebie + numCashback) : numFreebieCashbackLegacy;
 
   const basicPremiumSum = numPremOD + numPremAON + numPremBI + numPremPD + numPremPA;
   const isMotor = cleanQuotationUsed === 'MOTOR';
@@ -531,7 +542,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     ? roundToTwoDecimals(totalTaxAndPremium + 3500 + numTowingFee)
     : roundToTwoDecimals(gpMultiplier + numTowingFee);
 
-  const totalPremiumCalculated = roundToTwoDecimals(grossPremium + numSubAgentMarkup + numFreebieCashback);
+  const totalPremiumCalculated = roundToTwoDecimals(grossPremium + numAgentMarkup + numSubAgentMarkup + effectiveFreebieCashback);
 
   // Auto-apply the calculated total premium to policyPremium
   useEffect(() => {
@@ -633,8 +644,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       pd_coverage: parseStringToNumber(covPD),
       pa: parseStringToNumber(covPA),
       policy_premium: policyPremium,
+      agent_markup: numAgentMarkup,
       sub_agent_markup: numSubAgentMarkup,
-      freebie: numFreebieCashback,
+      freebie_amount: numFreebie,
+      cashback_amount: numCashback,
+      freebie: effectiveFreebieCashback,
     };
 
     let targetCustomerId = customerId;
@@ -721,8 +735,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         selling_rate_od: sellingRateOD,
         selling_rate_aon: sellingRateAON,
         towing_fee: numTowingFee,
+        agent_markup: numAgentMarkup,
         sub_agent_markup: numSubAgentMarkup,
-        freebie_cashback: numFreebieCashback,
+        freebie_amount: numFreebie,
+        cashback_amount: numCashback,
+        freebie_cashback: effectiveFreebieCashback,
       },
       discount: 0,
       net_premium: policyPremium,
@@ -1700,12 +1717,20 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                       <span className="font-bold text-slate-800 font-mono">₱{grossPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Agent Mark Up (₱)</label>
+                      <input type="text" value={agentMarkup} onChange={(e) => setAgentMarkup(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                    </div>
+                    <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Agent Mark Up (₱)</label>
                       <input type="text" value={subAgentMarkup} onChange={(e) => setSubAgentMarkup(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Freebie & Cashback (₱)</label>
-                      <input type="text" value={freebieCashback} onChange={(e) => setFreebieCashback(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Freebie (₱)</label>
+                      <input type="text" value={freebieAmount} onChange={(e) => setFreebieAmount(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cashback (₱)</label>
+                      <input type="text" value={cashbackAmount} onChange={(e) => setCashbackAmount(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t-2 border-[#4A0E17]/20">
                       <span className="font-bold text-[#4A0E17] uppercase">Total Premium</span>

@@ -30,6 +30,10 @@ class Quotation extends Model
         'reviewer_remarks',
         'submitted_at',
         'reviewed_at',
+        'cancellation_reason',
+        'cancellation_details',
+        'cancellation_requested_by',
+        'cancellation_requested_at',
     ];
 
     /**
@@ -42,6 +46,8 @@ class Quotation extends Model
             'total_premium' => 'decimal:2',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'cancellation_requested_at' => 'datetime',
+            'cancellation_details' => 'array',
         ];
     }
 
@@ -72,6 +78,11 @@ class Quotation extends Model
     public function reviewedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function cancellationRequestedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancellation_requested_by');
     }
 
     public function items(): HasMany

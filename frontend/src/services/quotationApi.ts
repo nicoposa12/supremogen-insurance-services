@@ -72,3 +72,25 @@ export async function updateQuotationMetadata(
   });
   return data;
 }
+
+export async function requestQuotationCancellation(
+  id: number,
+  payload: FormData
+): Promise<SingleResponse<Quotation>> {
+  const { data } = await axios.post<SingleResponse<Quotation>>(`${BASE}/${id}/request-cancellation`, payload, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
+
+export async function reviewQuotationCancellation(
+  id: number,
+  action: 'approve' | 'reject',
+  remarks?: string
+): Promise<SingleResponse<Quotation>> {
+  const { data } = await axios.post<SingleResponse<Quotation>>(`${BASE}/${id}/review-cancellation`, {
+    action,
+    remarks,
+  });
+  return data;
+}

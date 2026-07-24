@@ -257,6 +257,9 @@ export default function PolicyStatementsPage() {
                       <th className="px-5 py-3.5">Assured Name</th>
                       <th className="px-5 py-3.5">Insurance Provider</th>
                       <th className="px-5 py-3.5">Total Premium</th>
+                      <th className="px-5 py-3.5">Net Remittance</th>
+                      <th className="px-5 py-3.5">Company Income</th>
+                      <th className="px-5 py-3.5">Net Income</th>
                       <th className="px-5 py-3.5">Agent</th>
                       <th className="px-5 py-3.5">Date & Time</th>
                     </tr>
@@ -265,12 +268,61 @@ export default function PolicyStatementsPage() {
                     {paginatedQuotations.map((q) => {
                       const firstItem = q.items?.[0];
                       const cov = firstItem?.coverage_details || {};
-                      const provider = cov.insurance_provider || cov.provider || q.customer?.insurance_provider || 'ALPHA';
+                      const custAny = (q.customer || {}) as any;
+                      const provider = cov.insurance_provider || cov.provider || custAny.insurance_provider || 'ALPHA';
                       const isCBIC = provider.toUpperCase().includes('CBIC');
                       const agentName = typeof q.prepared_by === 'object' ? q.prepared_by?.name : 'Sales Agent';
                       const createdDate = new Date(q.created_at);
                       const formattedDateStr = createdDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
                       const formattedTimeStr = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+                      // Compute metrics for the table row
+                      const totalPolicyPremium = Number(q.total_premium || cov.net_premium || custAny.policy_premium || 0);
+                      const subAgentMarkup = Number(cov.calculator?.sub_agent_markup || cov.sub_agent_markup || custAny.sub_agent_markup || 0);
+                      const agentMarkup = Number(cov.calculator?.agent_markup || cov.agent_markup || custAny.agent_markup || 0);
+                      const freebie = Number(cov.calculator?.freebie_amount ?? (cov.calculator?.freebie_cashback || cov.freebie || custAny.freebie || 0));
+                      const cashback = Number(cov.calculator?.cashback_amount || 0);
+                      const totalDeductions = agentMarkup + subAgentMarkup + freebie + cashback;
+
+                      const itemSumInsured = Number(firstItem?.sum_insured || 0);
+                      const covSumInsured = Number(cov.sum_insured || cov.coverages?.own_damage || cov.own_damage_coverage || custAny.own_damage_coverage || 0);
+                      const sumInsured = itemSumInsured > 0 ? itemSumInsured : (covSumInsured > 0 ? covSumInsured : 430000);
+
+                      let netRemittance = 0;
+                      let companyIncome = 0;
+                      let netIncome = 0;
+
+                      if (isCBIC) {
+                        const usageStr = ((custAny.usage || '') + ' ' + (custAny.quotation_used || '') + ' ' + (cov.usage || '')).toUpperCase();
+                        const isTNVS = usageStr.includes('TNVS') || usageStr.includes('HIRE') || usageStr.includes('YELLOW');
+                        const covBIVal = Number(cov.coverages?.bi || cov.cov_bi || custAny.bi_coverage || 200000);
+                        const cbicTariff = getCbicTariffPremiums(covBIVal, isTNVS);
+                        const cbicNetBasicPrem = Math.round((sumInsured * 0.0065 + sumInsured * 0.0030 + cbicTariff.ebi + cbicTariff.tppd) * 100) / 100;
+                        const cbicNetGrossPrem = Math.round((cbicNetBasicPrem + (cbicNetBasicPrem * 0.125) + (cbicNetBasicPrem * 0.12) + (cbicNetBasicPrem * 0.0011)) * 100) / 100;
+                        const cbicNetTariffComm = Math.round(((cbicTariff.ebi * 0.30 + cbicTariff.tppd * 0.20) * 0.90) * 100) / 100;
+
+                        netRemittance = Math.round((cbicNetGrossPrem - cbicNetTariffComm) * 100) / 100;
+                        companyIncome = Math.round((totalPolicyPremium - netRemittance) * 100) / 100;
+                        netIncome = Math.round((companyIncome - totalDeductions) * 100) / 100;
+                      } else {
+                        const premOD = Math.round(sumInsured * 0.0070 * 100) / 100;
+                        const premAON = Math.round(sumInsured * 0.0020 * 100) / 100;
+                        const premBIVal = Number(cov.premiums?.bi || cov.prem_bi || 420);
+                        const premPDVal = Number(cov.premiums?.pd || cov.prem_pd || 1245);
+                        const premPAVal = Number(cov.premiums?.pa || cov.prem_pa || 0);
+
+                        const subtotalPremium = Math.round((premOD + premAON + premBIVal + premPDVal + premPAVal) * 100) / 100;
+                        const chargesAmount = Math.round(subtotalPremium * 0.2461 * 100) / 100;
+                        const towingFee = Number(cov.calculator?.towing_fee || cov.towing_fee || 100);
+                        const grossTotal = Math.round((subtotalPremium + chargesAmount + towingFee) * 100) / 100;
+
+                        const commOnTariff = Math.round((premBIVal * 0.30 + premPDVal * 0.30) * 100) / 100;
+                        const totalCommOnTariff = Math.round((commOnTariff - (commOnTariff * 0.10)) * 100) / 100;
+
+                        netRemittance = Math.round((grossTotal - totalCommOnTariff) * 100) / 100;
+                        companyIncome = Math.round((totalPolicyPremium - netRemittance) * 100) / 100;
+                        netIncome = Math.round((companyIncome - totalDeductions) * 100) / 100;
+                      }
 
                       return (
                         <tr
@@ -292,8 +344,17 @@ export default function PolicyStatementsPage() {
                               {provider}
                             </span>
                           </td>
-                          <td className="px-5 py-4 font-bold text-emerald-700">
+                          <td className="px-5 py-4 font-bold text-slate-800">
                             ₱{formatCurrency(q.total_premium)}
+                          </td>
+                          <td className="px-5 py-4 font-medium text-slate-700 font-mono text-xs">
+                            ₱{formatCurrency(netRemittance)}
+                          </td>
+                          <td className="px-5 py-4 font-bold text-amber-700 font-mono text-xs">
+                            ₱{formatCurrency(companyIncome)}
+                          </td>
+                          <td className="px-5 py-4 font-extrabold text-emerald-700 font-mono text-xs">
+                            ₱{formatCurrency(netIncome)}
                           </td>
                           <td className="px-5 py-4 font-medium text-slate-600 text-xs">
                             {agentName}

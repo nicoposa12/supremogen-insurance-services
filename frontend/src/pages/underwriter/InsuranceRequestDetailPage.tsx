@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, CheckCircle2, XCircle, FileText, Loader2,
-  User, Car, Upload, History, Link2, Save, Paperclip, Download
+  User, Car, Upload, History, Link2, Save, Paperclip, Download, AlertTriangle
 } from 'lucide-react';
 
 import StatusBadge from '../../components/ui/StatusBadge';
 import { useToast } from '../../components/ui/Toast';
-import { getQuotation, reviewQuotation } from '../../services/quotationApi';
+import { getQuotation, reviewQuotation, reviewQuotationCancellation } from '../../services/quotationApi';
 import { updateCustomer } from '../../services/customerApi';
 import { getAttachments, uploadAttachment } from '../../services/attachmentApi';
 import { getClaims } from '../../services/claimApi';
@@ -110,6 +110,18 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
       setShowReviewPanel(false);
     },
     onError: (err: any) => showToast(err.response?.data?.message ?? 'Review failed.', 'error'),
+  });
+
+  const reviewCancellationMut = useMutation({
+    mutationFn: ({ action, remarks }: { action: 'approve' | 'reject'; remarks?: string }) =>
+      reviewQuotationCancellation(id, action, remarks),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['insurance-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      showToast(vars.action === 'approve' ? 'Cancellation request approved and policy cancelled.' : 'Cancellation request rejected.');
+    },
+    onError: (err: any) => showToast(err.response?.data?.message ?? 'Cancellation review failed.', 'error'),
   });
 
   const uploadAttachmentMut = useMutation({
@@ -219,6 +231,89 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
           </div>
         </div>
       </div>
+
+      {/* ─── CANCELLATION REQUEST BANNER ─────────────────────── */}
+      {quotation.status === 'cancellation_requested' && (
+        <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-100 text-amber-900 rounded-2xl border border-amber-200">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-amber-950 uppercase tracking-wider">
+                  REQUEST FOR CANCELLATION
+                </h3>
+                <p className="text-xs font-semibold text-amber-800">
+                  Submitted by {typeof quotation.cancellation_requested_by === 'object' ? quotation.cancellation_requested_by?.name : 'Sales Agent'}
+                </p>
+              </div>
+            </div>
+            {canReview && (
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => reviewCancellationMut.mutate({ action: 'reject' })}
+                  disabled={reviewCancellationMut.isPending}
+                  className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer"
+                >
+                  Reject Cancellation
+                </button>
+                <button
+                  onClick={() => reviewCancellationMut.mutate({ action: 'approve' })}
+                  disabled={reviewCancellationMut.isPending}
+                  className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-xs"
+                >
+                  Approve Cancellation
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-white/80 rounded-2xl p-4 border border-amber-200/60">
+            <div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Writing Date</span>
+              <span className="font-bold text-slate-800">{quotation.cancellation_details?.writing_date || '—'}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Client Name</span>
+              <span className="font-bold text-slate-800">{quotation.cancellation_details?.client_name || '—'}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Policy Number</span>
+              <span className="font-bold text-slate-800 font-mono">{quotation.cancellation_details?.policy_number || '—'}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Plate Number</span>
+              <span className="font-bold text-slate-800 font-mono">{quotation.cancellation_details?.plate_number || '—'}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Provider</span>
+              <span className="font-bold text-slate-800 uppercase">{quotation.cancellation_details?.provider || '—'}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Inception</span>
+              <span className="font-bold text-slate-800">{quotation.cancellation_details?.inception || '—'}</span>
+            </div>
+            <div className="col-span-2">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Reason for Cancellation</span>
+              <span className="font-semibold text-red-700">{quotation.cancellation_reason || quotation.cancellation_details?.reason || '—'}</span>
+            </div>
+            {quotation.cancellation_details?.attachment_url && (
+              <div className="col-span-4 border-t border-slate-100 pt-2 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-amber-600" />
+                <a
+                  href={quotation.cancellation_details.attachment_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-blue-600 hover:underline text-xs"
+                >
+                  View Attachment / Cancellation Document
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─── CLIENT INFORMATION ─────────────────────── */}
       <div className="space-y-4">
@@ -633,12 +728,20 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                       <span className="font-bold text-slate-850 font-mono text-sm">₱{grossPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between items-center">
+                      <span className="font-medium">Agent Mark Up</span>
+                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
                       <span className="font-medium">Sub-Agent Mark Up</span>
                       <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.sub_agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">Freebie & Cashback</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.freebie_cashback || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span className="font-medium">Freebie</span>
+                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.freebie_amount ?? (details.calculator?.freebie_cashback || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Cashback</span>
+                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.cashback_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
 
                     <div className="flex flex-col gap-1.5 pt-4 border-t-2 border-[#4A0E17]/20">
@@ -683,12 +786,20 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                       <span className="font-bold text-slate-850 font-mono text-sm">₱{grossPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between items-center">
+                      <span className="font-medium">Agent Mark Up</span>
+                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
                       <span className="font-medium">Sub-Agent Mark Up</span>
                       <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.sub_agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">Freebie & Cashback</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.freebie_cashback || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span className="font-medium">Freebie</span>
+                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.freebie_amount ?? (details.calculator?.freebie_cashback || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Cashback</span>
+                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.cashback_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
 
                     <div className="flex flex-col gap-1.5 pt-4 border-t-2 border-[#4A0E17]/20">

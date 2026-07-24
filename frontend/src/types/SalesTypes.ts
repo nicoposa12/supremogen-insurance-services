@@ -28,19 +28,24 @@ export interface QuotationItem {
 export interface Quotation {
   id: number;
   quotation_number: string;
+  policy_number?: string | null;
   ir_number: string | null;
   or_number: string | null;
   trip_number: string | null;
   customer_id: number;
   prepared_by: number | { id: number; name: string; email?: string };
   reviewed_by: number | { id: number; name: string; email?: string } | null;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'expired';
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'expired' | 'cancellation_requested' | 'cancelled';
   valid_until: string | null;
   total_premium: number;
   notes: string | null;
   reviewer_remarks: string | null;
   submitted_at: string | null;
   reviewed_at: string | null;
+  cancellation_reason?: string | null;
+  cancellation_details?: Record<string, any> | null;
+  cancellation_requested_by?: number | { id: number; name: string; email?: string } | null;
+  cancellation_requested_at?: string | null;
   created_at: string;
   updated_at: string;
   customer?: Customer;

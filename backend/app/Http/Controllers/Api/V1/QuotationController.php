@@ -33,8 +33,8 @@ class QuotationController extends Controller
         if ($request->user()->isSalesOrRenewal()) {
             $query->where('prepared_by', $request->user()->id);
         } elseif ($request->user()->hasRole('Underwriter')) {
-            // Underwriters only see submitted / under_review / approved / rejected
-            $query->whereIn('status', ['submitted', 'under_review', 'approved', 'rejected']);
+            // Underwriters see submitted / under_review / approved / rejected / cancellation_requested / cancelled
+            $query->whereIn('status', ['submitted', 'under_review', 'approved', 'rejected', 'cancellation_requested', 'cancelled']);
         }
 
         if ($request->filled('creator_role')) {
@@ -486,7 +486,7 @@ class QuotationController extends Controller
                         \App\Models\Notification::create([
                             'user_id' => $officer->id,
                             'title'   => 'Invoice Issued',
-                            'message' => "A new invoice {$invoice->invoice_number} has been generated for {$customerName} with balance ₱" . number_format($invoice->balance, 2) . ".",
+                            'message' => "A new invoice {$invoice->invoice_number} has been generated for {$customerName} with balance ₱" . number_format((float) $invoice->balance, 2) . ".",
                             'type'    => 'info',
                             'read_at' => null,
                         ]);
@@ -547,6 +547,180 @@ class QuotationController extends Controller
             'success' => true,
             'message' => 'Quotation metadata updated successfully.',
             'data' => $quotation->fresh(['customer', 'items.insuranceProduct']),
+        ]);
+    }
+
+    /**
+     * Request policy cancellation (Sales Agent / Team Renewal).
+     */
+    public function requestCancellation(Request $request, string $id)
+    {
+        $quotation = Quotation::with(['customer', 'items'])->find($id);
+
+        if (!$quotation) {
+            return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
+        }
+
+        if ($request->user()->isSalesOrRenewal() && $quotation->prepared_by !== $request->user()->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access.'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'writing_date' => 'nullable|string',
+            'cancellation_reason' => 'required|string|max:2000',
+            'attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $firstItem = $quotation->items?->first();
+        $cov = $firstItem?->coverage_details ?? [];
+        $cust = $quotation->customer;
+
+        $attachmentUrl = null;
+        if ($request->hasFile('attachment')) {
+            $path = $request->file('attachment')->store('cancellations', 'public');
+            $attachmentUrl = "/storage/" . $path;
+        }
+
+        $writingDate = $request->input('writing_date') ?? ($cust?->inception_date ?? now()->toDateString());
+        $clientName = $cust ? trim("{$cust->first_name} {$cust->last_name}") : '—';
+        $policyNumber = $cust?->policy_no ?? $quotation->policy?->policy_number ?? $quotation->policy_number ?? '—';
+        $plateNumber = $cov['plate_no'] ?? $cust?->plate_no ?? '—';
+        $provider = $cov['insurance_provider'] ?? $cust?->insurance_provider ?? 'ALPHA';
+        $inception = $request->input('inception') ?? ($cust?->inception_date ?? '—');
+
+        $cancellationDetails = [
+            'writing_date' => $writingDate,
+            'client_name' => $clientName,
+            'policy_number' => $policyNumber,
+            'plate_number' => $plateNumber,
+            'provider' => $provider,
+            'inception' => $inception,
+            'reason' => $request->input('cancellation_reason'),
+            'attachment_url' => $attachmentUrl,
+        ];
+
+        $quotation->update([
+            'status' => 'cancellation_requested',
+            'cancellation_reason' => $request->input('cancellation_reason'),
+            'cancellation_details' => $cancellationDetails,
+            'cancellation_requested_by' => $request->user()->id,
+            'cancellation_requested_at' => now(),
+        ]);
+
+        // Notify Underwriters
+        try {
+            $underwriters = \App\Models\User::role('Underwriter')->get();
+            foreach ($underwriters as $underwriter) {
+                \App\Models\Notification::create([
+                    'user_id' => $underwriter->id,
+                    'title' => 'Policy Cancellation Requested',
+                    'message' => "Cancellation requested for {$policyNumber} ({$clientName}) by " . $request->user()->name . ".",
+                    'type' => 'warning',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify underwriters of cancellation request: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Policy cancellation request submitted successfully.',
+            'data' => $quotation->fresh(['customer', 'items.insuranceProduct', 'cancellationRequestedBy']),
+        ]);
+    }
+
+    /**
+     * Underwriter review of cancellation request (approve or reject).
+     */
+    public function reviewCancellation(Request $request, string $id)
+    {
+        $quotation = Quotation::with(['customer', 'policy'])->find($id);
+
+        if (!$quotation) {
+            return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
+        }
+
+        if (!$request->user()->hasRole('Underwriter')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access.'], 403);
+        }
+
+        if ($quotation->status !== 'cancellation_requested') {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active cancellation request found for this policy.',
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'action' => 'required|in:approve,reject',
+            'remarks' => 'nullable|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $action = $request->input('action');
+        $remarks = $request->input('remarks');
+
+        DB::transaction(function () use ($quotation, $action, $remarks, $request) {
+            if ($action === 'approve') {
+                $quotation->update([
+                    'status' => 'cancelled',
+                    'reviewer_remarks' => $remarks ?? $quotation->reviewer_remarks,
+                    'reviewed_by' => $request->user()->id,
+                    'reviewed_at' => now(),
+                ]);
+
+                if ($quotation->policy) {
+                    $quotation->policy->update([
+                        'status' => 'cancelled',
+                        'cancellation_reason' => $quotation->cancellation_reason,
+                    ]);
+                }
+            } else {
+                // Reject cancellation -> restore status back to approved
+                $quotation->update([
+                    'status' => 'approved',
+                    'reviewer_remarks' => $remarks ? "Cancellation Request Rejected: {$remarks}" : $quotation->reviewer_remarks,
+                    'reviewed_by' => $request->user()->id,
+                    'reviewed_at' => now(),
+                ]);
+            }
+        });
+
+        // Notify requested sales agent
+        if ($quotation->cancellation_requested_by) {
+            try {
+                \App\Models\Notification::create([
+                    'user_id' => $quotation->cancellation_requested_by,
+                    'title' => $action === 'approve' ? 'Cancellation Request Approved' : 'Cancellation Request Rejected',
+                    'message' => "Cancellation request for policy {$quotation->ir_number} was " . ($action === 'approve' ? 'approved' : 'rejected') . " by Underwriter.",
+                    'type' => $action === 'approve' ? 'info' : 'warning',
+                    'read_at' => null,
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to notify agent of cancellation decision: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $action === 'approve' ? 'Cancellation approved and policy cancelled.' : 'Cancellation request rejected.',
+            'data' => $quotation->fresh(['customer', 'items.insuranceProduct', 'reviewedBy']),
         ]);
     }
 }

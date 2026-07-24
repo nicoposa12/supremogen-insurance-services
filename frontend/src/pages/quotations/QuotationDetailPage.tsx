@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Pencil, CheckCircle2, XCircle, Send, ShieldCheck,
-  Loader2, User, FileText, X, Calendar, Link2
+  Loader2, User, FileText, X, Calendar, Link2, AlertTriangle
 } from 'lucide-react';
 
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -207,6 +207,30 @@ export default function QuotationDetailPage({
       <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-700">
         {activeTab === 'info' && (
           <div className="space-y-6">
+            {quotation.status === 'cancellation_requested' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <span>Cancellation Request Pending Underwriter Approval</span>
+                </div>
+                <p className="text-xs text-amber-800 font-medium">
+                  Reason: {quotation.cancellation_reason || quotation.cancellation_details?.reason || '—'}
+                </p>
+                {quotation.cancellation_details?.attachment_url && (
+                  <div className="pt-1">
+                    <a
+                      href={quotation.cancellation_details.attachment_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-blue-600 hover:underline text-xs inline-flex items-center gap-1"
+                    >
+                      <FileText className="h-3.5 w-3.5" /> View Cancellation Attachment
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Record No, Status, Date Request Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 border-b border-slate-100">
               <div>
@@ -482,11 +506,17 @@ export default function QuotationDetailPage({
 
                     {details && (
                       <>
+                        <span className="text-slate-500 font-semibold text-xs">Agent Mark Up</span>
+                        <span className="col-span-2 text-slate-800 font-medium font-mono">{formatCurrency(details.calculator?.agent_markup)}</span>
+
                         <span className="text-slate-500 font-semibold text-xs">Sub-Agent Mark Up</span>
                         <span className="col-span-2 text-slate-800 font-medium font-mono">{formatCurrency(details.calculator?.sub_agent_markup)}</span>
 
-                        <span className="text-slate-500 font-semibold text-xs">Freebie & Cashback</span>
-                        <span className="col-span-2 text-slate-800 font-medium font-mono">{formatCurrency(details.calculator?.freebie_cashback)}</span>
+                        <span className="text-slate-500 font-semibold text-xs">Freebie</span>
+                        <span className="col-span-2 text-slate-800 font-medium font-mono">{formatCurrency(details.calculator?.freebie_amount ?? details.calculator?.freebie_cashback)}</span>
+
+                        <span className="text-slate-500 font-semibold text-xs">Cashback</span>
+                        <span className="col-span-2 text-slate-800 font-medium font-mono">{formatCurrency(details.calculator?.cashback_amount)}</span>
                       </>
                     )}
                   </div>

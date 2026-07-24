@@ -48,6 +48,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     label: 'Cancelled',
     className: 'bg-red-50 text-red-700 ring-red-600/20',
   },
+  cancellation_requested: {
+    label: 'Cancellation Requested',
+    className: 'bg-amber-50 text-amber-800 ring-amber-600/20',
+  },
   lapsed: {
     label: 'Lapsed',
     className: 'bg-orange-50 text-orange-700 ring-orange-600/20',

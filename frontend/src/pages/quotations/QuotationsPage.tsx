@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Eye, Pencil, Trash2, Filter, FileText, X, Calendar, Loader2, Download } from 'lucide-react';
+import { Search, Plus, Eye, Pencil, Trash2, Filter, FileText, X, Calendar, Loader2, Download, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 
@@ -15,6 +15,7 @@ import { getQuotations, deleteQuotation } from '../../services/quotationApi';
 import type { Quotation, QuotationListParams } from '../../types/SalesTypes';
 import QuotationFormPage from './QuotationFormPage';
 import QuotationDetailPage from './QuotationDetailPage';
+import { RequestCancellationModal } from '../../components/quotations/RequestCancellationModal';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 
 export default function QuotationsPage() {
@@ -34,6 +35,7 @@ export default function QuotationsPage() {
   });
   const [searchInput, setSearchInput] = useState(querySearch);
   const [deleteTarget, setDeleteTarget] = useState<Quotation | null>(null);
+  const [cancellationTarget, setCancellationTarget] = useState<Quotation | null>(null);
 
   useEffect(() => {
     if (querySearch) {
@@ -121,7 +123,7 @@ export default function QuotationsPage() {
     }));
   };
 
-  const statusFilters = ['all', 'draft', 'submitted', 'under_review', 'approved', 'rejected', 'expired'];
+  const statusFilters = ['all', 'draft', 'submitted', 'under_review', 'approved', 'rejected', 'cancellation_requested', 'cancelled', 'expired'];
 
   const columns = [
     {
@@ -225,6 +227,18 @@ export default function QuotationsPage() {
                 <Trash2 className="h-4 w-4" />
               </button>
             </>
+          )}
+          {canEdit && ['approved', 'submitted', 'under_review'].includes(r.status) && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCancellationTarget(r);
+              }}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+              title="Request Cancellation"
+            >
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+            </button>
           )}
         </div>
       ),
@@ -484,6 +498,17 @@ export default function QuotationsPage() {
         confirmLabel="Delete" variant="danger" loading={deleteMutation.isPending}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)} />
+
+      {cancellationTarget && (
+        <RequestCancellationModal
+          quotation={cancellationTarget}
+          isOpen={!!cancellationTarget}
+          onClose={() => setCancellationTarget(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['quotations'] });
+          }}
+        />
+      )}
     </div>
   );
 }
