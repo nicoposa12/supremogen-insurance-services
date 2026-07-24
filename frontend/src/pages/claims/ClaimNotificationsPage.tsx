@@ -1706,43 +1706,47 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
     // Render original printable document
     const renderPrintableDocument = (hideOnScreen: boolean) => (
-      <div className={`printable-document bg-white rounded-2xl border border-slate-200/80 shadow-md p-8 md:p-12 max-w-3xl mx-auto ${hideOnScreen ? 'hidden print:block' : ''}`}>
+      <div className={`printable-document bg-white rounded-2xl border border-slate-200/90 shadow-xl p-8 md:p-10 max-w-4xl mx-auto space-y-6 print:space-y-3.5 print:p-4 print:max-w-full print:shadow-none print:border-none print:rounded-none ${hideOnScreen ? 'hidden print:block' : ''}`}>
         {/* Header section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b-2 border-[#4A0E17] gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-5 print:pb-3 border-b-2 border-[#4A0E17] gap-4">
           <div className="flex items-center gap-3.5">
-            <img src={logoImg} alt="Logo" className="h-16 w-16 rounded-xl border border-slate-100 object-cover" />
+            <img src={logoImg} alt="Supremogen Logo" className="h-14 w-14 print:h-11 print:w-11 rounded-xl border border-slate-200/80 shadow-xs object-cover shrink-0" />
             <div>
-              <h2 className="text-[#4A0E17] font-black text-2xl tracking-wider">SUPREMOGEN</h2>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">Insurance Services</p>
+              <h2 className="text-[#4A0E17] font-black text-2xl print:text-xl tracking-wider leading-none">SUPREMOGEN</h2>
+              <p className="text-[#4A0E17]/80 text-xs print:text-[10px] font-bold uppercase tracking-widest mt-1">Insurance Services</p>
             </div>
           </div>
-          <div className="text-left sm:text-right">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Official Document</p>
-            <p className="text-lg font-black text-slate-800 mt-1">{selectedRecord.reference_number}</p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Date Filed: {new Date(selectedRecord.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+          <div className="text-left sm:text-right bg-slate-50 border border-slate-200/80 px-4 py-2 print:py-1.5 print:px-3 rounded-xl shadow-2xs">
+            <p className="text-[10px] print:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Official Document</p>
+            <p className="text-base print:text-sm font-black text-[#4A0E17] tracking-tight">{selectedRecord.reference_number}</p>
+            <p className="text-xs print:text-[10px] font-medium text-slate-500 mt-0.5">
+              Date Filed: {new Date(selectedRecord.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })} <span className="font-mono text-[11px] print:text-[10px] text-slate-400">{new Date(selectedRecord.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
             </p>
           </div>
         </div>
 
-        <div className="mt-8 space-y-6">
+        <div className="space-y-5 print:space-y-3">
           {/* Subject lines */}
-          <div className="space-y-1 border-l-4 border-[#4A0E17] pl-4 py-1">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Attention: Claims Department</p>
-            <h3 className="text-base font-bold text-[#4A0E17] uppercase tracking-wide">
-              SUBJECT: CLAIM NOTIFICATION - {selectedRecord.assured_name}
+          <div className="bg-slate-50/80 border-l-4 border-[#4A0E17] p-3.5 print:p-2.5 rounded-r-xl space-y-0.5">
+            <p className="text-xs print:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attention: Claims Department</p>
+            <h3 className="text-base print:text-sm font-bold text-[#4A0E17] uppercase tracking-wide">
+              SUBJECT: CLAIM NOTIFICATION — {selectedRecord.assured_name}
             </h3>
           </div>
 
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className="text-sm print:text-xs text-slate-600 leading-relaxed font-medium">
             Good day, <br />
             Kindly find below the official details and information of our Assured for the submitted claim notification.
           </p>
 
-          {/* Document Details Table */}
-          <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
-            <table className="min-w-full divide-y divide-slate-200/85 text-sm">
-              <tbody className="divide-y divide-slate-200/85 bg-white">
+          {/* Document Details Table Header */}
+          <div className="border border-slate-200/90 rounded-2xl print:rounded-xl overflow-hidden shadow-2xs bg-white">
+            <div className="bg-[#4A0E17] text-white px-4 py-2.5 print:py-1.5 flex items-center justify-between">
+              <h4 className="text-xs print:text-[11px] font-bold uppercase tracking-wider">Official Claim & Policy Information</h4>
+              <span className="text-[11px] print:text-[10px] text-white/80 font-mono font-medium">{selectedRecord.reference_number}</span>
+            </div>
+            <table className="min-w-full divide-y divide-slate-200/80 text-sm print:text-xs">
+              <tbody className="divide-y divide-slate-200/80 bg-white">
                 {[
                   { label: 'Assured Name', value: selectedRecord.assured_name },
                   { label: 'Contact Number', value: selectedRecord.contact_number || '—' },
@@ -1750,14 +1754,22 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   { label: 'Insurance Provider', value: selectedRecord.insurance_provider },
                   { label: 'Plate Number', value: selectedRecord.plate_number || '—' },
                   { label: 'Policy Number', value: selectedRecord.policy_number },
-                  { label: 'Inception Date', value: selectedRecord.inception_date ? new Date(selectedRecord.inception_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
-                  { label: 'Accident Date', value: new Date(selectedRecord.accident_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
+                  {
+                    label: 'Inception Date',
+                    value: selectedRecord.inception_date
+                      ? `${new Date(selectedRecord.inception_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}`
+                      : '—',
+                  },
+                  {
+                    label: 'Accident Date',
+                    value: `${new Date(selectedRecord.accident_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}`,
+                  },
                   { label: 'Reason of Accident', value: selectedRecord.accident_reason || '—' },
                   { label: 'Claim Count', value: selectedRecord.claim_count || '—' },
                 ].map((row, idx) => (
-                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
-                    <td className="px-5 py-3 font-semibold text-slate-500 w-1/3">{row.label}</td>
-                    <td className="px-5 py-3 font-medium text-slate-800 uppercase">{row.value}</td>
+                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-white hover:bg-slate-50/50 transition' : 'bg-slate-50/40 hover:bg-slate-50 transition'}>
+                    <td className="px-4 py-2.5 print:py-1 print:px-3 font-bold text-slate-500 w-2/5 border-r border-slate-100 text-xs print:text-[10px] uppercase tracking-wider">{row.label}</td>
+                    <td className="px-4 py-2.5 print:py-1 print:px-3 font-semibold text-slate-900 uppercase text-xs sm:text-sm print:text-xs">{row.value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1766,43 +1778,43 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
           {/* Reason of Accident */}
           {selectedRecord.accident_reason && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reason / Cause of Accident</h4>
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+            <div className="space-y-1.5 print:hidden">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Reason / Cause of Accident</h4>
+              <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
                 {selectedRecord.accident_reason}
               </div>
             </div>
           )}
 
           {/* Nature of claims */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nature of Claims</h4>
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+          <div className="space-y-1.5 print:hidden">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nature of Claims</h4>
+            <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
               {stripRequirementsPrefix(selectedRecord.nature_of_claims) || 'No details provided...'}
             </div>
           </div>
 
           {/* Notes */}
           {selectedRecord.notes && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Additional Notes</h4>
-              <div className="bg-amber-50/40 border border-amber-200/60 rounded-xl p-4 text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
+            <div className="space-y-1.5 print:space-y-1">
+              <h4 className="text-xs print:text-[10px] font-bold text-slate-500 uppercase tracking-wider">Additional Notes</h4>
+              <div className="bg-amber-50/50 border border-amber-200/80 rounded-xl p-3 print:p-2 text-sm print:text-xs text-amber-900 leading-relaxed font-medium whitespace-pre-wrap">
                 {selectedRecord.notes}
               </div>
             </div>
           )}
 
           {/* Signatures */}
-          <div className="pt-12 grid grid-cols-2 gap-8 text-sm">
+          <div className="pt-6 print:pt-4 border-t border-slate-200/80 grid grid-cols-2 gap-8 text-sm print:text-xs">
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Submitted By</p>
-              <div className="space-y-0.5">
-                <p className="font-bold text-slate-800 uppercase">{submitter}</p>
-                <p className="text-xs text-slate-500">Sales Agent / Representative</p>
+              <p className="text-xs print:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-6 print:mb-4">Submitted By</p>
+              <div className="space-y-0.5 border-t border-slate-300 pt-1.5">
+                <p className="font-bold text-slate-900 uppercase">{submitter}</p>
+                <p className="text-xs print:text-[10px] text-slate-500 font-medium">Sales Agent / Representative</p>
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Acknowledged By</p>
+              <p className="text-xs print:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-6 print:mb-4">Acknowledged By</p>
               {acknowledger ? (
                 <div className="space-y-0.5">
                   <p className="font-bold text-slate-800 uppercase">{acknowledger}</p>
