@@ -133,7 +133,7 @@ export default function PolicyStatementsPage() {
   return (
     <div className="space-y-4">
       {/* Page Title & Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden no-print">
         <div>
           <h1 className="text-xl font-bold text-slate-800">Policy Statements</h1>
           <p className="text-sm text-slate-500">Auto-generated tariff, commission, remittance, and company income statements</p>
@@ -148,7 +148,7 @@ export default function PolicyStatementsPage() {
 
       {/* Filter and Search Bar Container */}
       {!selectedQuotation && (
-        <div className="flex flex-col lg:flex-row items-center gap-3 bg-white rounded-2xl border border-slate-200/80 p-4">
+        <div className="flex flex-col lg:flex-row items-center gap-3 bg-white rounded-2xl border border-slate-200/80 p-4 print:hidden no-print">
           {/* Search Input */}
           <div className="relative flex-grow w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -452,7 +452,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
       </div>
 
       {/* Spreadsheet Billing Document Container */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-lg p-6 sm:p-10 space-y-6 print:p-0 print:border-none print:shadow-none font-sans">
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-lg p-6 sm:p-10 space-y-6 print:p-2 print:m-0 print:border-none print:shadow-none print:space-y-4 font-sans printable-document">
         {/* Header Branding */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-slate-900 pb-5 gap-4">
           <div className="flex items-center gap-4">
@@ -486,9 +486,9 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
         {/* Dynamic Provider Layout Rendering */}
         {providerMode === 'CBIC' ? (
           /* ─── CBIC STATEMENT LAYOUT ─────────────────────────────────────────── */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs print:grid-cols-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs print:grid-cols-2 print:gap-4 print:border-none print:shadow-none">
             {/* PAGE 1: Policy Info & Perils Table */}
-            <div className="p-6 space-y-5 border-r border-slate-200/80 bg-white">
+            <div className="p-6 space-y-5 border-r border-slate-200/80 bg-white print:p-2 print:space-y-3 print:border-r">
               <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 PAGE 1 — POLICY & VEHICLE DETAILS ({cbicType})
               </div>
@@ -628,7 +628,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
             </div>
 
             {/* PAGE 2: CBIC Commissions & Accounting Breakdown */}
-            <div className="p-6 space-y-5 bg-white">
+            <div className="p-6 space-y-5 bg-white print:p-2 print:space-y-3">
               <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 PAGE 2 — CBIC REMITTANCE & COMPANY INCOME
               </div>
@@ -696,9 +696,9 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
           </div>
         ) : (
           /* ─── ALPHA STATEMENT LAYOUT ────────────────────────────────────────── */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs print:grid-cols-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs print:grid-cols-2 print:gap-4 print:border-none print:shadow-none">
             {/* PAGE 1: Policy & Customer Info + Primary Tariffs */}
-            <div className="p-6 space-y-5 border-r border-slate-200/80 bg-white">
+            <div className="p-6 space-y-5 border-r border-slate-200/80 bg-white print:p-2 print:space-y-3 print:border-r">
               <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 Page 1 — Policy & Vehicle Details (ALPHA)
               </div>
@@ -832,7 +832,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
             </div>
 
             {/* PAGE 2: Commission, Remittance & Company Income Calculations */}
-            <div className="p-6 space-y-5 bg-white">
+            <div className="p-6 space-y-5 bg-white print:p-2 print:space-y-3">
               <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 Page 2 — Tariff Commissions & Company Remittance (ALPHA)
               </div>
