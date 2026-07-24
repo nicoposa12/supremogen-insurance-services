@@ -2990,12 +2990,18 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       },
     },
     {
-      key: 'created_at', label: 'Date', sortable: true,
-      render: (r: ClaimNotification) => (
-        <span className="text-xs text-slate-500">
-          {new Date(r.created_at).toLocaleDateString()} {new Date(r.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
-        </span>
-      ),
+      key: 'created_at', label: 'Date & Time', sortable: true,
+      render: (r: ClaimNotification) => {
+        const d = new Date(r.created_at);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return (
+          <span className="text-xs font-medium text-slate-700 whitespace-nowrap">
+            <span>{dateStr}</span>
+            <span className="text-[11px] font-mono text-slate-400 ml-1.5">{timeStr}</span>
+          </span>
+        );
+      },
     },
     {
       key: 'actions', label: '', className: 'text-right',

@@ -78,9 +78,17 @@ export default function PoliciesPage() {
     },
     {
       key: 'effective_date', label: 'Effective', sortable: true, className: 'hidden lg:table-cell',
-      render: (r: Policy) => (
-        <span className="text-xs text-slate-500">{new Date(r.effective_date).toLocaleDateString()}</span>
-      ),
+      render: (r: Policy) => {
+        const d = new Date(r.effective_date || (r as any).created_at);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return (
+          <span className="text-xs font-medium text-slate-700 whitespace-nowrap">
+            <span>{dateStr}</span>
+            <span className="text-[11px] font-mono text-slate-400 ml-1.5">{timeStr}</span>
+          </span>
+        );
+      },
     },
     {
       key: 'expiry_date', label: 'Expiry', sortable: true, className: 'hidden lg:table-cell',

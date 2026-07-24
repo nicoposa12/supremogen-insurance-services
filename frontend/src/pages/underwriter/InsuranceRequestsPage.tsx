@@ -136,11 +136,19 @@ export default function InsuranceRequestsPage() {
     {
       key: 'submitted_at', label: 'Submitted', sortable: false,
       className: 'hidden lg:table-cell',
-      render: (r: Quotation) => (
-        <span className="text-xs text-slate-500">
-          {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '—'}
-        </span>
-      ),
+      render: (r: Quotation) => {
+        const dateVal = r.submitted_at || r.created_at;
+        if (!dateVal) return <span className="text-xs text-slate-400">—</span>;
+        const d = new Date(dateVal);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return (
+          <span className="text-xs font-medium text-slate-700 whitespace-nowrap">
+            <span>{dateStr}</span>
+            <span className="text-[11px] font-mono text-slate-400 ml-1.5">{timeStr}</span>
+          </span>
+        );
+      },
     },
     {
       key: 'status', label: 'Status', sortable: true,
