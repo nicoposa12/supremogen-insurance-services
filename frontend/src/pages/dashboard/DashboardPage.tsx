@@ -108,6 +108,29 @@ export default function DashboardPage() {
     return quotationsList.filter((q: any) => q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review');
   }, [quotationsList]);
 
+  const getAssuredName = (q: any): string => {
+    if (!q) return 'N/A';
+    const firstItem = q.items?.[0];
+    const cov = firstItem?.coverage_details || {};
+    if (cov.full_name) return cov.full_name;
+    if (cov.assured_name) return cov.assured_name;
+    if (cov.client_name) return cov.client_name;
+
+    const cust = (q.customer || {}) as any;
+    if (cust.customer_type === 'corporate' && cust.company_name) {
+      return cust.company_name;
+    }
+    const nameParts = [cust.first_name, cust.middle_name, cust.last_name, cust.suffix].filter(Boolean).join(' ');
+    if (nameParts) return nameParts;
+    if (cust.full_name) return cust.full_name;
+    if (cust.name) return cust.name;
+    if (cust.company_name) return cust.company_name;
+    if (q.customer_name) return q.customer_name;
+    if (q.assured_name) return q.assured_name;
+
+    return 'N/A';
+  };
+
   // Helper to compute individual quotation financials accurately
   const getQuotationFinancials = (q: any) => {
     const firstItem = q.items?.[0];
@@ -163,12 +186,13 @@ export default function DashboardPage() {
     return approvedList.filter((q: any) => {
       const qDate = new Date(q.created_at || Date.now());
       if (accountingTimeframe === 'daily') {
-        const diffMs = now.getTime() - qDate.getTime();
-        return diffMs <= 86400000 * 2; // last 48h
+        return qDate.toDateString() === now.toDateString();
       }
       if (accountingTimeframe === 'weekly') {
-        const diffMs = now.getTime() - qDate.getTime();
-        return diffMs <= 86400000 * 7;
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        return qDate >= startOfWeek && qDate <= now;
       }
       if (accountingTimeframe === 'monthly') {
         return qDate.getMonth() === now.getMonth() && qDate.getFullYear() === now.getFullYear();
@@ -188,9 +212,7 @@ export default function DashboardPage() {
     let totalDeductions = 0;
     let totalNetInc = 0;
 
-    const listToCalculate = timeframeFilteredQuotations.length > 0 ? timeframeFilteredQuotations : approvedList;
-
-    listToCalculate.forEach((q: any) => {
+    timeframeFilteredQuotations.forEach((q: any) => {
       const fin = getQuotationFinancials(q);
       totalPrem += fin.totalPolicyPrem;
       totalRemit += fin.remit;
@@ -205,20 +227,19 @@ export default function DashboardPage() {
       totalCompInc: Math.round(totalCompInc),
       totalDeductions: Math.round(totalDeductions),
       totalNetInc: Math.round(totalNetInc),
-      count: listToCalculate.length,
+      count: timeframeFilteredQuotations.length,
     };
-  }, [timeframeFilteredQuotations, approvedList]);
+  }, [timeframeFilteredQuotations]);
 
   // Time-Series Chart Data accurately computed from actual quotation records
   const accountingChartSeries = useMemo(() => {
-    const listToUse = timeframeFilteredQuotations.length > 0 ? timeframeFilteredQuotations : approvedList;
+    const now = new Date();
 
     if (accountingTimeframe === 'daily') {
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const today = new Date();
       const dailyBuckets = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - (6 - i));
+        const d = new Date(now);
+        d.setDate(now.getDate() - (6 - i));
         return {
           dateStr: d.toDateString(),
           label: i === 6 ? 'Today' : days[d.getDay()],
@@ -228,7 +249,7 @@ export default function DashboardPage() {
         };
       });
 
-      listToUse.forEach((q: any) => {
+      approvedList.forEach((q: any) => {
         const fin = getQuotationFinancials(q);
         const qDateStr = fin.date.toDateString();
         const bucket = dailyBuckets.find((b) => b.dateStr === qDateStr);
@@ -236,10 +257,6 @@ export default function DashboardPage() {
           bucket.companyIncome += fin.compInc;
           bucket.netIncome += fin.netInc;
           bucket.premium += fin.totalPolicyPrem;
-        } else {
-          dailyBuckets[6].companyIncome += fin.compInc;
-          dailyBuckets[6].netIncome += fin.netInc;
-          dailyBuckets[6].premium += fin.totalPolicyPrem;
         }
       });
 
@@ -259,13 +276,17 @@ export default function DashboardPage() {
         { label: 'Week 4', minDay: 22, maxDay: 31, companyIncome: 0, netIncome: 0, premium: 0 },
       ];
 
-      listToUse.forEach((q: any) => {
+      approvedList.forEach((q: any) => {
         const fin = getQuotationFinancials(q);
-        const dayOfMonth = fin.date.getDate();
-        const bucket = weeks.find((w) => dayOfMonth >= w.minDay && dayOfMonth <= w.maxDay) || weeks[3];
-        bucket.companyIncome += fin.compInc;
-        bucket.netIncome += fin.netInc;
-        bucket.premium += fin.totalPolicyPrem;
+        if (fin.date.getMonth() === now.getMonth() && fin.date.getFullYear() === now.getFullYear()) {
+          const dayOfMonth = fin.date.getDate();
+          const bucket = weeks.find((w) => dayOfMonth >= w.minDay && dayOfMonth <= w.maxDay);
+          if (bucket) {
+            bucket.companyIncome += fin.compInc;
+            bucket.netIncome += fin.netInc;
+            bucket.premium += fin.totalPolicyPrem;
+          }
+        }
       });
 
       return weeks.map((w) => ({
@@ -277,7 +298,7 @@ export default function DashboardPage() {
     }
 
     if (accountingTimeframe === 'yearly') {
-      const currentYear = new Date().getFullYear();
+      const currentYear = now.getFullYear();
       const years = [currentYear - 2, currentYear - 1, currentYear].map((y) => ({
         label: String(y),
         yearNum: y,
@@ -286,13 +307,15 @@ export default function DashboardPage() {
         premium: 0,
       }));
 
-      listToUse.forEach((q: any) => {
+      approvedList.forEach((q: any) => {
         const fin = getQuotationFinancials(q);
         const qYear = fin.date.getFullYear();
-        const bucket = years.find((y) => y.yearNum === qYear) || years[2];
-        bucket.companyIncome += fin.compInc;
-        bucket.netIncome += fin.netInc;
-        bucket.premium += fin.totalPolicyPrem;
+        const bucket = years.find((y) => y.yearNum === qYear);
+        if (bucket) {
+          bucket.companyIncome += fin.compInc;
+          bucket.netIncome += fin.netInc;
+          bucket.premium += fin.totalPolicyPrem;
+        }
       });
 
       return years.map((y) => ({
@@ -313,13 +336,15 @@ export default function DashboardPage() {
       premium: 0,
     }));
 
-    listToUse.forEach((q: any) => {
+    approvedList.forEach((q: any) => {
       const fin = getQuotationFinancials(q);
-      const mIdx = fin.date.getMonth();
-      if (monthlyBuckets[mIdx]) {
-        monthlyBuckets[mIdx].companyIncome += fin.compInc;
-        monthlyBuckets[mIdx].netIncome += fin.netInc;
-        monthlyBuckets[mIdx].premium += fin.totalPolicyPrem;
+      if (fin.date.getFullYear() === now.getFullYear()) {
+        const mIdx = fin.date.getMonth();
+        if (monthlyBuckets[mIdx]) {
+          monthlyBuckets[mIdx].companyIncome += fin.compInc;
+          monthlyBuckets[mIdx].netIncome += fin.netInc;
+          monthlyBuckets[mIdx].premium += fin.totalPolicyPrem;
+        }
       }
     });
 
@@ -329,7 +354,7 @@ export default function DashboardPage() {
       companyIncome: Math.round(b.companyIncome),
       netIncome: Math.round(b.netIncome),
     }));
-  }, [accountingTimeframe, timeframeFilteredQuotations, approvedList]);
+  }, [accountingTimeframe, approvedList]);
 
   // Provider Share Data accurately computed from actual quotation records
   const providerShareData = useMemo(() => {
@@ -338,9 +363,7 @@ export default function DashboardPage() {
     let alphaIncome = 0;
     let cbicIncome = 0;
 
-    const listToUse = timeframeFilteredQuotations.length > 0 ? timeframeFilteredQuotations : approvedList;
-
-    listToUse.forEach((q: any) => {
+    timeframeFilteredQuotations.forEach((q: any) => {
       const fin = getQuotationFinancials(q);
       if (fin.provider.includes('CBIC')) {
         cbicCount++;
@@ -355,7 +378,7 @@ export default function DashboardPage() {
       { name: 'ALPHA Provider', value: alphaCount, income: Math.round(alphaIncome), color: '#3b82f6' },
       { name: 'CBIC Provider', value: cbicCount, income: Math.round(cbicIncome), color: '#f59e0b' },
     ];
-  }, [timeframeFilteredQuotations, approvedList]);
+  }, [timeframeFilteredQuotations]);
 
   if (isClaimsOfficer) {
     const claimsByProvider = dashboard?.charts?.claims_by_provider || [];
@@ -545,10 +568,10 @@ export default function DashboardPage() {
   // Accounting Officer Dashboard Branch
   if (roles.includes('Accounting Officer')) {
     const searchLower = accountingSearchQuery.toLowerCase();
-    const ledgerQuotations = approvedList.filter((q: any) => {
+    const ledgerQuotations = timeframeFilteredQuotations.filter((q: any) => {
       if (!accountingSearchQuery) return true;
       const ref = (q.quotation_number || q.ir_number || `IR-${q.id}`).toLowerCase();
-      const name = (q.customer?.full_name || '').toLowerCase();
+      const name = getAssuredName(q).toLowerCase();
       const provider = (q.items?.[0]?.coverage_details?.insurance_provider || 'ALPHA').toLowerCase();
       return ref.includes(searchLower) || name.includes(searchLower) || provider.includes(searchLower);
     });
@@ -793,7 +816,7 @@ export default function DashboardPage() {
                   return (
                     <tr key={q.id} className="hover:bg-slate-50/80 transition">
                       <td className="px-4 py-3 font-bold text-slate-800">{q.quotation_number || q.ir_number || `IR-${q.id}`}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-700">{q.customer?.full_name || 'Assured Client'}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-700">{getAssuredName(q)}</td>
                       <td className="px-4 py-3 uppercase font-medium">
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${fin.provider.includes('CBIC') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
                           {fin.provider}

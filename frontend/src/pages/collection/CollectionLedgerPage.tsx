@@ -29,7 +29,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
-import { getInvoices, sendInvoiceReminder, notifyDstWarning as notifyDstWarningApi } from '../../services/invoiceApi';
+import { getInvoices, sendInvoiceReminder } from '../../services/invoiceApi';
 import { recordPayment, updatePayment } from '../../services/paymentApi';
 import { downloadAttachment, getAttachmentPreview } from '../../services/attachmentApi';
 import { getReportSummary } from '../../services/reportApi';
@@ -1279,65 +1279,49 @@ export default function CollectionLedgerPage() {
       {/* Main Ledger Section */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-5 space-y-4 shadow-sm animate-fade-in">
         {/* Search & Filter Controls */}
-        <div className="space-y-3">
-          <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
-            <div className="relative flex-1 w-full">
+        <div className="space-y-3.5">
+          {/* Top Row: Search Input + Quick Alarm Chips */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="relative flex-1 min-w-[280px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search by assured name, plate, policy, agent, invoice #..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition"
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition shadow-inner"
               />
               {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
                 <button
                   onClick={handleClearSearchAndFilters}
-                  title="Clear all search and filters"
+                  title="Clear search"
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
-            
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Status */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-                <Filter className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Status:</span>
-                <select
-                  value={invoiceStatus}
-                  onChange={(e) => { setInvoiceStatus(e.target.value); setPage(1); }}
-                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-                >
-                  <option value="every">All Invoices</option>
-                  <option value="all">All Outstanding</option>
-                  <option value="first_payment_alarm">🚨 1st Payment Alarm (20th Day)</option>
-                  <option value="dst_warning">⚠️ DST Warning (80+ Days Unpaid)</option>
-                  <option value="sent">Sent (Unpaid)</option>
-                  <option value="partial">Partially Paid</option>
-                  <option value="overdue">Overdue</option>
-                  <option value="paid">Paid</option>
-                </select>
-              </div>
 
+            {/* Quick Alarm Pill Filters */}
+            <div className="flex items-center gap-2 flex-wrap">
               {firstPaymentAlarmCount > 0 && (
                 <button
                   onClick={() => {
                     setInvoiceStatus(invoiceStatus === 'first_payment_alarm' ? 'every' : 'first_payment_alarm');
                     setPage(1);
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border ${
                     invoiceStatus === 'first_payment_alarm'
-                      ? 'bg-red-600 text-white ring-2 ring-red-600/20'
-                      : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                      ? 'bg-rose-700 text-white border-rose-700 shadow-sm ring-2 ring-rose-700/20'
+                      : 'bg-rose-50/80 text-rose-700 border-rose-200/80 hover:bg-rose-100'
                   }`}
                   title="Filter records with no 1st payment by the 20th of the following month"
                 >
-                  <AlertTriangle className="h-3.5 w-3.5 text-red-600 animate-bounce" />
+                  <span className={`h-2 w-2 rounded-full ${invoiceStatus === 'first_payment_alarm' ? 'bg-white' : 'bg-rose-600'} animate-pulse`} />
                   <span>1st Payment Alarm</span>
-                  <span className="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    invoiceStatus === 'first_payment_alarm' ? 'bg-white text-rose-800' : 'bg-rose-200/80 text-rose-900'
+                  }`}>
                     {firstPaymentAlarmCount}
                   </span>
                 </button>
@@ -1349,103 +1333,128 @@ export default function CollectionLedgerPage() {
                     setInvoiceStatus(invoiceStatus === 'dst_warning' ? 'every' : 'dst_warning');
                     setPage(1);
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border ${
                     invoiceStatus === 'dst_warning'
-                      ? 'bg-rose-700 text-white ring-2 ring-rose-700/20'
-                      : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-600/20'
+                      : 'bg-amber-50/80 text-amber-800 border-amber-200/80 hover:bg-amber-100'
                   }`}
                   title="Filter records with 80+ days unpaid since inception"
                 >
-                  <AlertTriangle className="h-3.5 w-3.5 text-rose-600 animate-pulse" />
+                  <span className={`h-2 w-2 rounded-full ${invoiceStatus === 'dst_warning' ? 'bg-white' : 'bg-amber-600'} animate-pulse`} />
                   <span>DST Warning</span>
-                  <span className="bg-rose-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    invoiceStatus === 'dst_warning' ? 'bg-white text-amber-900' : 'bg-amber-200/80 text-amber-900'
+                  }`}>
                     {dstWarningCount}
                   </span>
                 </button>
               )}
-
-              {/* Type */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Type:</span>
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-                >
-                  <option value="">All Types</option>
-                  <option value="NEW ACCOUNT">New Account</option>
-                  <option value="RENEWAL">Renewal</option>
-                </select>
-              </div>
-
-              {/* Terms */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Terms:</span>
-                <select
-                  value={termFilter}
-                  onChange={(e) => setTermFilter(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-                >
-                  <option value="">All Terms</option>
-                  <option value="1">1 Month</option>
-                  <option value="2">2 Months</option>
-                  <option value="3">3 Months</option>
-                  <option value="4">4 Months</option>
-                  <option value="5">5 Months</option>
-                  <option value="6">6 Months</option>
-                </select>
-              </div>
-
-              {/* Due Month */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Month:</span>
-                <select
-                  value={dueMonthFilter}
-                  onChange={(e) => { setDueMonthFilter(e.target.value); setPage(1); }}
-                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-                >
-                  <option value="">All Months</option>
-                  <option value="1">Jan</option>
-                  <option value="2">Feb</option>
-                  <option value="3">Mar</option>
-                  <option value="4">Apr</option>
-                  <option value="5">May</option>
-                  <option value="6">Jun</option>
-                  <option value="7">Jul</option>
-                  <option value="8">Aug</option>
-                  <option value="9">Sep</option>
-                  <option value="10">Oct</option>
-                  <option value="11">Nov</option>
-                  <option value="12">Dec</option>
-                </select>
-              </div>
-
-              {/* Due Year */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Year:</span>
-                <select
-                  value={dueYearFilter}
-                  onChange={(e) => { setDueYearFilter(e.target.value); setPage(1); }}
-                  className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-                >
-                  <option value="">All Years</option>
-                  <option value="2024">2024</option>
-                  <option value="2025">2025</option>
-                  <option value="2026">2026</option>
-                  <option value="2027">2027</option>
-                  <option value="2028">2028</option>
-                </select>
-              </div>
-
-              {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
-                <button
-                  onClick={handleClearSearchAndFilters}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
-                >
-                  Reset
-                </button>
-              )}
             </div>
+          </div>
+
+          {/* Bottom Row: Aligned Filter Dropdowns */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+            {/* Status */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
+              <Filter className="h-3.5 w-3.5 text-slate-400" />
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Status:</span>
+              <select
+                value={invoiceStatus}
+                onChange={(e) => { setInvoiceStatus(e.target.value); setPage(1); }}
+                className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value="every">All Invoices</option>
+                <option value="all">All Outstanding</option>
+                <option value="first_payment_alarm">1st Payment Alarm (20th Day)</option>
+                <option value="dst_warning">DST Warning (80+ Days)</option>
+                <option value="sent">Sent (Unpaid)</option>
+                <option value="partial">Partially Paid</option>
+                <option value="overdue">Overdue</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+
+            {/* Type */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Type:</span>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value="">All Types</option>
+                <option value="NEW ACCOUNT">New Account</option>
+                <option value="RENEWAL">Renewal</option>
+              </select>
+            </div>
+
+            {/* Terms */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Terms:</span>
+              <select
+                value={termFilter}
+                onChange={(e) => setTermFilter(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value="">All Terms</option>
+                <option value="1">1 Month</option>
+                <option value="2">2 Months</option>
+                <option value="3">3 Months</option>
+                <option value="4">4 Months</option>
+                <option value="5">5 Months</option>
+                <option value="6">6 Months</option>
+              </select>
+            </div>
+
+            {/* Month */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Month:</span>
+              <select
+                value={dueMonthFilter}
+                onChange={(e) => { setDueMonthFilter(e.target.value); setPage(1); }}
+                className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value="">All Months</option>
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+              </select>
+            </div>
+
+            {/* Year */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Year:</span>
+              <select
+                value={dueYearFilter}
+                onChange={(e) => { setDueYearFilter(e.target.value); setPage(1); }}
+                className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value="">All Years</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+              </select>
+            </div>
+
+            {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
+              <button
+                onClick={handleClearSearchAndFilters}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -1592,13 +1601,9 @@ export default function CollectionLedgerPage() {
                           {/* Row 1: Header row / General Details */}
                           <tr
                             onClick={() => handleOpenCollection(row)}
-                            className={`transition-colors text-xs cursor-pointer ${isFirstPaymentAlarm
-                              ? 'bg-rose-50/50 hover:bg-rose-50/80 text-slate-800 border-l-4 border-l-rose-600'
-                              : isDstWarning
-                                ? 'bg-amber-50/40 hover:bg-amber-50/70 text-slate-800 border-l-4 border-l-amber-500'
-                                : isHighlighted
-                                  ? 'bg-rose-50/30 hover:bg-rose-50/60 text-slate-800 border-l-4 border-l-rose-400'
-                                  : 'bg-white hover:bg-slate-50 text-slate-800'
+                            className={`transition-colors text-xs cursor-pointer ${isFirstPaymentAlarm || isDstWarning || isHighlighted
+                              ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-4 border-l-rose-500 font-medium'
+                              : 'bg-white hover:bg-slate-50 text-slate-800'
                               }`}
                           >
                             <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium">
@@ -1633,10 +1638,10 @@ export default function CollectionLedgerPage() {
                               {isFirstPaymentAlarm && (
                                 <div className="mt-1">
                                   <span
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 tracking-wide"
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 tracking-wide whitespace-nowrap"
                                     title="Request was made in previous month and no 1st payment has been recorded as of the 20th of this month."
                                   >
-                                    <span className="h-1.5 w-1.5 rounded-full bg-rose-600 animate-pulse" />
+                                    <span className="h-1.5 w-1.5 rounded-full bg-rose-600 animate-pulse flex-shrink-0" />
                                     Unpaid 1st Payment (Overdue 20th)
                                   </span>
                                 </div>
@@ -1644,10 +1649,10 @@ export default function CollectionLedgerPage() {
                               {isDstWarning && !isFirstPaymentAlarm && (
                                 <div className="mt-1">
                                   <span
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 tracking-wide"
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 tracking-wide whitespace-nowrap"
                                     title={`DST WARNING: ${dstWarningDays} days passed since inception date with unpaid balance.`}
                                   >
-                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
+                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse flex-shrink-0" />
                                     DST Warning ({dstWarningDays}d Unpaid)
                                   </span>
                                 </div>
@@ -1664,9 +1669,9 @@ export default function CollectionLedgerPage() {
                             <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-500 font-medium whitespace-nowrap">
                               {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                             </td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 font-bold text-slate-800 whitespace-nowrap">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-3.5 py-3 border-r border-slate-200 font-bold text-slate-800 whitespace-nowrap">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td className="px-2.5 py-3 border-r border-slate-200 text-center font-semibold text-slate-600">{terms}</td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium whitespace-nowrap">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium whitespace-nowrap">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
                             {[1, 2, 3, 4, 5, 6].map((idx) => {
                               const monthInfo = installmentMonths[idx - 1];
@@ -1711,7 +1716,7 @@ export default function CollectionLedgerPage() {
                                             ? 'text-rose-700 dark:text-rose-400'
                                             : 'text-slate-655 dark:text-slate-350'
                                         }`}>
-                                        ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </span>
                                       <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 border border-transparent ${isPaid
                                         ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30'
@@ -1735,11 +1740,11 @@ export default function CollectionLedgerPage() {
                                 </td>
                               );
                             })}
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
                               {dueAmount > 0 ? (
                                 <span className="px-2 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-350 rounded-lg text-[11px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
-                                  ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                  ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               ) : (
                                 <span className="text-slate-400 dark:text-slate-500">—</span>
@@ -1753,22 +1758,6 @@ export default function CollectionLedgerPage() {
                                 >
                                   <FileText className="h-3 w-3" /> Receipt
                                 </button>
-                                {isDstWarning && (
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        const res = await notifyDstWarningApi(row.id);
-                                        showToast(res.message || 'DST Warning notification dispatched to Collection team!', 'success');
-                                      } catch (err: any) {
-                                        showToast(err.response?.data?.message ?? 'Failed to dispatch DST notification.', 'error');
-                                      }
-                                    }}
-                                    className="w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-xl shadow-sm transition-all hover:scale-[1.03] cursor-pointer"
-                                    title="Dispatch urgent DST Warning notification to all Collection officers"
-                                  >
-                                    <Mail className="h-3 w-3" /> Notify DST
-                                  </button>
-                                )}
                               </div>
                             </td>
                           </tr>
@@ -2021,34 +2010,34 @@ export default function CollectionLedgerPage() {
               </div>
 
               {/* Installment Ledger Section */}
-              <div className="border border-slate-200 rounded-2xl overflow-hidden mb-5">
-                <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Payment Schedule Ledger</span>
-                  <span className="text-[10px] font-extrabold text-[#4A0E17] bg-[#4A0E17]/5 px-2.5 py-0.5 rounded-full border border-[#4A0E17]/20 uppercase">
+              <div className="border border-slate-200/90 rounded-2xl overflow-hidden mb-5 shadow-sm">
+                <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Payment Schedule Ledger</span>
+                  <span className="text-[10px] font-extrabold text-[#4A0E17] bg-[#4A0E17]/10 px-3 py-1 rounded-full border border-[#4A0E17]/20 uppercase tracking-wide">
                     {terms} Month Terms
                   </span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200 text-[11px] font-medium text-slate-600">
-                    <thead className="bg-slate-100/80 text-[10px] font-bold text-slate-700 uppercase">
+                    <thead className="bg-slate-100 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
                       <tr>
-                        <th className="px-3 py-2 border-r border-slate-200 bg-slate-50 text-slate-500 font-bold min-w-[140px] text-left">LEDGER DETAIL</th>
-                        <th className="px-2 py-2 border-r border-slate-200 text-center">1st Installment</th>
-                        <th className="px-2 py-2 border-r border-slate-200 text-center">2nd Installment</th>
-                        <th className="px-2 py-2 border-r border-slate-200 text-center">3rd Installment</th>
-                        <th className="px-2 py-2 border-r border-slate-200 text-center">4th Installment</th>
-                        <th className="px-2 py-2 border-r border-slate-200 text-center">5th Installment</th>
-                        <th className="px-2 py-2 border-r border-slate-200 text-center">6th Installment</th>
+                        <th className="px-3 py-2.5 border-r border-slate-200 bg-slate-100 text-slate-600 font-extrabold min-w-[150px] text-left">LEDGER DETAIL</th>
+                        <th className="px-2 py-2.5 border-r border-slate-200 text-center">1st Installment</th>
+                        <th className="px-2 py-2.5 border-r border-slate-200 text-center">2nd Installment</th>
+                        <th className="px-2 py-2.5 border-r border-slate-200 text-center">3rd Installment</th>
+                        <th className="px-2 py-2.5 border-r border-slate-200 text-center">4th Installment</th>
+                        <th className="px-2 py-2.5 border-r border-slate-200 text-center">5th Installment</th>
+                        <th className="px-2 py-2.5 border-r border-slate-200 text-center">6th Installment</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 bg-white">
                       {/* Row 1: Schedule of Payment (Expected Dates) */}
-                      <tr className="bg-emerald-50/10 dark:bg-emerald-950/5">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/15 text-left">Schedule of Payment</td>
+                      <tr>
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 bg-emerald-50/50 text-left">Schedule of Payment</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-emerald-950 dark:text-emerald-300 font-semibold'
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-800 font-semibold'
                               }`}>
                               {isActive ? getExpectedDateStr(idx) : '—'}
                             </td>
@@ -2057,27 +2046,27 @@ export default function CollectionLedgerPage() {
                       </tr>
 
                       {/* Row 2: Amount of Payment (Expected Amounts) */}
-                      <tr className="bg-emerald-50/10 dark:bg-emerald-950/5">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/15 text-left">Amount of Payment</td>
+                      <tr>
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 bg-emerald-50/50 text-left">Amount of Payment</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-emerald-950 dark:text-emerald-300 font-bold'
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-900 font-bold'
                               }`}>
-                              {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                              {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                             </td>
                           );
                         })}
                       </tr>
 
                       {/* Row 3: Actual Payment Date */}
-                      <tr className="bg-pink-50/10 dark:bg-pink-950/5">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 dark:text-pink-400 bg-pink-50/20 dark:bg-pink-950/15 text-left">Actual Payment Date</td>
+                      <tr>
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-50 text-left">Actual Payment Date</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           const payment = isActive ? payments[idx - 1] : null;
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-600'
                               }`}>
                               {payment ? (
                                 new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -2093,10 +2082,10 @@ export default function CollectionLedgerPage() {
                                       inputEl.focus();
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-800 text-[#4A0E17] dark:text-emerald-400 text-[9px] font-bold rounded transition cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[10px] font-bold rounded-lg transition cursor-pointer"
                                   title={`Record ${idx}${idx === 1 ? 'st' : idx === 2 ? 'nd' : idx === 3 ? 'rd' : 'th'} installment`}
                                 >
-                                  <CreditCard className="h-2.5 w-2.5" /> Record
+                                  <Plus className="h-2.5 w-2.5" /> Record
                                 </button>
                               ) : (
                                 '—'
@@ -2107,18 +2096,18 @@ export default function CollectionLedgerPage() {
                       </tr>
 
                       {/* Row 4: Actual Amount / Method */}
-                      <tr className="bg-pink-50/10 dark:bg-pink-950/5">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 dark:text-pink-400 bg-pink-50/20 dark:bg-pink-950/15 text-left">Actual Amount & Method</td>
+                      <tr>
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-50 text-left">Actual Amount & Method</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           const payment = isActive ? payments[idx - 1] : null;
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-800'
                               }`}>
                               {payment ? (
                                 <div className="flex flex-col items-center group relative">
-                                  <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                  <span className="text-[9px] font-bold text-pink-700 bg-pink-100/60 dark:bg-pink-950 dark:text-pink-300 dark:border dark:border-pink-900/30 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
+                                  <span className="font-bold">₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
                                     {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
                                   </span>
                                   <button
@@ -2154,7 +2143,7 @@ export default function CollectionLedgerPage() {
                                       inputEl.focus();
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-55 hover:bg-emerald-100 dark:bg-emerald-950 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold rounded transition cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[10px] font-bold rounded-lg transition cursor-pointer"
                                   title={`Record ${idx}${idx === 1 ? 'st' : idx === 2 ? 'nd' : idx === 3 ? 'rd' : 'th'} installment`}
                                 >
                                   <Plus className="h-2.5 w-2.5" /> Record
@@ -2167,15 +2156,15 @@ export default function CollectionLedgerPage() {
                         })}
                       </tr>
 
-                      {/* Row 4.5: Ref / Check / Tracking No. */}
-                      <tr className="bg-pink-50/10 dark:bg-pink-950/5">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 dark:text-pink-400 bg-pink-50/20 dark:bg-pink-950/15 text-left">Ref / Check / Tracking No.</td>
+                      {/* Row 5: Ref / Check / Tracking No. */}
+                      <tr>
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-50 text-left">Ref / Check / Tracking No.</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           const payment = isActive ? payments[idx - 1] : null;
                           if (!isActive) {
                             return (
-                              <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600">
+                              <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono bg-slate-50 text-slate-350">
                                 —
                               </td>
                             );
@@ -2191,35 +2180,35 @@ export default function CollectionLedgerPage() {
                           const isCheck = payment.payment_method === 'post_dated_checks';
                           const labelType = isTracker ? 'Track No' : (isCheck ? 'Check No' : 'Ref');
                           return (
-                            <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-slate-700 dark:text-slate-200 text-xs font-semibold">
+                            <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-slate-700 text-xs font-semibold">
                               {payment.reference_number ? (
                                 <div className="flex flex-col items-center">
-                                  <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-bold">{labelType}</span>
+                                  <span className="text-[9px] text-slate-400 uppercase font-bold">{labelType}</span>
                                   <span className="truncate max-w-[100px] block font-semibold" title={payment.reference_number}>{payment.reference_number}</span>
                                 </div>
                               ) : (
-                                <span className="text-slate-400 dark:text-slate-500">No Ref</span>
+                                <span className="text-slate-400">No Ref</span>
                               )}
                             </td>
                           );
                         })}
                       </tr>
 
-                      {/* Row 5: Proof */}
-                      <tr className="bg-pink-50/10 dark:bg-pink-950/5">
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-pink-800 dark:text-pink-400 bg-pink-50/20 dark:bg-pink-950/15 text-left">Proof</td>
+                      {/* Row 6: Proof */}
+                      <tr>
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-50 text-left">Proof of Payment</td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           const payment = isActive ? payments[idx - 1] : null;
                           const proofFile = payment?.attachments?.[0];
                           return (
-                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200'
+                            <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-700'
                               }`}>
                               {proofFile ? (
                                 <button
                                   type="button"
                                   onClick={() => handleViewProof(proofFile)}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 text-[9px] font-bold rounded transition cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-[10px] font-bold rounded-lg transition cursor-pointer"
                                   title={`Download proof of payment for installment ${idx}`}
                                 >
                                   <Paperclip className="h-2.5 w-2.5" /> View Proof
@@ -2240,7 +2229,7 @@ export default function CollectionLedgerPage() {
 
               <form onSubmit={handleRecordCollection} className="space-y-4">
                 {/* Selected Invoice Details Box */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 text-xs shadow-inner">
                   <div>
                     <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Client</span>
                     <span className="font-bold text-slate-800 uppercase">
@@ -2265,7 +2254,7 @@ export default function CollectionLedgerPage() {
                   </div>
                   <div>
                     <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Premium</span>
-                    <span className="font-bold text-slate-800">₱{selectedInvoice.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-bold text-slate-800">₱{Number(selectedInvoice.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div>
                     <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Due Date</span>
@@ -2275,7 +2264,7 @@ export default function CollectionLedgerPage() {
                   </div>
                   <div>
                     <span className="block text-slate-400 font-bold uppercase tracking-wider mb-0.5">Remaining balance</span>
-                    <span className="font-bold text-[#4A0E17] dark:text-[#f28b99]">₱{selectedInvoice.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="font-bold text-[#4A0E17]">₱{Number(selectedInvoice.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
 
