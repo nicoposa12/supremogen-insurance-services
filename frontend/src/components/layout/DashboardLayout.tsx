@@ -791,11 +791,11 @@ export default function DashboardLayout() {
                               const message = n.message || '';
                               const title = n.title || '';
                               
-                              const matchQuotation = message.match(/QUO-\d{4}-\d{5}/) || message.match(/QUO \d{4} \d{5}/);
-                              const matchInvoice = message.match(/INV-\d{4}-\d{5}/);
-                              const matchClaimNotification = message.match(/CLN-\d{4}-\d{5}/);
-                              const matchClaim = message.match(/CLM-\d{4}-\d{5}/);
-                              const matchPolicy = message.match(/POL-\d{4}-\d{5}/);
+                              const matchQuotation = message.match(/QUO-[A-Z0-9-]+/) || message.match(/QUO \d{4} \d{5}/);
+                              const matchInvoice = message.match(/INV-[A-Z0-9-]+/);
+                              const matchClaimNotification = message.match(/CLN-[A-Z0-9-]+/) || title.match(/CLN-[A-Z0-9-]+/);
+                              const matchClaim = message.match(/CLM-[A-Z0-9-]+/);
+                              const matchPolicy = message.match(/POL-[A-Z0-9-]+/);
 
                               // For Accounting Officer role, route policy/statement/quotation notifications directly to Policy Statements
                               const isAccounting = roles.includes('Accounting Officer') || roles.includes('Accounting');

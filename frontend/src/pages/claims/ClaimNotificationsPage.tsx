@@ -568,6 +568,24 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
   const detailRecord = detailResponse?.data ?? selectedRecord;
 
+  // Auto-open record when search parameter matches a claim notification (e.g. from notification clicks)
+  useEffect(() => {
+    if (querySearch && rawRecords.length > 0 && !selectedRecord) {
+      const qLower = querySearch.trim().toLowerCase();
+      const match = rawRecords.find((r: any) =>
+        (r.reference_number && r.reference_number.toLowerCase() === qLower) ||
+        (r.ir_number && r.ir_number.toLowerCase() === qLower) ||
+        (r.id && r.id.toString() === qLower) ||
+        (rawRecords.length === 1 && (r.reference_number?.toLowerCase().includes(qLower) || r.ir_number?.toLowerCase().includes(qLower)))
+      );
+
+      if (match) {
+        setSelectedRecord(match);
+        setActiveView('detail');
+      }
+    }
+  }, [querySearch, rawRecords, selectedRecord]);
+
   const submitMut = useMutation({
     mutationFn: (data: ClaimNotificationFormData) =>
       editingRecord
@@ -831,14 +849,22 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       );
     };
 
+    // Filter out official completed claim documents so they don't appear in standard uploaded requirements box
+    const officialDocLabels = (COMPLETED_REQUIREMENTS || []).map((r) => r.label.trim().toLowerCase());
+    const nonOfficialAttachments = (detailRecord?.attachments || []).filter((att: any) => {
+      const [docTitle] = (att.document_type || '').split(' | Note: ');
+      const titleClean = docTitle.trim().toLowerCase();
+      return !officialDocLabels.some((label) => titleClean === label || titleClean.includes(label));
+    });
+
     // Define the upload list section
-    const uploadedRequirementsSection = detailRecord && detailRecord.attachments && detailRecord.attachments.length > 0 && (
+    const uploadedRequirementsSection = detailRecord && nonOfficialAttachments.length > 0 && (
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Uploaded Requirements ({detailRecord.attachments.length})
+              Uploaded Requirements ({nonOfficialAttachments.length})
             </h4>
           </div>
           <span className="text-[11px] text-slate-400 font-medium">
@@ -847,9 +873,9 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {detailRecord.attachments.map((att: any) => {
+          {nonOfficialAttachments.map((att: any) => {
             const [docTitle, docNote] = att.document_type ? att.document_type.split(' | Note: ') : [att.file_name, ''];
-            const badge = getFileAgeBadge(att, detailRecord.attachments || []);
+            const badge = getFileAgeBadge(att, nonOfficialAttachments);
             return (
               <div
                 key={att.id}
@@ -1454,72 +1480,77 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-700" />
                 <p className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
-                  Official Completed Claim Documents (Upload Attachments)
+                  {isClaimsOfficer || isAdmin ? 'Official Completed Claim Documents (Upload Attachments)' : 'Official Completed Claim Documents'}
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {COMPLETED_REQUIREMENTS.map((req) => (
                   <div key={req.key} className="space-y-1 bg-white p-3.5 rounded-xl border border-emerald-150 shadow-2xs">
                     <span className="block text-xs font-bold text-emerald-950 uppercase tracking-wide">{req.label}</span>
-                    <div className="flex flex-col gap-1.5 mt-1">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="file"
-                          id={`detail-file-${req.key}`}
-                          multiple
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files || []);
-                            if (files.length > 0) {
-                              setRequirementFiles((prev) => ({
-                                ...prev,
-                                [req.key]: [...(prev[req.key] || []), ...files],
-                              }));
-                            }
-                          }}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor={`detail-file-${req.key}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                        >
-                          <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                          <span>Choose File</span>
-                        </label>
-                        {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
-                          <span className="text-xs text-slate-400 italic">No files selected</span>
+                    
+                    {/* Only Claims Officers and Administrators can choose/upload files */}
+                    {(isClaimsOfficer || isAdmin) && (
+                      <div className="flex flex-col gap-1.5 mt-1">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            id={`detail-file-${req.key}`}
+                            multiple
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              if (files.length > 0) {
+                                setRequirementFiles((prev) => ({
+                                  ...prev,
+                                  [req.key]: [...(prev[req.key] || []), ...files],
+                                }));
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor={`detail-file-${req.key}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                          >
+                            <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                            <span>Choose File</span>
+                          </label>
+                          {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                            <span className="text-xs text-slate-400 italic">No files selected</span>
+                          )}
+                        </div>
+
+                        {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {requirementFiles[req.key].map((file, idx) => (
+                              <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900">
+                                <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                <span className="truncate max-w-[120px] font-medium">{file.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRequirementFiles((prev) => {
+                                      const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                      const copy = { ...prev };
+                                      if (list.length === 0) {
+                                        delete copy[req.key];
+                                      } else {
+                                        copy[req.key] = list;
+                                      }
+                                      return copy;
+                                    });
+                                  }}
+                                  className="text-slate-400 hover:text-red-500 transition cursor-pointer"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
+                    )}
 
-                      {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {requirementFiles[req.key].map((file, idx) => (
-                            <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900">
-                              <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
-                              <span className="truncate max-w-[120px] font-medium">{file.name}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRequirementFiles((prev) => {
-                                    const list = (prev[req.key] || []).filter((_, i) => i !== idx);
-                                    const copy = { ...prev };
-                                    if (list.length === 0) {
-                                      delete copy[req.key];
-                                    } else {
-                                      copy[req.key] = list;
-                                    }
-                                    return copy;
-                                  });
-                                }}
-                                className="text-slate-400 hover:text-red-500 transition cursor-pointer"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                    {(isClaimsOfficer || isAdmin) && requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
                       <div className="mt-1">
                         <input
                           type="text"
@@ -1532,6 +1563,8 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                         />
                       </div>
                     )}
+
+                    {/* Always display uploaded requirement files for viewing and downloading */}
                     {renderUploadedRequirementFiles(req.label)}
                   </div>
                 ))}
@@ -1646,25 +1679,27 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
             </div>
           )}
 
-          <div className="flex justify-end pt-2">
-            <button
-              onClick={handleDetailUpload}
-              disabled={isUploading || (Object.keys(requirementFiles).length === 0 && customAttachments.filter(c => c.file).length === 0)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#4A0E17] rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Uploading Files...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  <span>Upload Attachments</span>
-                </>
-              )}
-            </button>
-          </div>
+          {(isClaimsOfficer || isAdmin || (!completedOnly && (selectedRecord.status as string) !== 'completed')) && (
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={handleDetailUpload}
+                disabled={isUploading || (Object.keys(requirementFiles).length === 0 && customAttachments.filter(c => c.file).length === 0)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#4A0E17] rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Uploading Files...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    <span>Upload Attachments</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       );
     })();
