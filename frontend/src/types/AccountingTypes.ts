@@ -53,6 +53,10 @@ export interface Payment {
   reference_number: string | null;
   notes: string | null;
   status: 'completed' | 'refunded' | 'voided';
+  verification_status?: 'pending_verification' | 'verified' | 'rejected';
+  verification_notes?: string | null;
+  verified_by?: number | { id: number; name: string } | null;
+  verified_at?: string | null;
   created_at: string;
   updated_at: string;
   invoice?: {
@@ -65,6 +69,8 @@ export interface Payment {
       customer_code: string;
       first_name: string;
       last_name: string;
+      policy_no?: string;
+      mobile?: string;
     };
   };
   attachments?: any[];
@@ -86,6 +92,7 @@ export interface PaymentListParams {
   per_page?: number;
   search?: string;
   status?: string;
+  verification_status?: string;
   method?: string;
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';

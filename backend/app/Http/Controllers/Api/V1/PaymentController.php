@@ -23,14 +23,21 @@ class PaymentController extends Controller
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
         $query = Payment::with([
-                'invoice:id,invoice_number,customer_id,total_amount,balance',
-                'invoice.customer:id,customer_code,first_name,last_name',
+                'invoice:id,invoice_number,customer_id,total_amount,balance,policy_id',
+                'invoice.policy:id,policy_number,quotation_id',
+                'invoice.policy.quotation:id,quotation_number,ir_number',
+                'invoice.customer:id,customer_code,first_name,last_name,policy_no,mobile',
                 'receivedBy:id,name',
+                'verifiedBy:id,name',
                 'attachments',
             ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
             ->ofMethod($request->input('method'));
+
+        if ($request->filled('verification_status') && $request->input('verification_status') !== 'all') {
+            $query->where('verification_status', $request->input('verification_status'));
+        }
 
         if ($request->filled('customer_id')) {
             $query->whereHas('invoice', function ($q) use ($request) {
@@ -287,6 +294,63 @@ class PaymentController extends Controller
         return response()->json([
             'success' => true, 'message' => 'Payment voided.',
             'data' => $payment->fresh(['invoice']),
+        ]);
+    }
+
+    /**
+     * Verify or reject a collection payment (Accounting Officer action).
+     */
+    public function verify(Request $request, string $id)
+    {
+        $payment = Payment::with(['invoice.customer', 'receivedBy', 'verifiedBy', 'attachments'])->find($id);
+        if (!$payment) {
+            return response()->json(['success' => false, 'message' => 'Payment not found.'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:verified,rejected',
+            'notes'  => 'nullable|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $status = $request->input('status');
+        $notes = $request->input('notes');
+
+        $payment->update([
+            'verification_status' => $status,
+            'verification_notes'  => $notes,
+            'verified_by'         => $request->user()->id,
+            'verified_at'         => now(),
+        ]);
+
+        // Notify Collection Officer who recorded the payment
+        if ($payment->received_by) {
+            try {
+                $ref = $payment->payment_number ?? ('#' . $payment->id);
+                $actionLabel = $status === 'verified' ? 'Verified' : 'Rejected';
+                \App\Models\Notification::create([
+                    'user_id' => $payment->received_by,
+                    'title'   => "Collection Payment {$actionLabel}",
+                    'message' => "Collection payment {$ref} (₱" . number_format((float) $payment->amount, 2) . ") was marked as {$actionLabel} by Accounting.",
+                    'type'    => $status === 'verified' ? 'success' : 'warning',
+                    'read_at' => null,
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to notify payment verification: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $status === 'verified' ? 'Payment successfully verified.' : 'Payment marked as rejected.',
+            'data'    => $payment->fresh(['invoice.customer', 'receivedBy', 'verifiedBy', 'attachments']),
         ]);
     }
 }

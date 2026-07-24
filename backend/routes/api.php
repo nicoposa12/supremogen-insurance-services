@@ -83,6 +83,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/payments/{payment}', [PaymentController::class, 'show']);
         Route::put('/payments/{payment}', [PaymentController::class, 'update']);
         Route::post('/payments/{payment}/void', [PaymentController::class, 'void']);
+        Route::post('/payments/{payment}/verify', [PaymentController::class, 'verify']);
 
         // Claims
         Route::apiResource('/claims', ClaimController::class)->except(['destroy']);

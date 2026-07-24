@@ -15,6 +15,7 @@ class Payment extends Model
         'payment_number', 'invoice_id', 'received_by',
         'amount', 'payment_method', 'payment_date',
         'reference_number', 'notes', 'status',
+        'verification_status', 'verification_notes', 'verified_by', 'verified_at',
     ];
 
     protected function casts(): array
@@ -22,6 +23,7 @@ class Payment extends Model
         return [
             'amount' => 'decimal:2',
             'payment_date' => 'date',
+            'verified_at' => 'datetime',
         ];
     }
 
@@ -35,6 +37,11 @@ class Payment extends Model
     public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function verifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     public function attachments(): \Illuminate\Database\Eloquent\Relations\MorphMany

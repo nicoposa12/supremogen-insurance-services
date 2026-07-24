@@ -67,3 +67,8 @@ export async function updatePayment(id: number, formData: PaymentFormData): Prom
   });
   return responseData;
 }
+
+export async function verifyPayment(id: number, status: 'verified' | 'rejected', notes?: string): Promise<SingleResponse<Payment>> {
+  const { data } = await axios.post<SingleResponse<Payment>>(`${BASE}/${id}/verify`, { status, notes });
+  return data;
+}

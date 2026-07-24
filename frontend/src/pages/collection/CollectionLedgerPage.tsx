@@ -1474,6 +1474,7 @@ export default function CollectionLedgerPage() {
                     <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Date Request</th>
                     <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Type</th>
                     <th className="px-4 py-3 border-r border-slate-200 whitespace-nowrap">Assured Name</th>
+                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Request No.</th>
                     <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Policy Number</th>
                     <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Plate Number</th>
                     <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Inception Date</th>
@@ -1494,7 +1495,7 @@ export default function CollectionLedgerPage() {
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {filteredInvoices.length === 0 ? (
                     <tr className="bg-white">
-                      <td colSpan={19} className="px-4 py-16 text-center">
+                      <td colSpan={20} className="px-4 py-16 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="p-4 rounded-full bg-slate-50 text-slate-400">
                             <Receipt className="h-8 w-8 text-slate-455" />
@@ -1663,6 +1664,9 @@ export default function CollectionLedgerPage() {
                                   <p className="truncate max-w-[180px]">{customer.email || 'No email'}</p>
                                 </div>
                               )}
+                            </td>
+                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] font-mono text-blue-700 font-bold whitespace-nowrap">
+                              {(row as any).policy?.quotation?.quotation_number || (row as any).policy?.quotation?.ir_number || (row as any).quotation_number || customer?.customer_code || '—'}
                             </td>
                             <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-700 font-semibold uppercase whitespace-nowrap">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
                             <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-600 font-medium uppercase whitespace-nowrap">{customer?.plate_no || '—'}</td>

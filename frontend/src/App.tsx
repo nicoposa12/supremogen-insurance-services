@@ -44,6 +44,7 @@ const InvoicesPage = lazy(() => import('./pages/invoices/InvoicesPage'));
 const InvoiceFormPage = lazy(() => import('./pages/invoices/InvoiceFormPage'));
 const InvoiceDetailPage = lazy(() => import('./pages/invoices/InvoiceDetailPage'));
 const PolicyStatementsPage = lazy(() => import('./pages/accounting/PolicyStatementsPage'));
+const ReviewCollectionPaymentPage = lazy(() => import('./pages/accounting/ReviewCollectionPaymentPage'));
 
 // Payments (Phase 2 — Accounting & Payments)
 const PaymentsPage = lazy(() => import('./pages/payments/PaymentsPage'));
@@ -141,6 +142,7 @@ export default function App() {
                 <Route path="invoices/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoiceDetailPage /></ProtectedRoute>} />
                 <Route path="invoices/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoiceFormPage /></ProtectedRoute>} />
                 <Route path="policy-statements" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Collection']}><PolicyStatementsPage /></ProtectedRoute>} />
+                <Route path="review-collection-payment" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Collection']}><ReviewCollectionPaymentPage /></ProtectedRoute>} />
 
                 {/* Payments */}
                 <Route path="payments" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><PaymentsPage /></ProtectedRoute>} />

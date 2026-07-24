@@ -35,6 +35,7 @@ import {
   DollarSign,
   Shield,
   AlertTriangle,
+  CreditCard,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationApi';
@@ -65,6 +66,7 @@ const navItems: NavItem[] = [
   { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
   { label: 'Accounting', path: '/dashboard/invoices', icon: Receipt },
   { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileSpreadsheet },
+  { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CreditCard },
   { label: 'Claims', path: '/dashboard/claims', icon: ShieldHalf },
   { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
   { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
@@ -110,6 +112,7 @@ const adminNavGroups: NavGroup[] = [
     children: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileSpreadsheet },
+      { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CreditCard },
     ],
   },
   {
@@ -323,7 +326,7 @@ function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   } else if (isClaimsOfficer) {
     isForbidden = !['Dashboard', 'Claim Notifications', 'Completed Requirements'].includes(item.label);
   } else if (isAccounting) {
-    isForbidden = !['Dashboard', 'Policy Statements'].includes(item.label);
+    isForbidden = !['Dashboard', 'Policy Statements', 'Review Collection Payment'].includes(item.label);
   }
 
   if (isForbidden) {
