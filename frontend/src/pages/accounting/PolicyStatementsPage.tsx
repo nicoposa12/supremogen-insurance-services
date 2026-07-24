@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   FileSpreadsheet, Search, Eye, Printer, Loader2, ArrowLeft,
-  RefreshCw, X
+  RefreshCw, X, Calendar
 } from 'lucide-react';
 
 import { getQuotations } from '../../services/quotationApi';
@@ -66,6 +66,9 @@ export default function PolicyStatementsPage() {
   const [selectedProvider, setSelectedProvider] = useState<'ALL' | 'ALPHA' | 'CBIC'>('ALL');
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
 
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
@@ -77,7 +80,7 @@ export default function PolicyStatementsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchInput, selectedProvider]);
+  }, [searchInput, selectedProvider, dateFrom, dateTo]);
 
   // Fetch approved Policy Issuance Requests
   const { data: response, isLoading, refetch } = useQuery({
@@ -98,6 +101,17 @@ export default function PolicyStatementsPage() {
       if (selectedProvider === 'ALPHA' && !provider.includes('ALPHA')) return false;
       if (selectedProvider === 'CBIC' && !provider.includes('CBIC')) return false;
 
+      if (dateFrom) {
+        const from = new Date(dateFrom + 'T00:00:00');
+        const qDate = new Date(q.created_at);
+        if (qDate < from) return false;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo + 'T23:59:59');
+        const qDate = new Date(q.created_at);
+        if (qDate > to) return false;
+      }
+
       if (!searchInput) return true;
       const query = searchInput.toLowerCase();
       const ref = (q.quotation_number || q.ir_number || '').toLowerCase();
@@ -106,7 +120,7 @@ export default function PolicyStatementsPage() {
       const agent = (typeof q.prepared_by === 'object' ? q.prepared_by?.name : '')?.toLowerCase() || '';
       return ref.includes(query) || customer.includes(query) || policy.includes(query) || agent.includes(query);
     });
-  }, [allQuotations, searchInput, selectedProvider]);
+  }, [allQuotations, searchInput, selectedProvider, dateFrom, dateTo]);
 
   // Overall financial totals
   const overallTotals = useMemo(() => {
@@ -132,32 +146,26 @@ export default function PolicyStatementsPage() {
 
   return (
     <div className="space-y-4">
-      {/* Page Title & Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden no-print">
+      {/* Page Title */}
+      <div className="flex items-center justify-between print:hidden no-print">
         <div>
           <h1 className="text-xl font-bold text-slate-800">Policy Statements</h1>
           <p className="text-sm text-slate-500">Auto-generated tariff, commission, remittance, and company income statements</p>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-medium rounded-xl shadow-sm shadow-[#4A0E17]/20 transition cursor-pointer"
-        >
-          <RefreshCw className="h-4 w-4" /> Refresh List
-        </button>
       </div>
 
-      {/* Filter and Search Bar Container */}
+      {/* Refined Aligned Filter and Search Bar Container */}
       {!selectedQuotation && (
-        <div className="flex flex-col lg:flex-row items-center gap-3 bg-white rounded-2xl border border-slate-200/80 p-4 print:hidden no-print">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 bg-white rounded-2xl border border-slate-200/80 p-4 print:hidden no-print">
           {/* Search Input */}
-          <div className="relative flex-grow w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <div className="relative flex-grow min-w-[240px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search policy request number, customer, policy, agent..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+              className="w-full pl-10 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
             />
             {searchInput && (
               <button
@@ -170,31 +178,52 @@ export default function PolicyStatementsPage() {
             )}
           </div>
 
-          {/* Insurance Provider Filters */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-full lg:w-auto shrink-0">
-            {(['ALL', 'ALPHA', 'CBIC'] as const).map((prov) => (
-              <button
-                key={prov}
-                onClick={() => setSelectedProvider(prov)}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg transition uppercase cursor-pointer ${selectedProvider === prov
-                    ? 'bg-[#4A0E17] text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-200'
-                  }`}
-              >
-                {prov}
-              </button>
-            ))}
+          {/* Insurance Provider Dropdown */}
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 shrink-0">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Provider:</span>
+            <select
+              value={selectedProvider}
+              onChange={(e) => setSelectedProvider(e.target.value as any)}
+              className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer pr-1"
+            >
+              <option value="ALL">All Providers</option>
+              <option value="ALPHA">ALPHA Insurance</option>
+              <option value="CBIC">CBIC Insurance</option>
+            </select>
           </div>
 
-          {/* Summary Stat Pills */}
-          <div className="flex items-center gap-3 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl shrink-0 text-xs font-medium text-slate-600 w-full lg:w-auto justify-between sm:justify-start">
-            <div>
-              Approved: <span className="font-bold text-slate-800">{overallTotals.count}</span>
+          {/* Aligned Date Range Selector */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+              <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">From:</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+              />
             </div>
-            <div className="h-4 w-px bg-slate-300" />
-            <div>
-              Total Volume: <span className="font-bold text-emerald-700">₱{overallTotals.totalPrem.toLocaleString('en-US')}</span>
+
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">To:</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+              />
             </div>
+
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                className="inline-flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl transition cursor-pointer text-xs"
+                title="Clear date filter"
+              >
+                <X className="h-3.5 w-3.5" /> Clear
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -229,8 +258,7 @@ export default function PolicyStatementsPage() {
                       <th className="px-5 py-3.5">Insurance Provider</th>
                       <th className="px-5 py-3.5">Total Premium</th>
                       <th className="px-5 py-3.5">Agent</th>
-                      <th className="px-5 py-3.5">Date</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
+                      <th className="px-5 py-3.5">Date & Time</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -240,9 +268,17 @@ export default function PolicyStatementsPage() {
                       const provider = cov.insurance_provider || cov.provider || q.customer?.insurance_provider || 'ALPHA';
                       const isCBIC = provider.toUpperCase().includes('CBIC');
                       const agentName = typeof q.prepared_by === 'object' ? q.prepared_by?.name : 'Sales Agent';
+                      const createdDate = new Date(q.created_at);
+                      const formattedDateStr = createdDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+                      const formattedTimeStr = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
                       return (
-                        <tr key={q.id} className="hover:bg-slate-50/80 transition">
-                          <td className="px-5 py-4 font-bold text-slate-800">
+                        <tr
+                          key={q.id}
+                          onClick={() => setSelectedQuotation(q)}
+                          className="hover:bg-slate-50 cursor-pointer transition group"
+                        >
+                          <td className="px-5 py-4 font-bold text-slate-800 group-hover:text-[#4A0E17] transition">
                             {q.quotation_number || q.ir_number || `IR-${q.id}`}
                           </td>
                           <td className="px-5 py-4 font-semibold text-slate-700">
@@ -262,16 +298,9 @@ export default function PolicyStatementsPage() {
                           <td className="px-5 py-4 font-medium text-slate-600 text-xs">
                             {agentName}
                           </td>
-                          <td className="px-5 py-4 text-xs text-slate-500">
-                            {new Date(q.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <button
-                              onClick={() => setSelectedQuotation(q)}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl shadow-2xs transition cursor-pointer"
-                            >
-                              <Eye className="h-3.5 w-3.5" /> View Statement
-                            </button>
+                          <td className="px-5 py-4 text-xs font-medium text-slate-700 whitespace-nowrap">
+                            <span>{formattedDateStr}</span>
+                            <span className="text-[11px] font-mono text-slate-400 ml-1.5">{formattedTimeStr}</span>
                           </td>
                         </tr>
                       );
