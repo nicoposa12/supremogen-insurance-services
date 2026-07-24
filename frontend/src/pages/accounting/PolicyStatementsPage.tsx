@@ -489,7 +489,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs print:grid-cols-2 print:gap-4 print:border-none print:shadow-none">
             {/* PAGE 1: Policy Info & Perils Table */}
             <div className="p-6 space-y-5 border-r border-slate-200/80 bg-white print:p-2 print:space-y-3 print:border-r">
-              <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
+              <div className="bg-[#4A0E17] text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 PAGE 1 — POLICY & VEHICLE DETAILS ({cbicType})
               </div>
 
@@ -536,7 +536,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
               <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                 <table className="w-full border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-800 text-white font-semibold text-[11px] uppercase tracking-wider">
+                    <tr className="bg-[#4A0E17] text-white font-semibold text-[11px] uppercase tracking-wider">
                       <th className="py-2 px-2.5 text-left border-r border-slate-700">Perils</th>
                       <th className="py-2 px-2.5 text-right border-r border-slate-700">Sum Insured</th>
                       <th className="py-2 px-2.5 text-center border-r border-slate-700" colSpan={2}>Writing — CBIC</th>
@@ -629,7 +629,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
 
             {/* PAGE 2: CBIC Commissions & Accounting Breakdown */}
             <div className="p-6 space-y-5 bg-white print:p-2 print:space-y-3">
-              <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
+              <div className="bg-[#4A0E17] text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 PAGE 2 — CBIC REMITTANCE & COMPANY INCOME
               </div>
 
@@ -662,7 +662,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
 
               {/* Final CBIC Remittance & Income Summary */}
               <div className="space-y-2.5 border-t border-slate-200 pt-4 text-xs">
-                <div className="flex justify-between font-bold p-3 bg-slate-800 text-white rounded-xl shadow-2xs">
+                <div className="flex justify-between font-bold p-3 bg-[#4A0E17] text-white rounded-xl shadow-2xs">
                   <span className="uppercase tracking-wider text-[11px]">NET REMITTANCE TO CBIC</span>
                   <span className="font-mono tabular-nums text-sm">₱{formatCurrency(cbicNetRemittance)}</span>
                 </div>
@@ -699,7 +699,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-xs border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs print:grid-cols-2 print:gap-4 print:border-none print:shadow-none">
             {/* PAGE 1: Policy & Customer Info + Primary Tariffs */}
             <div className="p-6 space-y-5 border-r border-slate-200/80 bg-white print:p-2 print:space-y-3 print:border-r">
-              <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
+              <div className="bg-[#4A0E17] text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 Page 1 — Policy & Vehicle Details (ALPHA)
               </div>
 
@@ -768,7 +768,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
               <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                 <table className="w-full border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-800 text-white font-semibold text-[11px] uppercase tracking-wider">
+                    <tr className="bg-[#4A0E17] text-white font-semibold text-[11px] uppercase tracking-wider">
                       <th className="py-2.5 px-3 text-left">Coverage</th>
                       <th className="py-2.5 px-3 text-right">Sum Insured</th>
                       <th className="py-2.5 px-3 text-center">Rate</th>
@@ -833,7 +833,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
 
             {/* PAGE 2: Commission, Remittance & Company Income Calculations */}
             <div className="p-6 space-y-5 bg-white print:p-2 print:space-y-3">
-              <div className="bg-slate-900 text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
+              <div className="bg-[#4A0E17] text-white px-4 py-2 font-bold uppercase tracking-wider text-center rounded-xl text-[11px] shadow-xs">
                 Page 2 — Tariff Commissions & Company Remittance (ALPHA)
               </div>
 
@@ -841,7 +841,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
               <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                 <table className="w-full border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-800 text-white font-semibold text-[11px] uppercase tracking-wider">
+                    <tr className="bg-[#4A0E17] text-white font-semibold text-[11px] uppercase tracking-wider">
                       <th className="py-2.5 px-3 text-left">Tariff Item</th>
                       <th className="py-2.5 px-3 text-center">Comm %</th>
                       <th className="py-2.5 px-3 text-right">Comm Amount</th>
@@ -885,7 +885,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
 
               {/* Final Accounting Breakdown */}
               <div className="space-y-2.5 border-t border-slate-200 pt-4 text-xs">
-                <div className="flex justify-between font-bold p-3 bg-slate-800 text-white rounded-xl shadow-2xs">
+                <div className="flex justify-between font-bold p-3 bg-[#4A0E17] text-white rounded-xl shadow-2xs">
                   <span className="uppercase tracking-wider text-[11px]">REMITTANCE TO ALPHA</span>
                   <span className="font-mono tabular-nums text-sm">₱{formatCurrency(alphaRemittanceToProvider)}</span>
                 </div>

@@ -17,6 +17,7 @@ import {
   FileSpreadsheet,
   ArrowUpRight,
   Eye,
+  Calendar,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -42,9 +43,14 @@ import { getQuotations } from '../../services/quotationApi';
 import type { DashboardData } from '../../types/CustomerTypes';
 import { useAuth } from '../../context/AuthContext';
 
-// Chart colors
+// Chart & Filter Constants
 const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981'];
 const STATUS_COLORS = ['#10b981', '#f59e0b', '#ef4444'];
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+const AVAILABLE_YEARS = [2024, 2025, 2026, 2027, 2028];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -95,6 +101,12 @@ export default function DashboardPage() {
   }, [dashboard, customerTimeframe]);
 
   const [accountingTimeframe, setAccountingTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [accountingSearchQuery, setAccountingSearchQuery] = useState('');
 
   // Fetch quotations for accounting metrics
@@ -181,29 +193,36 @@ export default function DashboardPage() {
     };
   };
 
-  // Filtered approved items based on active timeframe
+  // Filtered approved items based on active timeframe and selected day/week/month/year
   const timeframeFilteredQuotations = useMemo(() => {
-    const now = new Date();
     return approvedList.filter((q: any) => {
       const qDate = new Date(q.created_at || Date.now());
+
       if (accountingTimeframe === 'daily') {
-        return qDate.toDateString() === now.toDateString();
+        const targetDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : new Date();
+        return qDate.toDateString() === targetDate.toDateString();
       }
       if (accountingTimeframe === 'weekly') {
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
+        const refDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : new Date();
+        const startOfWeek = new Date(refDate);
+        startOfWeek.setDate(refDate.getDate() - refDate.getDay());
         startOfWeek.setHours(0, 0, 0, 0);
-        return qDate >= startOfWeek && qDate <= now;
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        return qDate >= startOfWeek && qDate <= endOfWeek;
       }
       if (accountingTimeframe === 'monthly') {
-        return qDate.getMonth() === now.getMonth() && qDate.getFullYear() === now.getFullYear();
+        return qDate.getMonth() === selectedMonth && qDate.getFullYear() === selectedYear;
       }
       if (accountingTimeframe === 'yearly') {
-        return qDate.getFullYear() === now.getFullYear();
+        return qDate.getFullYear() === selectedYear;
       }
       return true;
     });
-  }, [approvedList, accountingTimeframe]);
+  }, [approvedList, accountingTimeframe, selectedDateStr, selectedMonth, selectedYear]);
 
   // Aggregate Metrics based on timeframe
   const accountingMetrics = useMemo(() => {
@@ -234,16 +253,15 @@ export default function DashboardPage() {
 
   // Time-Series Chart Data accurately computed from actual quotation records
   const accountingChartSeries = useMemo(() => {
-    const now = new Date();
-
     if (accountingTimeframe === 'daily') {
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const targetDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : new Date();
       const dailyBuckets = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(now);
-        d.setDate(now.getDate() - (6 - i));
+        const d = new Date(targetDate);
+        d.setDate(targetDate.getDate() - (6 - i));
         return {
           dateStr: d.toDateString(),
-          label: i === 6 ? 'Today' : days[d.getDay()],
+          label: i === 6 ? 'Selected' : days[d.getDay()],
           companyIncome: 0,
           netIncome: 0,
           premium: 0,
@@ -277,9 +295,10 @@ export default function DashboardPage() {
         { label: 'Week 4', minDay: 22, maxDay: 31, companyIncome: 0, netIncome: 0, premium: 0 },
       ];
 
+      const refDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : new Date();
       approvedList.forEach((q: any) => {
         const fin = getQuotationFinancials(q);
-        if (fin.date.getMonth() === now.getMonth() && fin.date.getFullYear() === now.getFullYear()) {
+        if (fin.date.getMonth() === refDate.getMonth() && fin.date.getFullYear() === refDate.getFullYear()) {
           const dayOfMonth = fin.date.getDate();
           const bucket = weeks.find((w) => dayOfMonth >= w.minDay && dayOfMonth <= w.maxDay);
           if (bucket) {
@@ -299,8 +318,7 @@ export default function DashboardPage() {
     }
 
     if (accountingTimeframe === 'yearly') {
-      const currentYear = now.getFullYear();
-      const years = [currentYear - 2, currentYear - 1, currentYear].map((y) => ({
+      const years = [selectedYear - 2, selectedYear - 1, selectedYear, selectedYear + 1].map((y) => ({
         label: String(y),
         yearNum: y,
         companyIncome: 0,
@@ -339,7 +357,7 @@ export default function DashboardPage() {
 
     approvedList.forEach((q: any) => {
       const fin = getQuotationFinancials(q);
-      if (fin.date.getFullYear() === now.getFullYear()) {
+      if (fin.date.getFullYear() === selectedYear) {
         const mIdx = fin.date.getMonth();
         if (monthlyBuckets[mIdx]) {
           monthlyBuckets[mIdx].companyIncome += fin.compInc;
@@ -355,7 +373,7 @@ export default function DashboardPage() {
       companyIncome: Math.round(b.companyIncome),
       netIncome: Math.round(b.netIncome),
     }));
-  }, [accountingTimeframe, approvedList]);
+  }, [accountingTimeframe, approvedList, selectedDateStr, selectedMonth, selectedYear]);
 
   // Provider Share Data accurately computed from actual quotation records
   const providerShareData = useMemo(() => {
@@ -586,21 +604,92 @@ export default function DashboardPage() {
             <p className="text-sm text-slate-500">Real-time tracking of auto-calculated policy premiums, remittances, and net company income</p>
           </div>
 
-          {/* Timeframe Pill Switcher */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 border border-slate-200">
-            {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((tf) => (
-              <button
-                key={tf}
-                onClick={() => setAccountingTimeframe(tf)}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg transition uppercase cursor-pointer ${
-                  accountingTimeframe === tf
-                    ? 'bg-[#4A0E17] text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {tf}
-              </button>
-            ))}
+          {/* Timeframe Pill Switcher & Specific Date Selectors */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Pill Buttons */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 border border-slate-200">
+              {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => setAccountingTimeframe(tf)}
+                  className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition uppercase cursor-pointer ${
+                    accountingTimeframe === tf
+                      ? 'bg-[#4A0E17] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+
+            {/* Dynamic Selectors for Day / Week / Month / Year */}
+            {accountingTimeframe === 'daily' && (
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Day:</span>
+                <input
+                  type="date"
+                  value={selectedDateStr}
+                  onChange={(e) => setSelectedDateStr(e.target.value)}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                />
+              </div>
+            )}
+
+            {accountingTimeframe === 'weekly' && (
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Week Of:</span>
+                <input
+                  type="date"
+                  value={selectedDateStr}
+                  onChange={(e) => setSelectedDateStr(e.target.value)}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                />
+              </div>
+            )}
+
+            {accountingTimeframe === 'monthly' && (
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Month:</span>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer pr-1"
+                >
+                  {MONTH_NAMES.map((m, idx) => (
+                    <option key={m} value={idx}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                >
+                  {AVAILABLE_YEARS.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {accountingTimeframe === 'yearly' && (
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Year:</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                >
+                  {AVAILABLE_YEARS.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
