@@ -466,7 +466,7 @@ export default function DashboardLayout() {
   const { data: notificationsRes } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: getNotifications,
-    refetchInterval: sseActive ? false : 8000, // Fallback to 8s polling if SSE fails
+    refetchInterval: sseActive ? false : 3000, // 3s fast polling for real-time notifications
     enabled: !!user,
   });
 

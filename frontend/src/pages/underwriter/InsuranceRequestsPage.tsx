@@ -35,6 +35,7 @@ export default function InsuranceRequestsPage() {
     queryKey: ['insurance-requests', params],
     queryFn: () => getQuotations(params),
     placeholderData: (prev) => prev,
+    refetchInterval: 3000,
   });
 
   const pagination = response?.data;
@@ -153,15 +154,6 @@ export default function InsuranceRequestsPage() {
     {
       key: 'status', label: 'Status', sortable: true,
       render: (r: Quotation) => <StatusBadge status={r.status} />,
-    },
-    {
-      key: 'actions', label: '', className: 'text-right',
-      render: (r: Quotation) => (
-        <button onClick={(e) => { e.stopPropagation(); setSelectedRequestId(r.id); }}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition" title="View">
-          <Eye className="h-4 w-4" />
-        </button>
-      ),
     },
   ];
 

@@ -94,6 +94,7 @@ export default function QuotationsPage() {
     queryKey: ['quotations', params],
     queryFn: () => getQuotations(params),
     placeholderData: (prev) => prev,
+    refetchInterval: 3000,
   });
 
   const pagination = response?.data;
@@ -212,21 +213,11 @@ export default function QuotationsPage() {
       key: 'actions', label: 'Actions', className: 'text-right',
       render: (r: Quotation) => (
         <div className="flex items-center justify-end gap-1">
-          <button onClick={(e) => { e.stopPropagation(); setSelectedQuotationId(r.id); }}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition" title="View">
-            <Eye className="h-4 w-4" />
-          </button>
           {canEdit && r.status === 'draft' && (
-            <>
-              <button onClick={(e) => { e.stopPropagation(); setFormEditTarget(r); setIsFormOpen(true); }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition" title="Edit">
-                <Pencil className="h-4 w-4" />
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Delete">
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </>
+            <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Delete">
+              <Trash2 className="h-4 w-4" />
+            </button>
           )}
           {canEdit && ['approved', 'submitted', 'under_review'].includes(r.status) && (
             <button

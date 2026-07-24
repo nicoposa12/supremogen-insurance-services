@@ -539,24 +539,6 @@ export default function CustomersPage() {
       ),
     },
     {
-      key: 'view',
-      label: 'VIEW',
-      className: 'text-center w-12',
-      render: (row: Customer) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedCustomer(row);
-            setActiveModalTab('info');
-          }}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition flex items-center justify-center mx-auto"
-          title="View Transaction Details"
-        >
-          <FileText className="h-4 w-4 text-[#4A0E17]" />
-        </button>
-      ),
-    },
-    {
       key: 'record_no',
       label: 'Record No',
       sortable: true,
@@ -614,19 +596,6 @@ export default function CustomersPage() {
       className: 'text-right',
       render: (row: Customer) => (
         <div className="flex items-center justify-end gap-1">
-          {canEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setFormEditTarget(row);
-                setIsFormOpen(true);
-              }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
-              title="Edit"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-          )}
           {canDelete && (
             <button
               onClick={(e) => {
@@ -642,7 +611,7 @@ export default function CustomersPage() {
         </div>
       ),
     },
-  ].filter((col) => !(col.key === 'actions' && !canEdit && !canDelete));
+  ].filter((col) => !(col.key === 'actions' && !canDelete));
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const inputClass = (error?: any) =>
