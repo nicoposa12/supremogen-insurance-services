@@ -689,7 +689,9 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                 const eVat = roundToTwoDecimals(basicPremiumSum * 0.12);
                 const lgt = roundToTwoDecimals(basicPremiumSum * 0.002);
                 const totalTaxAndPremium = basicPremiumSum + dst + eVat + lgt;
-                const grossPremium = totalTaxAndPremium + 3500 + Number(details.calculator?.towing_fee || 0);
+                const isPartnerRate = (customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+                const motorFixedAddition = isPartnerRate ? 3000 : 3500;
+                const grossPremium = totalTaxAndPremium + motorFixedAddition + Number(details.calculator?.towing_fee || 0);
 
                 return (
                   <div className="space-y-3.5 text-xs text-slate-600">

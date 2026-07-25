@@ -475,15 +475,16 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     }
   }, [covBI, covPD, premBI, premPD, isPrivateSedanSuv, isMotorcyclePrivate, isCommercialVehicle]);
 
-  // Auto-calculate PA Premium based on Seater (100 per seat)
+  // Auto-calculate PA Premium based on Seater (50 per seat for Motor, 100 per seat for others)
   useEffect(() => {
     if (seater) {
-      const calculatedPA = (seater * 100).toLocaleString('en-US');
+      const perSeat = isMotorcyclePrivate ? 50 : 100;
+      const calculatedPA = (seater * perSeat).toLocaleString('en-US');
       if (premPA !== calculatedPA) {
         setPremPA(calculatedPA);
       }
     }
-  }, [seater, premPA]);
+  }, [seater, premPA, isMotorcyclePrivate]);
 
   // Update Selling Rates based on vehicle type, usage, and rate type
   useEffect(() => {
@@ -500,15 +501,26 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     const isPrivateSUV = cleanQuotationUsed === 'SUV' && cleanUsage === 'PRIVATE';
     const isPrivateSedan = cleanQuotationUsed === 'SEDAN' && cleanUsage === 'PRIVATE';
     const isPrivateEV = cleanQuotationUsed === 'EV/HYBRID' && cleanUsage === 'PRIVATE';
+    const isMotor = cleanQuotationUsed === 'MOTOR';
 
+    const isTruck = cleanQuotationUsed === 'TRUCKS' || cleanQuotationUsed === 'TRUCK';
     const isYellowPlate = cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE';
     const isLalamove = cleanQuotationUsed === 'LALAMOVE';
     const isForHire = cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE';
     const isL300 = cleanQuotationUsed === 'L300/H100';
     const isTNVS = cleanQuotationUsed === 'TNVS' || cleanUsage === 'TNVS USE';
-    const isCommercial = isYellowPlate || isLalamove || isForHire || isL300 || isTNVS;
+    const isCommercial = isTruck || isYellowPlate || isLalamove || isForHire || isL300 || isTNVS;
 
-    if (isSirJay && isYellowPlate) {
+    if (isSirJay && isTruck) {
+      setSellingRateOD(1.80);
+      setSellingRateAON(0.00);
+      if (seater === 5) setSeater(3);
+    } else if (isSirJay && isMotor) {
+      setSellingRateOD(2.30);
+      setSellingRateAON(0.00);
+      if (seater === 5) setSeater(2);
+      if (!towingFee) setTowingFee('200');
+    } else if (isSirJay && isYellowPlate) {
       setSellingRateOD(2.50);
       setSellingRateAON(0.00);
     } else if (isSirJay && isLalamove) {
@@ -610,14 +622,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const lgt = isMotor ? roundToTwoDecimals(basicPremiumSum * 0.002) : 0;
   const totalTaxAndPremium = basicPremiumSum + dst + eVat + lgt;
 
-  // For Partner's Rate: GP * 1.2525 (no hidden 1500). For standard rates: GP * 1.2525 + 1500
   const isPartnerRate = (usedRateType || '').toUpperCase().includes('PARTNER') || (usedRateType || '').toUpperCase().includes('SIR JESS');
   const gpMultiplier = isMotor
     ? 0
     : (isPartnerRate ? roundToTwoDecimals(basicPremiumSum * 1.2525) : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500));
 
+  const motorFixedAddition = isPartnerRate ? 3000 : 3500;
   const grossPremium = isMotor
-    ? roundToTwoDecimals(totalTaxAndPremium + 3500 + numTowingFee)
+    ? roundToTwoDecimals(totalTaxAndPremium + motorFixedAddition + numTowingFee)
     : roundToTwoDecimals(gpMultiplier + numTowingFee);
 
   const totalPremiumCalculated = roundToTwoDecimals(grossPremium + numAgentMarkup + numSubAgentMarkup + effectiveFreebieCashback);
