@@ -754,7 +754,10 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                   </div>
                 );
               } else {
-                const gpMultiplier = roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500);
+                const isPartnerRate = (customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+                const gpMultiplier = isPartnerRate
+                  ? roundToTwoDecimals(basicPremiumSum * 1.2525)
+                  : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500);
                 const grossPremium = gpMultiplier + Number(details.calculator?.towing_fee || 0);
 
                 return (

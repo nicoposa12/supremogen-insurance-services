@@ -151,6 +151,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [backupPhone, setBackupPhone] = useState('');
   const [fbLink, setFbLink] = useState('');
   const [usedRateType, setUsedRateType] = useState('');
+  const [partnerName, setPartnerName] = useState('');
   const [usedRate, setUsedRate] = useState('');
 
   // For editable personal/contact fields
@@ -327,19 +328,38 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     }
   }, [isEdit, roles]);
 
-  // Automatically update usedRate when selling rates change
+  // Automatically update usedRate when selling rates change (For REGULAR QUOTA RATE or Sir Jessie Partner Rate)
   useEffect(() => {
-    const formatRatePercent = (rate: number): string => {
-      const formatted = rate.toFixed(2);
-      if (formatted.startsWith('0.')) {
-        return formatted.slice(1) + '%';
+    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
+    if (!usedRateType || usedRateType === 'REGULAR QUOTA RATE' || isSirJessie) {
+      const formatRatePercent = (rate: number): string => {
+        const formatted = rate.toFixed(2);
+        if (formatted.startsWith('0.')) {
+          return formatted.slice(1) + '%';
+        }
+        return formatted + '%';
+      };
+      if (sellingRateOD !== undefined && sellingRateAON !== undefined) {
+        setUsedRate(`${formatRatePercent(sellingRateOD)} - ${formatRatePercent(sellingRateAON)}`);
       }
-      return formatted + '%';
-    };
-    if (sellingRateOD !== undefined && sellingRateAON !== undefined) {
-      setUsedRate(`${formatRatePercent(sellingRateOD)} - ${formatRatePercent(sellingRateAON)}`);
     }
-  }, [sellingRateOD, sellingRateAON]);
+  }, [sellingRateOD, sellingRateAON, usedRateType, partnerName]);
+
+  // Parse custom rate string when using other Used Rate Types
+  useEffect(() => {
+    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
+    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && !isSirJessie) {
+      if (!usedRate) return;
+      const matches = usedRate.match(/(?:\d+\.?\d*|\.\d+)%?/g);
+      if (matches && matches.length > 0) {
+        const cleanNum = (str: string) => parseFloat(str.replace('%', '')) || 0;
+        const od = cleanNum(matches[0]);
+        const aon = matches.length > 1 ? cleanNum(matches[1]) : 0;
+        if (od > 0) setSellingRateOD(od);
+        if (aon >= 0) setSellingRateAON(aon);
+      }
+    }
+  }, [usedRate, usedRateType, partnerName]);
 
   // Populate customer fields on selection
   useEffect(() => {
@@ -375,7 +395,20 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setLandmark(c.landmark || '');
       setBackupPhone(c.backup_phone || '');
       setFbLink(c.fb_link || '');
-      setUsedRateType(c.used_rate_type || '');
+      const rawRateType = c.used_rate_type || '';
+      if (rawRateType.includes('SIR JAY PARTNER')) {
+        setUsedRateType("PARTNER'S RATE");
+        setPartnerName('SIR JAY PARTNER');
+      } else if (rawRateType.includes('SIR JESSIE')) {
+        setUsedRateType("PARTNER'S RATE");
+        setPartnerName('SIR JESSIE');
+      } else if (rawRateType.startsWith("PARTNER'S RATE")) {
+        setUsedRateType("PARTNER'S RATE");
+        setPartnerName('SIR JESSIE');
+      } else {
+        setUsedRateType(rawRateType);
+        setPartnerName('');
+      }
       setUsedRate(c.used_rate || '');
       setPolicyNo(c.policy_no || '');
 
@@ -446,15 +479,29 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     }
   }, [seater, premPA]);
 
-  // Update Selling Rates based on vehicle type and usage
+  // Update Selling Rates based on vehicle type, usage, and rate type
   useEffect(() => {
+    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
+
+    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && !isSirJessie) {
+      return; // Custom rate computation applies for Sir Jay Partner or Old Car Quotation
+    }
+
     const cleanQuotationUsed = (quotationUsed || '').trim().toUpperCase();
     const cleanUsage = (usage || '').trim().toUpperCase();
     const isPrivateSUV = cleanQuotationUsed === 'SUV' && cleanUsage === 'PRIVATE';
     const isPrivateSedan = cleanQuotationUsed === 'SEDAN' && cleanUsage === 'PRIVATE';
     const isPrivateEV = cleanQuotationUsed === 'EV/HYBRID' && cleanUsage === 'PRIVATE';
 
-    if (cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE' || cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE') {
+    if (isSirJessie) {
+      if (isPrivateSUV || isPrivateSedan) {
+        setSellingRateOD(1.30);
+        setSellingRateAON(0.00);
+      } else if (isCommercialVehicle) {
+        setSellingRateOD(1.40);
+        setSellingRateAON(0.00);
+      }
+    } else if (cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE' || cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE') {
       setSellingRateOD(2.60);
       setSellingRateAON(0.10);
     } else if (cleanQuotationUsed === 'L300/H100') {
@@ -482,7 +529,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setSellingRateOD(1.90);
       setSellingRateAON(0.10);
     }
-  }, [quotationUsed, usage]);
+  }, [quotationUsed, usage, usedRateType, partnerName]);
 
   // Auto-calculate OD and AON premiums based on coverage and rates
   useEffect(() => {
@@ -535,8 +582,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const lgt = isMotor ? roundToTwoDecimals(basicPremiumSum * 0.002) : 0;
   const totalTaxAndPremium = basicPremiumSum + dst + eVat + lgt;
 
-  // For Others: GP * 1.2525 + 1500
-  const gpMultiplier = isMotor ? 0 : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500);
+  // For Partner's Rate: GP * 1.2525 (no hidden 1500). For standard rates: GP * 1.2525 + 1500
+  const isPartnerRate = (usedRateType || '').toUpperCase().includes('PARTNER') || (usedRateType || '').toUpperCase().includes('SIR JESS');
+  const gpMultiplier = isMotor
+    ? 0
+    : (isPartnerRate ? roundToTwoDecimals(basicPremiumSum * 1.2525) : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500));
 
   const grossPremium = isMotor
     ? roundToTwoDecimals(totalTaxAndPremium + 3500 + numTowingFee)
@@ -628,7 +678,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       landmark: landmark.trim() ? landmark.trim() : 'N/A',
       backup_phone: backupPhone,
       fb_link: fbLink,
-      used_rate_type: usedRateType,
+      used_rate_type: usedRateType === "PARTNER'S RATE" ? (partnerName ? `PARTNER'S RATE (${partnerName})` : "PARTNER'S RATE") : usedRateType,
       used_rate: usedRate,
       policy_no: policyNo,
 
@@ -789,6 +839,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       { value: ownership, name: 'Ownership' },
       { value: paymentTerms, name: 'Payment Terms' },
       { value: usedRateType, name: 'Used Rate Type' },
+      ...(usedRateType === "PARTNER'S RATE" ? [{ value: partnerName, name: 'Select Partner' }] : []),
       { value: usedRate, name: 'Used Rate' },
       { value: receiverName, name: "Receiver's Name" },
       { value: deliveryAddress, name: 'Delivery Address' },
@@ -1114,7 +1165,17 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
             </div>
             <div>
               <label className={labelClass}>Used Rate Type *</label>
-              <select value={usedRateType} onChange={(e) => setUsedRateType(e.target.value)} className={getInputClass(usedRateType)}>
+              <select
+                value={usedRateType}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setUsedRateType(val);
+                  if (val === "PARTNER'S RATE" && !partnerName) {
+                    setPartnerName('SIR JESSIE');
+                  }
+                }}
+                className={getInputClass(usedRateType)}
+              >
                 <option value="">Select Rate Type</option>
                 <option value="REGULAR QUOTA RATE">REGULAR QUOTA RATE</option>
                 <option value="APPROVED RATE BY SIR JESS">APPROVED RATE BY SIR JESS</option>
@@ -1122,10 +1183,35 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                 <option value="OLD CAR QUOTATION">OLD CAR QUOTATION</option>
               </select>
             </div>
-            <div>
-              <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
-              <input type="text" value={usedRate} onChange={(e) => setUsedRate(e.target.value)} className={getInputClass(usedRate)} placeholder="e.g. 1.30% - .10%" />
-            </div>
+
+            {usedRateType === "PARTNER'S RATE" ? (
+              <div>
+                <label className={labelClass}>Select Partner *</label>
+                <select
+                  value={partnerName}
+                  onChange={(e) => setPartnerName(e.target.value)}
+                  className={getInputClass(partnerName)}
+                >
+                  <option value="">Select Partner</option>
+                  <option value="SIR JESSIE">SIR JESSIE</option>
+                  <option value="SIR JAY PARTNER">SIR JAY PARTNER</option>
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
+                <input type="text" value={usedRate} onChange={(e) => setUsedRate(e.target.value)} className={getInputClass(usedRate)} placeholder="e.g. 1.30% - .10%" />
+              </div>
+            )}
+
+            {usedRateType === "PARTNER'S RATE" && (
+              <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-slate-100">
+                <div className="md:col-span-2">
+                  <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
+                  <input type="text" value={usedRate} onChange={(e) => setUsedRate(e.target.value)} className={getInputClass(usedRate)} placeholder="e.g. 1.30% - .10%" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

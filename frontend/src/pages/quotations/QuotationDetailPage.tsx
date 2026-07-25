@@ -611,7 +611,10 @@ export default function QuotationDetailPage({
                             </>
                           );
                         } else {
-                          const gpMultiplier = roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500);
+                          const isPartnerRate = (quotation.customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+                          const gpMultiplier = isPartnerRate
+                            ? roundToTwoDecimals(basicPremiumSum * 1.2525)
+                            : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500);
                           const grossPremium = gpMultiplier + Number(details.calculator?.towing_fee || 0);
 
                           return (
