@@ -493,14 +493,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     const isPrivateSedan = cleanQuotationUsed === 'SEDAN' && cleanUsage === 'PRIVATE';
     const isPrivateEV = cleanQuotationUsed === 'EV/HYBRID' && cleanUsage === 'PRIVATE';
 
-    if (isSirJessie) {
-      if (isPrivateSUV || isPrivateSedan) {
-        setSellingRateOD(1.30);
-        setSellingRateAON(0.00);
-      } else if (isCommercialVehicle) {
-        setSellingRateOD(1.40);
-        setSellingRateAON(0.00);
-      }
+    const isCommercial = cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE' || cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE' || cleanQuotationUsed === 'TNVS' || cleanUsage === 'TNVS USE' || cleanQuotationUsed === 'L300/H100' || cleanQuotationUsed === 'LALAMOVE';
+
+    if (isSirJessie && isCommercial) {
+      setSellingRateOD(1.40);
+      setSellingRateAON(0.00);
+    } else if (isSirJessie && (isPrivateSUV || isPrivateSedan)) {
+      setSellingRateOD(1.30);
+      setSellingRateAON(0.00);
     } else if (cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE' || cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE') {
       setSellingRateOD(2.60);
       setSellingRateAON(0.10);
