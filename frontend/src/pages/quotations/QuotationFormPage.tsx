@@ -328,10 +328,13 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     }
   }, [isEdit, roles]);
 
-  // Automatically update usedRate when selling rates change (For REGULAR QUOTA RATE or Sir Jessie Partner Rate)
+  // Automatically update usedRate when selling rates change (For REGULAR QUOTA RATE, Sir Jessie, or Sir Jay Partner Rate)
   useEffect(() => {
     const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
-    if (!usedRateType || usedRateType === 'REGULAR QUOTA RATE' || isSirJessie) {
+    const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
+    const isPartnerAutoRate = isSirJessie || isSirJay;
+
+    if (!usedRateType || usedRateType === 'REGULAR QUOTA RATE' || isPartnerAutoRate) {
       const formatRatePercent = (rate: number): string => {
         const formatted = rate.toFixed(2);
         if (formatted.startsWith('0.')) {
@@ -348,7 +351,10 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   // Parse custom rate string when using other Used Rate Types
   useEffect(() => {
     const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
-    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && !isSirJessie) {
+    const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
+    const isPartnerAutoRate = isSirJessie || isSirJay;
+
+    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && !isPartnerAutoRate) {
       if (!usedRate) return;
       const matches = usedRate.match(/(?:\d+\.?\d*|\.\d+)%?/g);
       if (matches && matches.length > 0) {
@@ -482,9 +488,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   // Update Selling Rates based on vehicle type, usage, and rate type
   useEffect(() => {
     const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
+    const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
+    const isPartnerAutoRate = isSirJessie || isSirJay;
 
-    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && !isSirJessie) {
-      return; // Custom rate computation applies for Sir Jay Partner or Old Car Quotation
+    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && !isPartnerAutoRate) {
+      return; // Custom rate computation applies for Old Car Quotation or custom rates
     }
 
     const cleanQuotationUsed = (quotationUsed || '').trim().toUpperCase();
@@ -493,15 +501,35 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     const isPrivateSedan = cleanQuotationUsed === 'SEDAN' && cleanUsage === 'PRIVATE';
     const isPrivateEV = cleanQuotationUsed === 'EV/HYBRID' && cleanUsage === 'PRIVATE';
 
-    const isCommercial = cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE' || cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE' || cleanQuotationUsed === 'TNVS' || cleanUsage === 'TNVS USE' || cleanQuotationUsed === 'L300/H100' || cleanQuotationUsed === 'LALAMOVE';
+    const isYellowPlate = cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE';
+    const isLalamove = cleanQuotationUsed === 'LALAMOVE';
+    const isForHire = cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE';
+    const isL300 = cleanQuotationUsed === 'L300/H100';
+    const isTNVS = cleanQuotationUsed === 'TNVS' || cleanUsage === 'TNVS USE';
+    const isCommercial = isYellowPlate || isLalamove || isForHire || isL300 || isTNVS;
 
-    if (isSirJessie && isCommercial) {
+    if (isSirJay && isYellowPlate) {
+      setSellingRateOD(2.50);
+      setSellingRateAON(0.00);
+    } else if (isSirJay && isLalamove) {
+      setSellingRateOD(2.45);
+      setSellingRateAON(0.00);
+    } else if (isSirJay && isForHire) {
+      setSellingRateOD(2.10);
+      setSellingRateAON(0.00);
+    } else if (isSirJay && isL300) {
+      setSellingRateOD(1.85);
+      setSellingRateAON(0.00);
+    } else if (isSirJay && isTNVS) {
+      setSellingRateOD(1.60);
+      setSellingRateAON(0.00);
+    } else if (isSirJessie && isCommercial) {
       setSellingRateOD(1.40);
       setSellingRateAON(0.00);
     } else if (isSirJessie && (isPrivateSUV || isPrivateSedan)) {
       setSellingRateOD(1.30);
       setSellingRateAON(0.00);
-    } else if (cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE' || cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE') {
+    } else if (isForHire || isYellowPlate) {
       setSellingRateOD(2.60);
       setSellingRateAON(0.10);
     } else if (cleanQuotationUsed === 'L300/H100') {
