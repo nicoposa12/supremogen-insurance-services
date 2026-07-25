@@ -585,7 +585,7 @@ export default function CollectionLedgerPage() {
       page: page,
       per_page: perPage,
       search: searchVal,
-      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm') ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid' : invoiceStatus),
+      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm') ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid,voided' : invoiceStatus),
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
@@ -1372,6 +1372,7 @@ export default function CollectionLedgerPage() {
                 <option value="partial">Partially Paid</option>
                 <option value="overdue">Overdue</option>
                 <option value="paid">Paid</option>
+                <option value="voided">Cancelled / Voided</option>
               </select>
             </div>
 
@@ -1635,15 +1636,9 @@ export default function CollectionLedgerPage() {
                               {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                             </td>
                             <td className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">
-                              {isCancelledPolicy ? (
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
-                                  CANCELLED
-                                </span>
-                              ) : (
-                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700 border border-blue-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'}`}>
-                                  {customer?.request_type || '—'}
-                                </span>
-                              )}
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700 border border-blue-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'}`}>
+                                {customer?.request_type || '—'}
+                              </span>
                             </td>
                             <td className="px-4 py-3 border-r border-slate-200 font-bold uppercase tracking-tight">
                               <div className="text-slate-900 font-bold">{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>

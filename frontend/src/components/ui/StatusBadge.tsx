@@ -77,8 +77,8 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     className: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
   },
   voided: {
-    label: 'Voided',
-    className: 'bg-stone-100 text-stone-600 ring-stone-500/20',
+    label: 'Cancelled / Voided',
+    className: 'bg-rose-50 text-rose-700 ring-rose-600/30 border border-rose-200',
   },
   refunded: {
     label: 'Refunded',

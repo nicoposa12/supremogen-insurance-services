@@ -125,7 +125,7 @@ export default function CollectionPage() {
       page: invoicePage,
       per_page: invoicePerPage,
       search: invoiceSearch,
-      status: invoiceStatus === 'all' ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid' : invoiceStatus),
+      status: invoiceStatus === 'all' ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid,voided' : invoiceStatus),
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
