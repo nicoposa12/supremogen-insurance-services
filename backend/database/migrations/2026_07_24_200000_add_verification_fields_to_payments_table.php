@@ -12,6 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payments', function (Blueprint $table) {
+            if (Schema::hasColumn('payments', 'verification_remarks') && !Schema::hasColumn('payments', 'verification_notes')) {
+                $table->renameColumn('verification_remarks', 'verification_notes');
+            }
             if (!Schema::hasColumn('payments', 'verification_status')) {
                 $table->string('verification_status')->default('pending_verification')->after('status');
             }

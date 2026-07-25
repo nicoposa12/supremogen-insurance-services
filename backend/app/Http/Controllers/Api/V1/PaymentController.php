@@ -22,34 +22,58 @@ class PaymentController extends Controller
         $allowed = ['payment_number', 'amount', 'payment_method', 'payment_date', 'status', 'created_at'];
         if (!in_array($sortBy, $allowed)) $sortBy = 'created_at';
 
-        $query = Payment::with([
-                'invoice:id,invoice_number,customer_id,total_amount,balance,policy_id',
-                'invoice.policy:id,policy_number,quotation_id',
-                'invoice.policy.quotation:id,quotation_number,ir_number',
-                'invoice.customer:id,customer_code,first_name,last_name,policy_no,mobile',
-                'receivedBy:id,name',
-                'verifiedBy:id,name',
-                'attachments',
-            ])
-            ->search($request->input('search'))
+        $baseQuery = Payment::search($request->input('search'))
             ->ofStatus($request->input('status'))
             ->ofMethod($request->input('method'));
 
-        if ($request->filled('verification_status') && $request->input('verification_status') !== 'all') {
-            $query->where('verification_status', $request->input('verification_status'));
-        }
-
         if ($request->filled('customer_id')) {
-            $query->whereHas('invoice', function ($q) use ($request) {
+            $baseQuery->whereHas('invoice', function ($q) use ($request) {
                 $q->where('customer_id', $request->input('customer_id'));
             });
+        }
+
+        $summary = [
+            'pending' => (clone $baseQuery)->where(function ($q) {
+                $q->where('verification_status', 'pending_verification')
+                  ->orWhere('verification_status', 'pending')
+                  ->orWhereNull('verification_status');
+            })->count(),
+            'verified' => (clone $baseQuery)->where('verification_status', 'verified')->count(),
+            'rejected' => (clone $baseQuery)->where('verification_status', 'rejected')->count(),
+        ];
+
+        $query = (clone $baseQuery)->with([
+            'invoice:id,invoice_number,customer_id,total_amount,balance,policy_id',
+            'invoice.policy:id,policy_number,quotation_id',
+            'invoice.policy.quotation:id,quotation_number,ir_number',
+            'invoice.customer:id,customer_code,first_name,last_name,policy_no,mobile',
+            'receivedBy:id,name',
+            'verifiedBy:id,name',
+            'attachments',
+        ]);
+
+        if ($request->filled('verification_status') && $request->input('verification_status') !== 'all') {
+            $vStatus = $request->input('verification_status');
+            if ($vStatus === 'pending' || $vStatus === 'pending_verification') {
+                $query->where(function ($q) {
+                    $q->where('verification_status', 'pending_verification')
+                      ->orWhere('verification_status', 'pending')
+                      ->orWhereNull('verification_status');
+                });
+            } else {
+                $query->where('verification_status', $vStatus);
+            }
         }
 
         $payments = $query->orderBy($sortBy, $sortDir)
             ->paginate($perPage)
             ->appends($request->query());
 
-        return response()->json(['success' => true, 'data' => $payments]);
+        return response()->json([
+            'success' => true,
+            'data'    => $payments,
+            'summary' => $summary,
+        ]);
     }
 
     /**
@@ -125,70 +149,52 @@ class PaymentController extends Controller
             return $payment;
         });
 
-        // Recalculate invoice totals & status
+        // Recalculate invoice totals (only counts verified payments, so balance is unchanged while pending)
         $invoice->recalculate();
 
-        // Send payment receipt email to client (auto-queued via ShouldQueue)
+        // Notify Accounting Officers about new collection payment needing verification
         try {
-            $customer = $invoice->customer;
-            if ($customer && $customer->email) {
-                $payments = $invoice->payments()->where('status', 'completed')->orderBy('payment_date', 'asc')->orderBy('created_at', 'asc')->get();
-                $paymentIndex = $payments->pluck('id')->search($payment->id);
-                $installmentNumber = ($paymentIndex !== false) ? ($paymentIndex + 1) : 1;
+            $ref = $payment->payment_number ?? ('#' . $payment->id);
+            $clientName = $invoice->customer ? trim($invoice->customer->first_name . ' ' . $invoice->customer->last_name) : 'Client';
+            $amountFormatted = number_format((float) $payment->amount, 2);
+            $collectorName = $request->user()?->name ?: 'Collection Officer';
 
-                $ordinals = [1 => '1ST', 2 => '2ND', 3 => '3RD', 4 => '4TH', 5 => '5TH', 6 => '6TH'];
-                $installmentOrdinal = $ordinals[$installmentNumber] ?? ($installmentNumber . 'TH');
+            $accountingOfficers = \App\Models\User::whereHas('roles', function ($q) {
+                $q->whereIn('name', ['Accounting Officer', 'Accounting', 'Admin', 'Super Admin']);
+            })->get();
 
-                $customerName = trim($customer->first_name . ' ' . $customer->last_name);
-                $policyNumber = $customer->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
-
-                \Illuminate\Support\Facades\Mail::to($customer->email)->send(
-                    new \App\Mail\PaymentReceiptMail(
-                        $customerName,
-                        $policyNumber,
-                        $installmentOrdinal,
-                        (float) $payment->amount,
-                        (float) $invoice->balance
-                    )
-                );
-
-                \Illuminate\Support\Facades\Log::info("Payment receipt email queued for {$customer->email} for invoice {$invoice->invoice_number}, {$installmentOrdinal} payment.");
+            if ($accountingOfficers->isEmpty()) {
+                $accountingOfficers = \App\Models\User::whereIn('role_name', ['Accounting Officer', 'Accounting', 'Admin', 'Super Admin'])->get();
             }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to queue payment receipt email: ' . $e->getMessage());
-        }
 
-        // Notify the agent who owns this customer about the payment
-        try {
+            foreach ($accountingOfficers as $officer) {
+                \App\Models\Notification::create([
+                    'user_id' => $officer->id,
+                    'title'   => 'Collection Payment Pending Review',
+                    'message' => "New collection payment {$ref} (₱{$amountFormatted}) for {$clientName} was submitted by {$collectorName} and is ready for accounting verification.",
+                    'type'    => 'warning',
+                    'read_at' => null,
+                ]);
+            }
+
+            // Also notify the agent who owns this customer
             if ($invoice->customer && $invoice->customer->created_by) {
                 \App\Models\Notification::create([
                     'user_id' => $invoice->customer->created_by,
-                    'title' => 'Payment Received',
-                    'message' => "A payment of ₱" . number_format($payment->amount, 2) . " has been successfully recorded for Invoice {$invoice->invoice_number}.",
-                    'type' => 'success',
-                    'read_at' => null,
-                ]);
-            }
-
-            // Notify all Collection officers
-            $collectionOfficers = \App\Models\User::role('Collection')->get();
-            foreach ($collectionOfficers as $officer) {
-                \App\Models\Notification::create([
-                    'user_id' => $officer->id,
-                    'title' => 'Payment Received',
-                    'message' => "A payment of ₱" . number_format($payment->amount, 2) . " has been successfully recorded for Invoice {$invoice->invoice_number}.",
-                    'type' => 'success',
+                    'title'   => 'Collection Payment Submitted',
+                    'message' => "A payment of ₱{$amountFormatted} for Invoice {$invoice->invoice_number} has been submitted for Accounting verification.",
+                    'type'    => 'info',
                     'read_at' => null,
                 ]);
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to send payment notification: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Failed to send payment review notification to accounting: ' . $e->getMessage());
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment recorded successfully.',
-            'data' => $payment->load(['invoice.customer', 'receivedBy', 'attachments']),
+            'message' => 'Collection payment recorded successfully and submitted to Accounting for verification.',
+            'data'    => $payment->load(['invoice.customer', 'receivedBy', 'attachments']),
         ], 201);
     }
 
@@ -338,6 +344,44 @@ class PaymentController extends Controller
             'verified_at'         => now(),
         ]);
 
+        // Recalculate invoice balance upon verification
+        if ($payment->invoice) {
+            $payment->invoice->recalculate();
+        }
+
+        // Send payment receipt email to client when payment is verified
+        if ($status === 'verified' && $payment->invoice) {
+            try {
+                $customer = $payment->invoice->customer;
+                if ($customer && $customer->email) {
+                    $verifiedPayments = $payment->invoice->payments()
+                        ->where('status', 'completed')
+                        ->where('verification_status', 'verified')
+                        ->orderBy('payment_date', 'asc')
+                        ->orderBy('created_at', 'asc')
+                        ->get();
+                    $paymentIndex = $verifiedPayments->pluck('id')->search($payment->id);
+                    $installmentNumber = ($paymentIndex !== false) ? ($paymentIndex + 1) : 1;
+
+                    $ordinals = [1 => '1ST', 2 => '2ND', 3 => '3RD', 4 => '4TH', 5 => '5TH', 6 => '6TH'];
+                    $installmentOrdinal = $ordinals[$installmentNumber] ?? ($installmentNumber . 'TH');
+                    $customerName = trim($customer->first_name . ' ' . $customer->last_name);
+                    $policyNumber = $customer->policy_no ?: ($payment->invoice->policy?->policy_number ?: 'N/A');
+
+                    \Illuminate\Support\Facades\Mail::to($customer->email)
+                        ->queue(new \App\Mail\PaymentReceiptMail(
+                            $customerName,
+                            $policyNumber,
+                            $installmentOrdinal,
+                            (float) $payment->amount,
+                            (float) $payment->invoice->balance
+                        ));
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send payment receipt email on verification: ' . $e->getMessage());
+            }
+        }
+
         // Notify Collection Officer who recorded the payment
         if ($payment->received_by) {
             try {
@@ -357,7 +401,7 @@ class PaymentController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $status === 'verified' ? 'Payment successfully verified.' : 'Payment marked as rejected.',
+            'message' => $status === 'verified' ? 'Payment successfully verified and invoice updated.' : 'Payment marked as rejected.',
             'data'    => $payment->fresh(['invoice.customer', 'receivedBy', 'verifiedBy', 'attachments']),
         ]);
     }

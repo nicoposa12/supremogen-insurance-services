@@ -577,6 +577,7 @@ export default function CollectionLedgerPage() {
   const { data: reportSummaryRes } = useQuery({
     queryKey: ['report-summary'],
     queryFn: getReportSummary,
+    refetchInterval: 3000,
   });
 
   const { data: invoicesRes, isLoading: invoicesLoading } = useQuery({
@@ -589,6 +590,7 @@ export default function CollectionLedgerPage() {
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
+    refetchInterval: 3000,
     placeholderData: (prev) => prev,
   });
 
@@ -2136,9 +2138,19 @@ export default function CollectionLedgerPage() {
                               {payment ? (
                                 <div className="flex flex-col items-center group relative">
                                   <span className="font-bold">₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                  <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
-                                    {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
-                                  </span>
+                                  {payment.verification_status === 'verified' ? (
+                                    <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
+                                      VERIFIED ({PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method})
+                                    </span>
+                                  ) : payment.verification_status === 'rejected' ? (
+                                    <span className="text-[9px] font-bold text-rose-800 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
+                                      REJECTED
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
+                                      PENDING VERIFICATION
+                                    </span>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => {

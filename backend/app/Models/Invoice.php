@@ -114,8 +114,11 @@ class Invoice extends Model
     {
         $this->subtotal = $this->items()->sum('amount');
         $this->total_amount = $this->subtotal + $this->tax_amount;
-        $this->amount_paid = $this->payments()->where('status', 'completed')->sum('amount');
-        $this->balance = $this->total_amount - $this->amount_paid;
+        $this->amount_paid = $this->payments()
+            ->where('status', 'completed')
+            ->where('verification_status', 'verified')
+            ->sum('amount');
+        $this->balance = max(0, $this->total_amount - $this->amount_paid);
 
         // Auto-update status based on balance
         if ($this->status !== 'cancelled' && $this->status !== 'draft') {
@@ -123,6 +126,8 @@ class Invoice extends Model
                 $this->status = 'paid';
             } elseif ($this->amount_paid > 0) {
                 $this->status = 'partial';
+            } else {
+                $this->status = 'sent';
             }
         }
 

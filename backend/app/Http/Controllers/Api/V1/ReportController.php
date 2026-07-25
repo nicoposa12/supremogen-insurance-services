@@ -131,9 +131,11 @@ class ReportController extends Controller
 
         // 4. Invoice Aging & Collections
         if ($hasInvoices) {
-            $totalInvoiced = (float) Invoice::sum('total_amount');
-            $totalCollected = (float) Payment::where('status', 'completed')->sum('amount');
-            $outstandingReceivable = (float) Invoice::whereNotIn('status', ['cancelled', 'paid'])->sum('balance');
+            $totalInvoiced = (float) Invoice::whereNotIn('status', ['cancelled', 'voided', 'draft'])->sum('total_amount');
+            $totalCollected = (float) Payment::where('status', 'completed')
+                ->where('verification_status', 'verified')
+                ->sum('amount');
+            $outstandingReceivable = max(0, $totalInvoiced - $totalCollected);
 
             $invoiceAging = [
                 'paid' => (float) Invoice::where('status', 'paid')->sum('total_amount'),
@@ -164,8 +166,9 @@ class ReportController extends Controller
             $monthLabel = $monthStart->format('M Y');
 
             if ($hasInvoices) {
-                $billings = (float) Invoice::whereBetween('created_at', [$monthStart, $monthEnd])->sum('total_amount');
+                $billings = (float) Invoice::whereBetween('created_at', [$monthStart, $monthEnd])->whereNotIn('status', ['cancelled', 'voided', 'draft'])->sum('total_amount');
                 $collections = (float) Payment::where('status', 'completed')
+                    ->where('verification_status', 'verified')
                     ->whereBetween('payment_date', [$monthStart, $monthEnd])
                     ->sum('amount');
             } else {

@@ -95,6 +95,8 @@ export default function ReviewCollectionPaymentPage() {
       queryClient.invalidateQueries({ queryKey: ['payments-review'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices-ledger'] });
+      queryClient.invalidateQueries({ queryKey: ['report-summary'] });
       showToast(
         vars.status === 'verified'
           ? 'Payment successfully verified and approved.'
@@ -120,10 +122,11 @@ export default function ReviewCollectionPaymentPage() {
     setVerificationNotes('');
   };
 
-  // Calculate Metrics
-  const pendingCount = payments.filter((p) => (p.verification_status || 'pending_verification') === 'pending_verification').length;
-  const verifiedCount = payments.filter((p) => p.verification_status === 'verified').length;
-  const rejectedCount = payments.filter((p) => p.verification_status === 'rejected').length;
+  // Calculate Metrics from DB summary or paginated records fallback
+  const summary = (response as any)?.summary;
+  const pendingCount = summary?.pending ?? payments.filter((p) => !p.verification_status || (p.verification_status as string) === 'pending_verification' || (p.verification_status as string) === 'pending').length;
+  const verifiedCount = summary?.verified ?? payments.filter((p) => (p.verification_status as string) === 'verified').length;
+  const rejectedCount = summary?.rejected ?? payments.filter((p) => (p.verification_status as string) === 'rejected').length;
 
   const columns = [
     {
