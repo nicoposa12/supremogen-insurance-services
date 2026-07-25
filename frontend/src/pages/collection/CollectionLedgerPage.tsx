@@ -1999,6 +1999,8 @@ export default function CollectionLedgerPage() {
           return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
         };
 
+        const isCancelledPolicy = (selectedInvoice.status as string) === 'voided' || selectedInvoice.status === 'cancelled' || selectedInvoice.policy?.status === 'cancelled' || (selectedInvoice as any).policy?.quotation?.status === 'cancelled';
+
         return (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             {/* Backdrop */}
@@ -2025,6 +2027,16 @@ export default function CollectionLedgerPage() {
                   <p className="text-xs text-slate-500">{editingPaymentId ? 'Modify recorded details for client invoice' : 'Record collection details for client invoice'} {selectedInvoice.invoice_number}</p>
                 </div>
               </div>
+
+              {isCancelledPolicy && (
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl mb-5">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-red-700">Policy Cancelled / Voided Invoice</h4>
+                    <p className="text-xs text-red-600 mt-0.5">Collection payments cannot be recorded or edited for this client because the policy has been cancelled.</p>
+                  </div>
+                </div>
+              )}
 
               {/* Installment Ledger Section */}
               <div className="border border-slate-200/90 rounded-2xl overflow-hidden mb-5 shadow-sm">
@@ -2295,10 +2307,11 @@ export default function CollectionLedgerPage() {
                     type="number"
                     step="0.01"
                     required
+                    disabled={isCancelledPolicy}
                     placeholder="Enter amount collected..."
                     value={collectAmount}
                     onChange={(e) => setCollectAmount(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -2308,9 +2321,10 @@ export default function CollectionLedgerPage() {
                       Payment Method *
                     </label>
                     <select
+                      disabled={isCancelledPolicy}
                       value={collectMethod}
                       onChange={(e) => setCollectMethod(e.target.value as PaymentMethod)}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                     >
                       {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(([key, label]) => (
                         <option key={key} value={key}>{label}</option>
@@ -2325,9 +2339,10 @@ export default function CollectionLedgerPage() {
                     <input
                       type="date"
                       required
+                      disabled={isCancelledPolicy}
                       value={collectDate}
                       onChange={(e) => setCollectDate(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -2344,6 +2359,7 @@ export default function CollectionLedgerPage() {
                   </label>
                   <input
                     type="text"
+                    disabled={isCancelledPolicy}
                     required={needsReference || isTrackerMethod}
                     placeholder={isTrackerMethod
                       ? "Enter tracking number..."
@@ -2354,7 +2370,7 @@ export default function CollectionLedgerPage() {
                           : "e.g. check no., deposit slip id..."))}
                     value={collectReference}
                     onChange={(e) => setCollectReference(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -2365,13 +2381,14 @@ export default function CollectionLedgerPage() {
                   <input
                     key={collectProof ? 'file-loaded' : 'file-empty'}
                     type="file"
+                    disabled={isCancelledPolicy}
                     accept="image/*,application/pdf"
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
                         setCollectProof(e.target.files[0]);
                       }
                     }}
-                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                   />
                   {editingPaymentId && selectedInvoice.payments?.find(p => p.id === editingPaymentId)?.attachments?.[0] && (
                     <p className="text-[10px] text-slate-400 mt-1 font-mono">
@@ -2386,10 +2403,11 @@ export default function CollectionLedgerPage() {
                   </label>
                   <textarea
                     rows={2}
+                    disabled={isCancelledPolicy}
                     placeholder="Record additional payment notes..."
                     value={collectNotes}
                     onChange={(e) => setCollectNotes(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition resize-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition resize-none disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -2406,8 +2424,8 @@ export default function CollectionLedgerPage() {
                   )}
                   <button
                     type="submit"
-                    disabled={recordCollectionMut.isPending || updateCollectionMut.isPending}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-bold rounded-2xl shadow-md transition disabled:opacity-50 cursor-pointer"
+                    disabled={isCancelledPolicy || recordCollectionMut.isPending || updateCollectionMut.isPending}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-bold rounded-2xl shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {recordCollectionMut.isPending || updateCollectionMut.isPending ? (
                       <>

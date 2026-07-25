@@ -74,12 +74,20 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        // Validate payment doesn't exceed balance
-        $invoice = Invoice::find($request->input('invoice_id'));
-        if (in_array($invoice->status, ['paid', 'cancelled'])) {
+        // Validate payment doesn't exceed balance or allow recording on cancelled/voided policies
+        $invoice = Invoice::with(['policy', 'policy.quotation'])->find($request->input('invoice_id'));
+        if (!$invoice) {
+            return response()->json(['success' => false, 'message' => 'Invoice not found.'], 404);
+        }
+
+        $isCancelled = in_array($invoice->status, ['paid', 'cancelled', 'voided']) || 
+            ($invoice->policy && $invoice->policy->status === 'cancelled') ||
+            ($invoice->policy && $invoice->policy->quotation && $invoice->policy->quotation->status === 'cancelled');
+
+        if ($isCancelled) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot record payment for a ' . $invoice->status . ' invoice.',
+                'message' => 'Cannot record collection payment for a cancelled policy or voided invoice.',
             ], 422);
         }
 
