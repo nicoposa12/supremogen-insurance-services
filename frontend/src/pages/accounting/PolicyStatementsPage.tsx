@@ -469,7 +469,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
   const commBI = roundTwo(premBIVal * (commBIPct / 100));
   const commPD = roundTwo(premPDVal * (commPDPct / 100));
 
-  const subtotalPremium = roundTwo(premOD + premAON + premBIVal + premPDVal + premPAVal);
+  const subtotalPremium = roundTwo(premOD + premAON + premBIVal + premPDVal);
   const chargesAmount = roundTwo(subtotalPremium * chargesRate);
   const grossTotal = roundTwo(subtotalPremium + chargesAmount + towingFee);
 
@@ -917,7 +917,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
                       <td className="py-2 px-3 font-bold text-slate-900">APA (for 10 Passengers)</td>
                       <td className="py-2 px-3 text-right font-mono tabular-nums">{formatCurrency(covPAVal)}</td>
                       <td className="py-2 px-3 text-center text-slate-400">—</td>
-                      <td className="py-2 px-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatCurrency(premPAVal)}</td>
+                      <td className="py-2 px-3 text-right text-slate-400 font-medium">—</td>
                     </tr>
                   </tbody>
                 </table>

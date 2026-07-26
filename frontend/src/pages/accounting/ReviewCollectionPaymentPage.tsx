@@ -45,6 +45,7 @@ export default function ReviewCollectionPaymentPage() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [verificationNotes, setVerificationNotes] = useState('');
   const [actionType, setActionType] = useState<'verified' | 'rejected' | null>(null);
+  const [specialFile, setSpecialFile] = useState<File | null>(null);
 
   // Proof Preview Modal States
   const [previewAttachment, setPreviewAttachment] = useState<{ id: number; file_name: string; mime_type?: string } | null>(null);
@@ -89,8 +90,8 @@ export default function ReviewCollectionPaymentPage() {
 
   // Verification Mutation
   const verifyMut = useMutation({
-    mutationFn: ({ id, status, notes }: { id: number; status: 'verified' | 'rejected'; notes?: string }) =>
-      verifyPayment(id, status, notes),
+    mutationFn: ({ id, status, notes, specialAttachment }: { id: number; status: 'verified' | 'rejected'; notes?: string; specialAttachment?: File | null }) =>
+      verifyPayment(id, status, notes, specialAttachment),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['payments-review'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
@@ -105,6 +106,7 @@ export default function ReviewCollectionPaymentPage() {
       setSelectedPayment(null);
       setActionType(null);
       setVerificationNotes('');
+      setSpecialFile(null);
     },
     onError: (err: any) => {
       showToast(err.response?.data?.message || 'Failed to process payment verification.', 'error');
@@ -120,6 +122,7 @@ export default function ReviewCollectionPaymentPage() {
     setSelectedPayment(payment);
     setActionType(action);
     setVerificationNotes('');
+    setSpecialFile(null);
   };
 
   // Calculate Metrics from DB summary or paginated records fallback
@@ -158,7 +161,12 @@ export default function ReviewCollectionPaymentPage() {
         const policyNo = cust?.policy_no || (p.invoice as any)?.policy?.policy_number || p.invoice?.invoice_number || '—';
         const reqNo = (p.invoice as any)?.policy?.quotation?.quotation_number || (p.invoice as any)?.policy?.quotation?.ir_number;
 
-        const isCancelled = (p.invoice as any)?.policy?.status === 'cancelled' || (p.invoice as any)?.policy?.quotation?.status === 'cancelled' || (p.invoice as any)?.status === 'voided';
+        const isCancelled =
+          (p.invoice as any)?.status === 'cancelled' ||
+          (p.invoice as any)?.status === 'voided' ||
+          (p.invoice as any)?.policy?.status?.toLowerCase() === 'cancelled' ||
+          (p.invoice as any)?.policy?.quotation?.status?.toLowerCase() === 'cancelled' ||
+          (cust as any)?.policy_status?.toUpperCase() === 'CANCELLED';
 
         return (
           <div>
@@ -166,13 +174,6 @@ export default function ReviewCollectionPaymentPage() {
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">
               Policy: {policyNo} {reqNo && <span className="text-slate-350 font-normal"> • </span>} {reqNo && <span className="text-blue-700 font-semibold">{reqNo}</span>}
             </p>
-            {isCancelled && (
-              <div className="mt-1">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 uppercase tracking-wider shadow-2xs">
-                  <XCircle className="h-3 w-3 text-rose-600" /> CANCELLED POLICY
-                </span>
-              </div>
-            )}
           </div>
         );
       },
@@ -212,22 +213,41 @@ export default function ReviewCollectionPaymentPage() {
     },
     {
       key: 'proof',
-      label: 'Proof of Payment',
+      label: 'Proof & Special Attachment',
       render: (p: Payment) => {
-        const att = p.attachments?.[0];
-        if (!att) {
+        const att = p.attachments?.find((a) => a.document_type !== 'special_attachment') || p.attachments?.[0];
+        const specialAtt = p.attachments?.find((a) => a.document_type === 'special_attachment' || a.file_name?.toLowerCase().includes('special attachment'));
+
+        if (!att && !specialAtt) {
           return <span className="text-xs text-slate-400 font-medium">—</span>;
         }
+
         return (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewProof(att);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200/80 transition cursor-pointer shadow-2xs"
-          >
-            <Paperclip className="h-3.5 w-3.5 text-slate-500" /> View Proof
-          </button>
+          <div className="flex flex-col items-start gap-1">
+            {att && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewProof(att);
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200/80 transition cursor-pointer shadow-2xs"
+              >
+                <Paperclip className="h-3.5 w-3.5 text-slate-500" /> View Proof
+              </button>
+            )}
+            {specialAtt && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewProof(specialAtt);
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-lg border border-amber-300 transition cursor-pointer shadow-2xs"
+                title="View Special Attachment uploaded by Accounting"
+              >
+                <Paperclip className="h-3.5 w-3.5 text-amber-600" /> Special Attachment
+              </button>
+            )}
+          </div>
         );
       },
     },
@@ -264,6 +284,26 @@ export default function ReviewCollectionPaymentPage() {
       render: (p: Payment) => {
         const isVerified = p.verification_status === 'verified';
         const isRejected = p.verification_status === 'rejected';
+
+        const isCancelled =
+          (p.invoice as any)?.status === 'cancelled' ||
+          (p.invoice as any)?.status === 'voided' ||
+          (p.invoice as any)?.policy?.status?.toLowerCase() === 'cancelled' ||
+          (p.invoice as any)?.policy?.quotation?.status?.toLowerCase() === 'cancelled' ||
+          (p.invoice as any)?.customer?.policy_status?.toUpperCase() === 'CANCELLED';
+
+        if (isCancelled) {
+          return (
+            <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+              <span
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-rose-800 border border-rose-200 text-xs font-bold rounded-lg cursor-not-allowed shadow-2xs opacity-80"
+                title="Cannot verify payment for a cancelled policy or voided invoice"
+              >
+                <XCircle className="h-3.5 w-3.5 text-rose-600" /> Cannot Verify (Cancelled)
+              </span>
+            </div>
+          );
+        }
 
         return (
           <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
@@ -404,39 +444,64 @@ export default function ReviewCollectionPaymentPage() {
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className={`p-2 rounded-xl ${actionType === 'verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                  {actionType === 'verified' ? <CheckCircle2 className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+                <div className={`p-2 rounded-xl ${actionType === 'verified' ? 'bg-[#4A0E17]/10 text-[#4A0E17]' : 'bg-rose-100 text-rose-800'}`}>
+                  {actionType === 'verified' ? <CheckCircle2 className="h-5 w-5 text-[#4A0E17]" /> : <AlertTriangle className="h-5 w-5" />}
                 </div>
                 <h3 className="font-extrabold text-sm text-slate-900">
                   {actionType === 'verified' ? 'Approve & Verify Payment' : 'Reject Collection Payment'}
                 </h3>
               </div>
-              <button onClick={() => setSelectedPayment(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+              <button onClick={() => setSelectedPayment(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-4 text-xs space-y-2 border border-slate-200/60">
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-bold uppercase text-[10px]">Payment No</span>
-                <span className="font-mono font-bold text-slate-800">{selectedPayment.payment_number}</span>
+            <div className="bg-slate-50/80 rounded-2xl p-4 text-xs space-y-2 border border-slate-200/80">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Payment No</span>
+                <span className="font-mono font-bold text-[#4A0E17] bg-[#4A0E17]/5 px-2 py-0.5 rounded-md border border-[#4A0E17]/10">{selectedPayment.payment_number}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-bold uppercase text-[10px]">Client</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Client</span>
                 <span className="font-bold text-slate-800 uppercase">
                   {selectedPayment.invoice?.customer?.first_name} {selectedPayment.invoice?.customer?.last_name}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-bold uppercase text-[10px]">Amount</span>
-                <span className="font-mono font-extrabold text-emerald-700">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Amount</span>
+                <span className="font-mono font-black text-emerald-700 text-sm">
                   ₱{Number(selectedPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            {actionType === 'verified' && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-slate-800">
+                    <Paperclip className="h-3.5 w-3.5 text-[#4A0E17]" />
+                    Special Attachment (Optional)
+                  </span>
+                  <span className="text-[10px] font-bold text-[#4A0E17] bg-[#4A0E17]/10 px-2 py-0.5 rounded-md border border-[#4A0E17]/20">
+                    Accounting File
+                  </span>
+                </label>
+                <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-2 hover:border-[#4A0E17]/40 transition">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx,.zip"
+                    onChange={(e) => setSpecialFile(e.target.files?.[0] || null)}
+                    className="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#4A0E17] file:text-white hover:file:bg-[#3D0B12] transition cursor-pointer"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Attach official receipt, deposit slip, or accounting audit file to reflect on the Collection Ledger.
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Verification Remarks / Notes (Optional)
               </label>
               <textarea
@@ -444,22 +509,22 @@ export default function ReviewCollectionPaymentPage() {
                 onChange={(e) => setVerificationNotes(e.target.value)}
                 placeholder="Enter audit notes or justification..."
                 rows={3}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20"
+                className="w-full p-3 bg-slate-50 border border-slate-200/90 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 onClick={() => setSelectedPayment(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200/80 transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={() => verifyMut.mutate({ id: selectedPayment.id, status: actionType, notes: verificationNotes })}
+                onClick={() => verifyMut.mutate({ id: selectedPayment.id, status: actionType, notes: verificationNotes, specialAttachment: specialFile })}
                 disabled={verifyMut.isPending}
-                className={`px-4 py-2 font-bold text-xs rounded-xl transition cursor-pointer text-white shadow-xs ${
-                  actionType === 'verified' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                className={`px-5 py-2 font-bold text-xs rounded-xl transition cursor-pointer text-white shadow-xs flex items-center gap-1.5 ${
+                  actionType === 'verified' ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-rose-600 hover:bg-rose-700'
                 }`}
               >
                 {verifyMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : actionType === 'verified' ? 'Confirm Verification' : 'Confirm Rejection'}

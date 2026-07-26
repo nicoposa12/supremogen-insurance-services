@@ -68,7 +68,26 @@ export async function updatePayment(id: number, formData: PaymentFormData): Prom
   return responseData;
 }
 
-export async function verifyPayment(id: number, status: 'verified' | 'rejected', notes?: string): Promise<SingleResponse<Payment>> {
+export async function verifyPayment(
+  id: number,
+  status: 'verified' | 'rejected',
+  notes?: string,
+  specialAttachment?: File | null
+): Promise<SingleResponse<Payment>> {
+  if (specialAttachment) {
+    const formData = new FormData();
+    formData.append('status', status);
+    if (notes) formData.append('notes', notes);
+    formData.append('special_attachment', specialAttachment);
+
+    const { data } = await axios.post<SingleResponse<Payment>>(`${BASE}/${id}/verify`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return data;
+  }
+
   const { data } = await axios.post<SingleResponse<Payment>>(`${BASE}/${id}/verify`, { status, notes });
   return data;
 }

@@ -43,10 +43,10 @@ class PaymentController extends Controller
         ];
 
         $query = (clone $baseQuery)->with([
-            'invoice:id,invoice_number,customer_id,total_amount,balance,policy_id',
-            'invoice.policy:id,policy_number,quotation_id',
-            'invoice.policy.quotation:id,quotation_number,ir_number',
-            'invoice.customer:id,customer_code,first_name,last_name,policy_no,mobile',
+            'invoice:id,invoice_number,customer_id,total_amount,balance,policy_id,status',
+            'invoice.policy:id,policy_number,quotation_id,status',
+            'invoice.policy.quotation:id,quotation_number,ir_number,status',
+            'invoice.customer:id,customer_code,first_name,last_name,policy_no,mobile,policy_status',
             'receivedBy:id,name',
             'verifiedBy:id,name',
             'attachments',
@@ -324,6 +324,7 @@ class PaymentController extends Controller
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:verified,rejected',
             'notes'  => 'nullable|string|max:2000',
+            'special_attachment' => 'nullable|file|mimes:jpeg,jpg,png,pdf,doc,docx,zip|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -337,12 +338,45 @@ class PaymentController extends Controller
         $status = $request->input('status');
         $notes = $request->input('notes');
 
+        // Prevent verification for cancelled policies or voided invoices
+        $invoice = $payment->invoice;
+        if ($invoice) {
+            $isCancelled = in_array(strtolower($invoice->status), ['cancelled', 'voided']) ||
+                ($invoice->policy && strtolower($invoice->policy->status) === 'cancelled') ||
+                ($invoice->customer && strtoupper($invoice->customer->policy_status ?? '') === 'CANCELLED');
+
+            if ($isCancelled) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot verify collection payment for a cancelled policy or voided invoice.'
+                ], 422);
+            }
+        }
+
         $payment->update([
             'verification_status' => $status,
             'verification_notes'  => $notes,
             'verified_by'         => $request->user()->id,
             'verified_at'         => now(),
         ]);
+
+        if ($request->hasFile('special_attachment')) {
+            $file = $request->file('special_attachment');
+            $originalName = $file->getClientOriginalName();
+            $extension = $file->getClientOriginalExtension();
+            $safeName = \Illuminate\Support\Str::uuid() . '.' . $extension;
+            $disk = config('filesystems.default');
+            $path = $file->storeAs("attachments/payment_special", $safeName, $disk);
+
+            $payment->attachments()->create([
+                'file_name' => 'Special Attachment: ' . $originalName,
+                'file_path' => $path,
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'document_type' => 'special_attachment',
+                'uploaded_by' => $request->user()?->id,
+            ]);
+        }
 
         // Recalculate invoice balance upon verification
         if ($payment->invoice) {

@@ -2139,9 +2139,29 @@ export default function CollectionLedgerPage() {
                                 <div className="flex flex-col items-center group relative">
                                   <span className="font-bold">₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                   {payment.verification_status === 'verified' ? (
-                                    <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
-                                      VERIFIED ({PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method})
-                                    </span>
+                                    <>
+                                      <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
+                                        VERIFIED ({PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method})
+                                      </span>
+                                      {(() => {
+                                        const specialAtt = payment.attachments?.find(
+                                          (att) => att.document_type === 'special_attachment' || att.file_name?.toLowerCase().includes('special attachment')
+                                        );
+                                        if (specialAtt) {
+                                          return (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleViewProof(specialAtt)}
+                                              className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[9px] font-bold shadow-2xs transition cursor-pointer"
+                                              title="View Special Attachment uploaded by Accounting"
+                                            >
+                                              <Paperclip className="h-2.5 w-2.5 text-amber-700" /> Special File
+                                            </button>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                    </>
                                   ) : payment.verification_status === 'rejected' ? (
                                     <span className="text-[9px] font-bold text-rose-800 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md mt-0.5 uppercase leading-none">
                                       REJECTED
