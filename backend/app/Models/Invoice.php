@@ -80,7 +80,20 @@ class Invoice extends Model
               ->orWhereHas('customer', function ($cq) use ($term, $likeOperator) {
                   $cq->where('first_name', $likeOperator, "%{$term}%")
                      ->orWhere('last_name', $likeOperator, "%{$term}%")
-                     ->orWhere('customer_code', $likeOperator, "%{$term}%");
+                     ->orWhere('customer_code', $likeOperator, "%{$term}%")
+                     ->orWhere('policy_no', $likeOperator, "%{$term}%")
+                     ->orWhere('plate_no', $likeOperator, "%{$term}%");
+              })
+              ->orWhereHas('policy', function ($pq) use ($term, $likeOperator) {
+                  $pq->where('policy_number', $likeOperator, "%{$term}%")
+                     ->orWhereHas('quotation', function ($qq) use ($term, $likeOperator) {
+                         $qq->where('quotation_number', $likeOperator, "%{$term}%")
+                            ->orWhere('ir_number', $likeOperator, "%{$term}%");
+                     });
+              })
+              ->orWhereHas('payments', function ($payq) use ($term, $likeOperator) {
+                  $payq->where('payment_number', $likeOperator, "%{$term}%")
+                       ->orWhere('reference_number', $likeOperator, "%{$term}%");
               });
         });
     }
@@ -116,7 +129,19 @@ class Invoice extends Model
         $this->total_amount = $this->subtotal + $this->tax_amount;
         $this->amount_paid = $this->payments()
             ->where('status', 'completed')
-            ->where('verification_status', 'verified')
+            ->where(function ($q) {
+                $q->where('verification_status', 'verified')
+                  ->orWhereIn('verification_status', [
+                      'REFLECTED PBCOM',
+                      'REFLECTED SECURITY BANK',
+                      'JNT SOA',
+                      'CLEARED CHECK',
+                      'reflected_pbcom',
+                      'reflected_security_bank',
+                      'jnt_soa',
+                      'cleared_check'
+                  ]);
+            })
             ->sum('amount');
         $this->balance = max(0, $this->total_amount - $this->amount_paid);
 

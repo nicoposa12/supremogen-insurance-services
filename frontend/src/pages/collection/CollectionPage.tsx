@@ -207,6 +207,18 @@ export default function CollectionPage() {
     setCollectProof(null);
   };
 
+  const invoicesList = invoicesRes?.data?.data ?? [];
+
+  // Auto-open collection modal when coming from notification click
+  useEffect(() => {
+    if (searchParams.get('autoOpen') === 'true' && invoicesList.length > 0 && !selectedInvoice) {
+      const match = invoicesList[0];
+      if (match) {
+        handleOpenCollection(match);
+      }
+    }
+  }, [invoicesList, searchParams]);
+
   const handleOpenCollection = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setCollectAmount(String(invoice.balance));

@@ -798,14 +798,25 @@ export default function DashboardLayout() {
                               
                               const matchQuotation = message.match(/QUO-[A-Z0-9-]+/) || message.match(/QUO \d{4} \d{5}/);
                               const matchInvoice = message.match(/INV-[A-Z0-9-]+/);
+                              const matchPayment = message.match(/PAY-\d{4}-\d{5}/) || message.match(/PAY-[A-Z0-9-]+/) || title.match(/PAY-[A-Z0-9-]+/);
                               const matchClaimNotification = message.match(/CLN-[A-Z0-9-]+/) || title.match(/CLN-[A-Z0-9-]+/);
                               const matchClaim = message.match(/CLM-[A-Z0-9-]+/);
                               const matchPolicy = message.match(/POL-[A-Z0-9-]+/);
 
                               // For Accounting Officer role, route policy/statement/quotation notifications directly to Policy Statements
                               const isAccounting = roles.includes('Accounting Officer') || roles.includes('Accounting');
+                              const isCollection = roles.includes('Collection') || roles.includes('Collection Officer') || roles.includes('Collector');
 
-                              if (matchQuotation) {
+                              if (matchPayment) {
+                                const code = matchPayment[0];
+                                if (isAccounting) {
+                                  navigate(`/dashboard/review-collection-payment?search=${code}&autoOpen=true`);
+                                } else if (isCollection) {
+                                  navigate(`/dashboard/collection?search=${code}&autoOpen=true`);
+                                } else {
+                                  navigate(`/dashboard/payments?search=${code}`);
+                                }
+                              } else if (matchQuotation) {
                                 const code = matchQuotation[0];
                                 if (isAccounting) {
                                   navigate(`/dashboard/policy-statements?search=${code}`);
@@ -816,7 +827,7 @@ export default function DashboardLayout() {
                                 }
                               } else if (matchInvoice) {
                                 const code = matchInvoice[0];
-                                if (roles.includes('Collection')) {
+                                if (isCollection) {
                                   navigate(`/dashboard/collection/ledger?search=${code}`);
                                 } else {
                                   navigate(`/dashboard/invoices?search=${code}`);
@@ -834,6 +845,14 @@ export default function DashboardLayout() {
                                 } else {
                                   navigate(`/dashboard/renewals?search=${code}`);
                                 }
+                              } else if (title.toLowerCase().includes('collection payment') || title.toLowerCase().includes('payment')) {
+                                if (isAccounting) {
+                                  navigate('/dashboard/review-collection-payment');
+                                } else if (isCollection) {
+                                  navigate('/dashboard/collection/ledger');
+                                } else {
+                                  navigate('/dashboard/payments');
+                                }
                               } else if (title.toLowerCase().includes('quotation') || title.toLowerCase().includes('statement') || title.toLowerCase().includes('policy')) {
                                 if (isAccounting) {
                                   navigate('/dashboard/policy-statements');
@@ -846,8 +865,8 @@ export default function DashboardLayout() {
                                 navigate('/dashboard/claim-notifications');
                               } else if (title.toLowerCase().includes('claim')) {
                                 navigate('/dashboard/claims');
-                              } else if (title.toLowerCase().includes('invoice') || title.toLowerCase().includes('payment')) {
-                                if (roles.includes('Collection')) {
+                              } else if (title.toLowerCase().includes('invoice')) {
+                                if (isCollection) {
                                   navigate('/dashboard/collection/ledger');
                                 } else {
                                   navigate('/dashboard/invoices');

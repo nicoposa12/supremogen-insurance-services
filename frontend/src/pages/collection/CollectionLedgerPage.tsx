@@ -63,6 +63,14 @@ export default function CollectionLedgerPage() {
   const [dueYearFilter, setDueYearFilter] = useState('');
   const [dueDayFilter, setDueDayFilter] = useState('');
 
+  // Sync search input when user clicks notifications
+  useEffect(() => {
+    if (querySearch) {
+      setSearchInput(querySearch);
+      setSearchVal(querySearch);
+    }
+  }, [querySearch]);
+
   // Record Collection Modal State
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);

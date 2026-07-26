@@ -36,10 +36,26 @@ class PaymentController extends Controller
             'pending' => (clone $baseQuery)->where(function ($q) {
                 $q->where('verification_status', 'pending_verification')
                   ->orWhere('verification_status', 'pending')
+                  ->orWhere('verification_status', 'PENDING FOR VERIFICATION')
                   ->orWhereNull('verification_status');
             })->count(),
-            'verified' => (clone $baseQuery)->where('verification_status', 'verified')->count(),
-            'rejected' => (clone $baseQuery)->where('verification_status', 'rejected')->count(),
+            'verified' => (clone $baseQuery)->where(function ($q) {
+                $q->where('verification_status', 'verified')
+                  ->orWhereIn('verification_status', [
+                      'REFLECTED PBCOM',
+                      'REFLECTED SECURITY BANK',
+                      'JNT SOA',
+                      'CLEARED CHECK',
+                      'reflected_pbcom',
+                      'reflected_security_bank',
+                      'jnt_soa',
+                      'cleared_check'
+                  ]);
+            })->count(),
+            'rejected' => (clone $baseQuery)->where(function ($q) {
+                $q->where('verification_status', 'rejected')
+                  ->orWhere('verification_status', 'REJECTED');
+            })->count(),
         ];
 
         $query = (clone $baseQuery)->with([
@@ -322,7 +338,7 @@ class PaymentController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:verified,rejected',
+            'status' => 'required|string',
             'notes'  => 'nullable|string|max:2000',
             'special_attachment' => 'nullable|file|mimes:jpeg,jpg,png,pdf,doc,docx,zip|max:10240',
         ]);
@@ -384,13 +400,26 @@ class PaymentController extends Controller
         }
 
         // Send payment receipt email to client when payment is verified
-        if ($status === 'verified' && $payment->invoice) {
+        $isVerifiedStatus = !in_array(strtoupper($status), ['REJECTED', 'PENDING', 'PENDING_VERIFICATION', 'PENDING FOR VERIFICATION']);
+        if ($isVerifiedStatus && $payment->invoice) {
             try {
                 $customer = $payment->invoice->customer;
                 if ($customer && $customer->email) {
                     $verifiedPayments = $payment->invoice->payments()
                         ->where('status', 'completed')
-                        ->where('verification_status', 'verified')
+                        ->where(function ($q) {
+                            $q->where('verification_status', 'verified')
+                              ->orWhereIn('verification_status', [
+                                  'REFLECTED PBCOM',
+                                  'REFLECTED SECURITY BANK',
+                                  'JNT SOA',
+                                  'CLEARED CHECK',
+                                  'reflected_pbcom',
+                                  'reflected_security_bank',
+                                  'jnt_soa',
+                                  'cleared_check'
+                              ]);
+                        })
                         ->orderBy('payment_date', 'asc')
                         ->orderBy('created_at', 'asc')
                         ->get();
@@ -416,26 +445,66 @@ class PaymentController extends Controller
             }
         }
 
-        // Notify Collection Officer who recorded the payment
-        if ($payment->received_by) {
-            try {
-                $ref = $payment->payment_number ?? ('#' . $payment->id);
-                $actionLabel = $status === 'verified' ? 'Verified' : 'Rejected';
+        // Notify Collection Officers & Collector who recorded the payment
+        try {
+            $ref = $payment->payment_number ?? ('#' . $payment->id);
+            $amountFormatted = number_format((float) $payment->amount, 2);
+            $clientName = $payment->invoice?->customer
+                ? trim($payment->invoice->customer->first_name . ' ' . $payment->invoice->customer->last_name)
+                : 'Client';
+
+            $statusText = strtoupper($status);
+            $isRejected = $statusText === 'REJECTED';
+
+            $notifTitle = $isRejected
+                ? "Collection Payment Rejected"
+                : "Collection Payment Verified: {$statusText}";
+
+            $notifMessage = $isRejected
+                ? "Collection payment {$ref} (₱{$amountFormatted}) for {$clientName} was rejected by Accounting."
+                : "Collection payment {$ref} (₱{$amountFormatted}) for {$clientName} was marked as [{$statusText}] by Accounting.";
+
+            $notifType = $isRejected ? 'warning' : 'success';
+
+            // Find all collection officers & collectors
+            $collectionUsers = \App\Models\User::whereHas('roles', function ($q) {
+                $q->whereIn('name', ['Collection', 'Collection Officer', 'Collector']);
+            })->get();
+
+            if ($collectionUsers->isEmpty()) {
+                $collectionUsers = \App\Models\User::whereIn('role_name', ['Collection', 'Collection Officer', 'Collector'])->get();
+            }
+
+            $userIdsToNotify = $collectionUsers->pluck('id')->toArray();
+
+            if ($payment->received_by) {
+                $userIdsToNotify[] = $payment->received_by;
+            }
+
+            if ($payment->invoice?->customer?->created_by) {
+                $userIdsToNotify[] = $payment->invoice->customer->created_by;
+            }
+
+            $userIdsToNotify = array_values(array_unique(array_filter($userIdsToNotify)));
+
+            foreach ($userIdsToNotify as $userId) {
                 \App\Models\Notification::create([
-                    'user_id' => $payment->received_by,
-                    'title'   => "Collection Payment {$actionLabel}",
-                    'message' => "Collection payment {$ref} (₱" . number_format((float) $payment->amount, 2) . ") was marked as {$actionLabel} by Accounting.",
-                    'type'    => $status === 'verified' ? 'success' : 'warning',
+                    'user_id' => $userId,
+                    'title'   => $notifTitle,
+                    'message' => $notifMessage,
+                    'type'    => $notifType,
                     'read_at' => null,
                 ]);
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to notify payment verification: ' . $e->getMessage());
             }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify collection on payment verification action: ' . $e->getMessage());
         }
+
+        $isVerifiedResp = !in_array(strtoupper($status), ['REJECTED', 'PENDING', 'PENDING_VERIFICATION', 'PENDING FOR VERIFICATION']);
 
         return response()->json([
             'success' => true,
-            'message' => $status === 'verified' ? 'Payment successfully verified and invoice updated.' : 'Payment marked as rejected.',
+            'message' => $isVerifiedResp ? "Payment successfully verified ({$status})." : 'Payment marked as rejected.',
             'data'    => $payment->fresh(['invoice.customer', 'receivedBy', 'verifiedBy', 'attachments']),
         ]);
     }

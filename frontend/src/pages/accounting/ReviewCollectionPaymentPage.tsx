@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Search,
@@ -14,7 +15,9 @@ import {
   AlertTriangle,
   Loader2,
   Calendar,
-  Download
+  Download,
+  Building2,
+  Truck
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -31,21 +34,33 @@ export default function ReviewCollectionPaymentPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { token } = useAuth();
+  const [searchParams] = useSearchParams();
+  const searchParamVal = searchParams.get('search') || '';
+  const autoOpenModal = searchParams.get('autoOpen') === 'true';
 
   const [params, setParams] = useState<PaymentListParams>({
     page: 1,
     per_page: 15,
-    search: '',
+    search: searchParamVal,
     verification_status: 'all',
     sort_by: 'created_at',
     sort_dir: 'desc',
   });
 
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState(searchParamVal);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [verificationNotes, setVerificationNotes] = useState('');
   const [actionType, setActionType] = useState<'verified' | 'rejected' | null>(null);
+  const [selectedVerificationStatus, setSelectedVerificationStatus] = useState<string>('REFLECTED PBCOM');
   const [specialFile, setSpecialFile] = useState<File | null>(null);
+
+  // Auto-sync search parameters when clicking notifications
+  useEffect(() => {
+    if (searchParamVal) {
+      setSearchInput(searchParamVal);
+      setParams((p) => ({ ...p, search: searchParamVal, page: 1 }));
+    }
+  }, [searchParamVal]);
 
   // Proof Preview Modal States
   const [previewAttachment, setPreviewAttachment] = useState<{ id: number; file_name: string; mime_type?: string } | null>(null);
@@ -88,10 +103,25 @@ export default function ReviewCollectionPaymentPage() {
   const pagination = response?.data;
   const payments = pagination?.data ?? [];
 
+  // Auto-open verify modal when coming from notification link
+  useEffect(() => {
+    if (autoOpenModal && payments.length > 0 && !selectedPayment) {
+      const match = payments.find(
+        (p) =>
+          p.payment_number?.toUpperCase() === searchParamVal.toUpperCase() ||
+          p.reference_number?.toUpperCase() === searchParamVal.toUpperCase()
+      ) || payments[0];
+
+      if (match) {
+        openVerifyModal(match, 'verified');
+      }
+    }
+  }, [payments, autoOpenModal, searchParamVal]);
+
   // Verification Mutation
   const verifyMut = useMutation({
-    mutationFn: ({ id, status, notes, specialAttachment }: { id: number; status: 'verified' | 'rejected'; notes?: string; specialAttachment?: File | null }) =>
-      verifyPayment(id, status, notes, specialAttachment),
+    mutationFn: ({ id, status, notes, specialAttachment }: { id: number; status: string; notes?: string; specialAttachment?: File | null }) =>
+      verifyPayment(id, status as any, notes, specialAttachment),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['payments-review'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
@@ -99,8 +129,8 @@ export default function ReviewCollectionPaymentPage() {
       queryClient.invalidateQueries({ queryKey: ['invoices-ledger'] });
       queryClient.invalidateQueries({ queryKey: ['report-summary'] });
       showToast(
-        vars.status === 'verified'
-          ? 'Payment successfully verified and approved.'
+        vars.status !== 'rejected' && vars.status !== 'REJECTED'
+          ? `Payment successfully verified (${vars.status}).`
           : 'Payment flagged as rejected.'
       );
       setSelectedPayment(null);
@@ -121,7 +151,17 @@ export default function ReviewCollectionPaymentPage() {
   const openVerifyModal = (payment: Payment, action: 'verified' | 'rejected') => {
     setSelectedPayment(payment);
     setActionType(action);
-    setVerificationNotes('');
+    setVerificationNotes(payment.verification_notes || '');
+    const currentStatus = (payment.verification_status as string) || '';
+    setSelectedVerificationStatus(
+      currentStatus &&
+      currentStatus !== 'pending_verification' &&
+      currentStatus !== 'pending' &&
+      currentStatus !== 'rejected' &&
+      currentStatus !== 'REJECTED'
+        ? currentStatus
+        : 'REFLECTED PBCOM'
+    );
     setSpecialFile(null);
   };
 
@@ -219,20 +259,20 @@ export default function ReviewCollectionPaymentPage() {
         const specialAtt = p.attachments?.find((a) => a.document_type === 'special_attachment' || a.file_name?.toLowerCase().includes('special attachment'));
 
         if (!att && !specialAtt) {
-          return <span className="text-xs text-slate-400 font-medium">—</span>;
+          return <span className="text-xs text-slate-300 font-medium">—</span>;
         }
 
         return (
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             {att && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleViewProof(att);
                 }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200/80 transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition cursor-pointer shadow-2xs"
               >
-                <Paperclip className="h-3.5 w-3.5 text-slate-500" /> View Proof
+                <Paperclip className="h-3 w-3 text-slate-500" /> Proof
               </button>
             )}
             {specialAtt && (
@@ -241,10 +281,10 @@ export default function ReviewCollectionPaymentPage() {
                   e.stopPropagation();
                   handleViewProof(specialAtt);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-lg border border-amber-300 transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[11px] rounded-lg border border-amber-300 transition cursor-pointer shadow-2xs"
                 title="View Special Attachment uploaded by Accounting"
               >
-                <Paperclip className="h-3.5 w-3.5 text-amber-600" /> Special Attachment
+                <Paperclip className="h-3 w-3 text-amber-600" /> Special File
               </button>
             )}
           </div>
@@ -255,24 +295,54 @@ export default function ReviewCollectionPaymentPage() {
       key: 'verification_status',
       label: 'Verification Status',
       render: (p: Payment) => {
-        const status = p.verification_status || 'pending_verification';
-        if (status === 'verified') {
+        const rawStatus = (p.verification_status || 'pending_verification').trim();
+        const upperStatus = rawStatus.toUpperCase();
+
+        if (upperStatus === 'REFLECTED PBCOM' || upperStatus === 'REFLECTED_PBCOM') {
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[10px] font-bold rounded-md uppercase tracking-wider">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Verified
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-900 border border-emerald-300/80 text-[10px] font-black rounded-md uppercase tracking-wider">
+              <Building2 className="h-3.5 w-3.5 text-emerald-700" /> REFLECTED PBCOM
             </span>
           );
         }
-        if (status === 'rejected') {
+        if (upperStatus === 'REFLECTED SECURITY BANK' || upperStatus === 'REFLECTED_SECURITY_BANK') {
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-800 border border-rose-200/80 text-[10px] font-bold rounded-md uppercase tracking-wider">
-              <XCircle className="h-3.5 w-3.5 text-rose-600" /> Rejected
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-900 border border-teal-300/80 text-[10px] font-black rounded-md uppercase tracking-wider">
+              <Building2 className="h-3.5 w-3.5 text-teal-700" /> REFLECTED SECURITY BANK
+            </span>
+          );
+        }
+        if (upperStatus === 'JNT SOA' || upperStatus === 'JNT_SOA') {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-900 border border-blue-300/80 text-[10px] font-black rounded-md uppercase tracking-wider">
+              <Truck className="h-3.5 w-3.5 text-blue-700" /> JNT SOA
+            </span>
+          );
+        }
+        if (upperStatus === 'CLEARED CHECK' || upperStatus === 'CLEARED_CHECK') {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-900 border border-purple-300/80 text-[10px] font-black rounded-md uppercase tracking-wider">
+              <CheckCircle2 className="h-3.5 w-3.5 text-purple-700" /> CLEARED CHECK
+            </span>
+          );
+        }
+        if (upperStatus === 'VERIFIED') {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-900 border border-emerald-300/80 text-[10px] font-extrabold rounded-md uppercase tracking-wider">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> VERIFIED
+            </span>
+          );
+        }
+        if (upperStatus === 'REJECTED') {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-900 border border-rose-300/80 text-[10px] font-extrabold rounded-md uppercase tracking-wider">
+              <XCircle className="h-3.5 w-3.5 text-rose-600" /> REJECTED
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[10px] font-bold rounded-md uppercase tracking-wider">
-            <Clock className="h-3.5 w-3.5 text-amber-600" /> Pending Review
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300/80 text-[10px] font-extrabold rounded-md uppercase tracking-wider">
+            <Clock className="h-3.5 w-3.5 text-amber-600" /> PENDING FOR VERIFICATION
           </span>
         );
       },
@@ -282,8 +352,14 @@ export default function ReviewCollectionPaymentPage() {
       label: 'Actions',
       className: 'text-right',
       render: (p: Payment) => {
-        const isVerified = p.verification_status === 'verified';
-        const isRejected = p.verification_status === 'rejected';
+        const status = (p.verification_status || '').toUpperCase();
+        const isVerified =
+          status !== '' &&
+          status !== 'PENDING_VERIFICATION' &&
+          status !== 'PENDING' &&
+          status !== 'PENDING FOR VERIFICATION' &&
+          status !== 'REJECTED';
+        const isRejected = status === 'REJECTED';
 
         const isCancelled =
           (p.invoice as any)?.status === 'cancelled' ||
@@ -305,21 +381,33 @@ export default function ReviewCollectionPaymentPage() {
           );
         }
 
-        return (
-          <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-            {!isVerified && (
+        if (isVerified) {
+          return (
+            <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => openVerifyModal(p, 'verified')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-2xs transition cursor-pointer"
-                title="Verify and approve payment"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#4A0E17]/10 hover:bg-[#4A0E17]/20 text-[#4A0E17] font-bold text-xs rounded-xl border border-[#4A0E17]/20 transition cursor-pointer shadow-2xs"
+                title="Update or change verification status"
               >
-                <Check className="h-3.5 w-3.5" /> Approve
+                <Check className="h-3.5 w-3.5" /> Edit Status
               </button>
-            )}
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => openVerifyModal(p, 'verified')}
+              className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-2xs transition cursor-pointer"
+              title="Verify and approve payment"
+            >
+              <Check className="h-3.5 w-3.5" /> Approve
+            </button>
             {!isRejected && (
               <button
                 onClick={() => openVerifyModal(p, 'rejected')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs rounded-lg border border-rose-200 transition cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition cursor-pointer"
                 title="Reject or flag payment"
               >
                 <X className="h-3.5 w-3.5" /> Reject
@@ -336,7 +424,7 @@ export default function ReviewCollectionPaymentPage() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-900 tracking-tight">Review Collection Payment</h1>
-        <p className="text-xs font-medium text-slate-500 mt-0.5">
+        <p className="text-xs text-slate-500 mt-1">
           Review, verify, and approve collection payments submitted by Collection Officers
         </p>
       </div>
@@ -388,21 +476,25 @@ export default function ReviewCollectionPaymentPage() {
         </form>
 
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-          {['all', 'pending_verification', 'verified', 'rejected'].map((st) => (
+          {[
+            { id: 'all', label: 'All Statuses' },
+            { id: 'pending_verification', label: 'Pending Verification' },
+            { id: 'REFLECTED PBCOM', label: 'PBCOM' },
+            { id: 'REFLECTED SECURITY BANK', label: 'Security Bank' },
+            { id: 'JNT SOA', label: 'J&T SOA' },
+            { id: 'CLEARED CHECK', label: 'Cleared Check' },
+            { id: 'rejected', label: 'Rejected' },
+          ].map((st) => (
             <button
-              key={st}
-              onClick={() => setParams((p) => ({ ...p, verification_status: st, page: 1 }))}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                params.verification_status === st
+              key={st.id}
+              onClick={() => setParams((p) => ({ ...p, verification_status: st.id, page: 1 }))}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
+                params.verification_status === st.id
                   ? 'bg-[#4A0E17] text-white shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
               }`}
             >
-              {st === 'all'
-                ? 'All Statuses'
-                : st === 'pending_verification'
-                ? 'Pending Review'
-                : st.charAt(0).toUpperCase() + st.slice(1)}
+              {st.label}
             </button>
           ))}
         </div>
@@ -477,6 +569,25 @@ export default function ReviewCollectionPaymentPage() {
 
             {actionType === 'verified' && (
               <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Verification Status <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={selectedVerificationStatus}
+                  onChange={(e) => setSelectedVerificationStatus(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition cursor-pointer"
+                >
+                  <option value="REFLECTED PBCOM">REFLECTED PBCOM</option>
+                  <option value="REFLECTED SECURITY BANK">REFLECTED SECURITY BANK</option>
+                  <option value="JNT SOA">JNT SOA</option>
+                  <option value="CLEARED CHECK">CLEARED CHECK</option>
+                  <option value="PENDING FOR VERIFICATION">PENDING FOR VERIFICATION</option>
+                </select>
+              </div>
+            )}
+
+            {actionType === 'verified' && (
+              <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-slate-800">
                     <Paperclip className="h-3.5 w-3.5 text-[#4A0E17]" />
@@ -521,7 +632,14 @@ export default function ReviewCollectionPaymentPage() {
                 Cancel
               </button>
               <button
-                onClick={() => verifyMut.mutate({ id: selectedPayment.id, status: actionType, notes: verificationNotes, specialAttachment: specialFile })}
+                onClick={() =>
+                  verifyMut.mutate({
+                    id: selectedPayment.id,
+                    status: actionType === 'verified' ? selectedVerificationStatus : 'REJECTED',
+                    notes: verificationNotes,
+                    specialAttachment: specialFile,
+                  })
+                }
                 disabled={verifyMut.isPending}
                 className={`px-5 py-2 font-bold text-xs rounded-xl transition cursor-pointer text-white shadow-xs flex items-center gap-1.5 ${
                   actionType === 'verified' ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-rose-600 hover:bg-rose-700'
