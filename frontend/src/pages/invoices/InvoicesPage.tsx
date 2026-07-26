@@ -78,7 +78,7 @@ export default function InvoicesPage() {
     }));
   };
 
-  const statusFilters = ['all', 'draft', 'sent', 'partial', 'paid', 'overdue', 'cancelled'];
+  const statusFilters = ['all', 'draft', 'sent', 'partial', 'paid', 'overdue', 'overpaid', 'cancelled'];
 
   const columns = [
     {

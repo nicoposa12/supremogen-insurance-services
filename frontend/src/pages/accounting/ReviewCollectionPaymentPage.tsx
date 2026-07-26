@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -54,11 +54,14 @@ export default function ReviewCollectionPaymentPage() {
   const [selectedVerificationStatus, setSelectedVerificationStatus] = useState<string>('REFLECTED PBCOM');
   const [specialFile, setSpecialFile] = useState<File | null>(null);
 
+  const hasAutoOpenedRef = useRef(false);
+
   // Auto-sync search parameters when clicking notifications
   useEffect(() => {
     if (searchParamVal) {
       setSearchInput(searchParamVal);
       setParams((p) => ({ ...p, search: searchParamVal, page: 1 }));
+      hasAutoOpenedRef.current = false;
     }
   }, [searchParamVal]);
 
@@ -103,9 +106,10 @@ export default function ReviewCollectionPaymentPage() {
   const pagination = response?.data;
   const payments = pagination?.data ?? [];
 
-  // Auto-open verify modal when coming from notification link
+  // Auto-open verify modal when coming from notification link (only once per query search)
   useEffect(() => {
-    if (autoOpenModal && payments.length > 0 && !selectedPayment) {
+    if (autoOpenModal && payments.length > 0 && !hasAutoOpenedRef.current) {
+      hasAutoOpenedRef.current = true;
       const match = payments.find(
         (p) =>
           p.payment_number?.toUpperCase() === searchParamVal.toUpperCase() ||

@@ -98,12 +98,31 @@ class Invoice extends Model
         });
     }
 
+    protected $appends = [
+        'overpayment_amount',
+    ];
+
+    public function getOverpaymentAmountAttribute(): float
+    {
+        return max(0, (float) $this->amount_paid - (float) $this->total_amount);
+    }
+
     public function scopeOfStatus($query, ?string $status)
     {
         if (!$status || $status === 'all') return $query;
-        if (str_contains($status, ',')) {
-            return $query->whereIn('status', explode(',', $status));
+
+        $statuses = explode(',', $status);
+        if (in_array('overpaid', $statuses)) {
+            return $query->where(function ($q) use ($statuses) {
+                $q->whereIn('status', $statuses)
+                  ->orWhereRaw('amount_paid > total_amount');
+            });
         }
+
+        if (count($statuses) > 1) {
+            return $query->whereIn('status', $statuses);
+        }
+
         return $query->where('status', $status);
     }
 
@@ -143,16 +162,21 @@ class Invoice extends Model
                   ]);
             })
             ->sum('amount');
-        $this->balance = max(0, $this->total_amount - $this->amount_paid);
 
-        // Auto-update status based on balance
+        // Auto-update status based on balance & overpayment
         if ($this->status !== 'cancelled' && $this->status !== 'draft') {
-            if ($this->balance <= 0) {
+            if ((float) $this->amount_paid > (float) $this->total_amount + 0.01) {
+                $this->status = 'overpaid';
+                $this->balance = 0;
+            } elseif ((float) $this->amount_paid >= (float) $this->total_amount - 0.01) {
                 $this->status = 'paid';
-            } elseif ($this->amount_paid > 0) {
+                $this->balance = 0;
+            } elseif ((float) $this->amount_paid > 0) {
                 $this->status = 'partial';
+                $this->balance = max(0, (float) $this->total_amount - (float) $this->amount_paid);
             } else {
                 $this->status = 'sent';
+                $this->balance = (float) $this->total_amount;
             }
         }
 

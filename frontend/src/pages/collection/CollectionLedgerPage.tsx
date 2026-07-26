@@ -594,7 +594,7 @@ export default function CollectionLedgerPage() {
       page: page,
       per_page: perPage,
       search: searchVal,
-      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm') ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid,voided' : invoiceStatus),
+      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm') ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid,overpaid,voided' : invoiceStatus),
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
@@ -840,13 +840,6 @@ export default function CollectionLedgerPage() {
     const amountNum = parseFloat(collectAmount);
     if (isNaN(amountNum) || amountNum <= 0) {
       showToast('Please enter a valid amount.', 'error');
-      return;
-    }
-
-    const currentPayment = selectedInvoice.payments?.find(p => p.id === editingPaymentId);
-    const maxAllowed = selectedInvoice.balance + (currentPayment ? Number(currentPayment.amount) : 0);
-    if (amountNum > maxAllowed) {
-      showToast(`Collection amount cannot exceed the balance of ₱${maxAllowed.toLocaleString()}`, 'error');
       return;
     }
 
@@ -1381,6 +1374,7 @@ export default function CollectionLedgerPage() {
                 <option value="sent">Sent (Unpaid)</option>
                 <option value="partial">Partially Paid</option>
                 <option value="overdue">Overdue</option>
+                <option value="overpaid">Overpayment</option>
                 <option value="paid">Paid</option>
                 <option value="voided">Cancelled / Voided</option>
               </select>
@@ -1767,7 +1761,18 @@ export default function CollectionLedgerPage() {
                                 </td>
                               );
                             })}
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">₱{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">
+                              {Number((row as any).amount_paid) > Number((row as any).total_amount) ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-slate-400 font-normal line-through text-[10px]">₱0.00</span>
+                                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-300 rounded text-[9px] font-extrabold uppercase whitespace-nowrap">
+                                    +₱{(Number((row as any).amount_paid) - Number((row as any).total_amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })} OVERPAID
+                                  </span>
+                                </div>
+                              ) : (
+                                `₱${Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              )}
+                            </td>
                             <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
                               {dueAmount > 0 ? (
                                 <span className="px-2 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-350 rounded-lg text-[11px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">

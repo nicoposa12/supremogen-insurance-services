@@ -235,13 +235,6 @@ export default function CollectionPage() {
       return;
     }
 
-    const currentPayment = selectedInvoice.payments?.find(p => p.id === editingPaymentId);
-    const maxAllowed = selectedInvoice.balance + (currentPayment ? Number(currentPayment.amount) : 0);
-    if (amountNum > maxAllowed) {
-      showToast(`Collection amount cannot exceed the invoice balance of ₱${maxAllowed.toLocaleString()}`, 'error');
-      return;
-    }
-
     const data: PaymentFormData = {
       invoice_id: selectedInvoice.id,
       amount: amountNum,
@@ -376,7 +369,13 @@ export default function CollectionPage() {
       key: 'balance',
       label: 'Balance Due',
       render: (r: Invoice) => (
-        <span className="font-bold text-[#4A0E17]">₱{Number(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+        Number(r.amount_paid) > Number(r.total_amount) ? (
+          <span className="font-bold text-purple-900 bg-purple-100 px-2 py-0.5 rounded border border-purple-300 text-xs">
+            +₱{(Number(r.amount_paid) - Number(r.total_amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })} Overpaid
+          </span>
+        ) : (
+          <span className="font-bold text-[#4A0E17]">₱{Number(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+        )
       ),
     },
     {
@@ -653,6 +652,7 @@ export default function CollectionPage() {
                   <option value="sent">Sent (Unpaid)</option>
                   <option value="partial">Partially Paid</option>
                   <option value="overdue">Overdue</option>
+                  <option value="overpaid">Overpayment</option>
                   <option value="paid">Paid</option>
                 </select>
               </div>
