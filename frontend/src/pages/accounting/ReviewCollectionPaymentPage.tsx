@@ -17,7 +17,8 @@ import {
   Calendar,
   Download,
   Building2,
-  Truck
+  Truck,
+  Filter
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -64,6 +65,17 @@ export default function ReviewCollectionPaymentPage() {
       hasAutoOpenedRef.current = false;
     }
   }, [searchParamVal]);
+
+  // Real-time automatic search debounce (without hitting Enter)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setParams((p) => {
+        if (p.search === searchInput) return p;
+        return { ...p, search: searchInput, page: 1 };
+      });
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
   // Proof Preview Modal States
   const [previewAttachment, setPreviewAttachment] = useState<{ id: number; file_name: string; mime_type?: string } | null>(null);
@@ -469,38 +481,47 @@ export default function ReviewCollectionPaymentPage() {
       {/* Filters & Search */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <form onSubmit={handleSearch} className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search client, payment no., ref..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20"
+            className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 transition"
           />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchInput('');
+                setParams((p) => ({ ...p, search: '', page: 1 }));
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition cursor-pointer flex items-center justify-center"
+              title="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </form>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-          {[
-            { id: 'all', label: 'All Statuses' },
-            { id: 'pending_verification', label: 'Pending Verification' },
-            { id: 'REFLECTED PBCOM', label: 'PBCOM' },
-            { id: 'REFLECTED SECURITY BANK', label: 'Security Bank' },
-            { id: 'JNT SOA', label: 'J&T SOA' },
-            { id: 'CLEARED CHECK', label: 'Cleared Check' },
-            { id: 'rejected', label: 'Rejected' },
-          ].map((st) => (
-            <button
-              key={st.id}
-              onClick={() => setParams((p) => ({ ...p, verification_status: st.id, page: 1 }))}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                params.verification_status === st.id
-                  ? 'bg-[#4A0E17] text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-              }`}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 transition hover:border-slate-300">
+            <Filter className="h-4 w-4 text-slate-400" />
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status:</span>
+            <select
+              value={params.verification_status || 'all'}
+              onChange={(e) => setParams((p) => ({ ...p, verification_status: e.target.value, page: 1 }))}
+              className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-2"
             >
-              {st.label}
-            </button>
-          ))}
+              <option value="all">All Verification Statuses</option>
+              <option value="pending_verification">Pending Verification</option>
+              <option value="REFLECTED PBCOM">Reflected PBCOM</option>
+              <option value="REFLECTED SECURITY BANK">Reflected Security Bank</option>
+              <option value="JNT SOA">J&T SOA</option>
+              <option value="CLEARED CHECK">Cleared Check</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -561,6 +582,12 @@ export default function ReviewCollectionPaymentPage() {
                 <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Client</span>
                 <span className="font-bold text-slate-800 uppercase">
                   {selectedPayment.invoice?.customer?.first_name} {selectedPayment.invoice?.customer?.last_name}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Method of Payment</span>
+                <span className="font-bold text-slate-800 text-xs uppercase bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  {PAYMENT_METHOD_LABELS[selectedPayment.payment_method] || (selectedPayment.payment_method || '').replace(/_/g, ' ').toUpperCase()}
                 </span>
               </div>
               <div className="flex justify-between items-center">

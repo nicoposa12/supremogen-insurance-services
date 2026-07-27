@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign,
@@ -766,6 +766,40 @@ export default function CollectionLedgerPage() {
       return true;
     });
   }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter, termFilter, dueMonthFilter, dueYearFilter, dueDayFilter]);
+
+  const autoExpandedLedgerRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const isAutoOpen = searchParams.get('autoOpen') === 'true';
+    if (isAutoOpen && !invoicesLoading && filteredInvoices.length > 0 && autoExpandedLedgerRef.current !== (querySearch || 'auto')) {
+      autoExpandedLedgerRef.current = querySearch || 'auto';
+
+      const searchUpper = (querySearch || '').toUpperCase();
+      const match = querySearch ? (
+        filteredInvoices.find((inv: Invoice) => {
+          const custName = inv.customer ? `${inv.customer.first_name} ${inv.customer.last_name}`.toUpperCase() : '';
+          const policyNo = (inv.customer?.policy_no || inv.policy?.policy_number || '').toUpperCase();
+          const invNo = (inv.invoice_number || '').toUpperCase();
+          const hasMatchingPayment = inv.payments?.some(
+            (p) => p.payment_number?.toUpperCase() === searchUpper || p.reference_number?.toUpperCase() === searchUpper
+          );
+
+          return (
+            hasMatchingPayment ||
+            invNo === searchUpper ||
+            invNo.includes(searchUpper) ||
+            policyNo === searchUpper ||
+            policyNo.includes(searchUpper) ||
+            custName.includes(searchUpper)
+          );
+        }) || filteredInvoices[0]
+      ) : filteredInvoices[0];
+
+      if (match) {
+        setExpandedInvoiceIds((prev) => ({ ...prev, [match.id]: true }));
+      }
+    }
+  }, [filteredInvoices, searchParams, querySearch, invoicesLoading]);
   // Mutation for recording a collection payment
   const recordCollectionMut = useMutation({
     mutationFn: (data: PaymentFormData) => recordPayment(data),
@@ -1611,11 +1645,15 @@ export default function CollectionLedgerPage() {
                           <tr
                             onClick={() => handleOpenCollection(row)}
                             className={`transition-colors text-xs cursor-pointer ${
-                              isCancelledPolicy
-                                ? 'bg-rose-50/40 hover:bg-rose-50 text-slate-800 border-l-4 border-l-rose-600'
-                                : (isFirstPaymentAlarm || isDstWarning || isHighlighted
-                                  ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-4 border-l-rose-500 font-medium'
-                                  : 'bg-white hover:bg-slate-50 text-slate-800')
+                              isDstWarning
+                                ? 'bg-amber-50/30 hover:bg-amber-50/60 text-slate-800 border-l-4 border-l-amber-500 font-medium'
+                                : isCancelledPolicy
+                                  ? 'bg-rose-50/40 hover:bg-rose-50 text-slate-800 border-l-4 border-l-rose-600'
+                                  : isFirstPaymentAlarm
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-4 border-l-rose-500 font-medium'
+                                    : isHighlighted
+                                      ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-4 border-l-rose-500 font-medium'
+                                      : 'bg-white hover:bg-slate-50 text-slate-800'
                               }`}
                           >
                             <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium">

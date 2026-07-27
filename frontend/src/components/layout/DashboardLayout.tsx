@@ -801,7 +801,8 @@ export default function DashboardLayout() {
                               const matchPayment = message.match(/PAY-\d{4}-\d{5}/) || message.match(/PAY-[A-Z0-9-]+/) || title.match(/PAY-[A-Z0-9-]+/);
                               const matchClaimNotification = message.match(/CLN-[A-Z0-9-]+/) || title.match(/CLN-[A-Z0-9-]+/);
                               const matchClaim = message.match(/CLM-[A-Z0-9-]+/);
-                              const matchPolicy = message.match(/POL-[A-Z0-9-]+/);
+                              const matchPolicy = message.match(/POL-[A-Z0-9-]+/) || message.match(/Policy:?\s*([A-Z0-9-]+)/i);
+                              const matchAssured = message.match(/Assured\s+([A-Za-z0-9\s]+?)(?=\s+is|\s+\(|\s+has|\s+with|$)/i);
 
                               // For Accounting Officer role, route policy/statement/quotation notifications directly to Policy Statements
                               const isAccounting = roles.includes('Accounting Officer') || roles.includes('Accounting');
@@ -812,7 +813,7 @@ export default function DashboardLayout() {
                                 if (isAccounting) {
                                   navigate(`/dashboard/review-collection-payment?search=${code}&autoOpen=true`);
                                 } else if (isCollection) {
-                                  navigate(`/dashboard/collection?search=${code}&autoOpen=true`);
+                                  navigate(`/dashboard/collection/ledger?search=${code}&autoOpen=true`);
                                 } else {
                                   navigate(`/dashboard/payments?search=${code}`);
                                 }
@@ -828,7 +829,7 @@ export default function DashboardLayout() {
                               } else if (matchInvoice) {
                                 const code = matchInvoice[0];
                                 if (isCollection) {
-                                  navigate(`/dashboard/collection/ledger?search=${code}`);
+                                  navigate(`/dashboard/collection/ledger?search=${code}&autoOpen=true`);
                                 } else {
                                   navigate(`/dashboard/invoices?search=${code}`);
                                 }
@@ -839,17 +840,26 @@ export default function DashboardLayout() {
                                 const code = matchClaim[0];
                                 navigate(`/dashboard/claims?search=${code}`);
                               } else if (matchPolicy) {
-                                const code = matchPolicy[0];
+                                const code = matchPolicy[1] || matchPolicy[0];
                                 if (isAccounting) {
                                   navigate(`/dashboard/policy-statements?search=${code}`);
+                                } else if (isCollection) {
+                                  navigate(`/dashboard/collection/ledger?search=${code}&autoOpen=true`);
                                 } else {
                                   navigate(`/dashboard/renewals?search=${code}`);
                                 }
-                              } else if (title.toLowerCase().includes('collection payment') || title.toLowerCase().includes('payment')) {
+                              } else if (matchAssured) {
+                                const assuredName = matchAssured[1].trim();
+                                if (isCollection) {
+                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(assuredName)}&autoOpen=true`);
+                                } else if (isAccounting) {
+                                  navigate(`/dashboard/review-collection-payment?search=${encodeURIComponent(assuredName)}&autoOpen=true`);
+                                }
+                              } else if (title.toLowerCase().includes('collection payment') || title.toLowerCase().includes('payment') || title.toLowerCase().includes('dst warning') || title.toLowerCase().includes('1st payment')) {
                                 if (isAccounting) {
                                   navigate('/dashboard/review-collection-payment');
                                 } else if (isCollection) {
-                                  navigate('/dashboard/collection/ledger');
+                                  navigate('/dashboard/collection/ledger?autoOpen=true');
                                 } else {
                                   navigate('/dashboard/payments');
                                 }

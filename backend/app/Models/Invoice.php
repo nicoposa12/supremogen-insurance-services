@@ -75,25 +75,29 @@ class Invoice extends Model
         $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
 
-        return $query->where(function ($q) use ($term, $likeOperator) {
-            $q->where('invoice_number', $likeOperator, "%{$term}%")
-              ->orWhereHas('customer', function ($cq) use ($term, $likeOperator) {
-                  $cq->where('first_name', $likeOperator, "%{$term}%")
-                     ->orWhere('last_name', $likeOperator, "%{$term}%")
-                     ->orWhere('customer_code', $likeOperator, "%{$term}%")
-                     ->orWhere('policy_no', $likeOperator, "%{$term}%")
-                     ->orWhere('plate_no', $likeOperator, "%{$term}%");
+        $cleanTerm = trim($term);
+        $cleanTermNoHyphen = str_replace('-', '', $cleanTerm);
+
+        return $query->where(function ($q) use ($cleanTerm, $cleanTermNoHyphen, $likeOperator) {
+            $q->where('invoice_number', $likeOperator, "%{$cleanTerm}%")
+              ->orWhereHas('customer', function ($cq) use ($cleanTerm, $likeOperator) {
+                  $cq->where('first_name', $likeOperator, "%{$cleanTerm}%")
+                     ->orWhere('last_name', $likeOperator, "%{$cleanTerm}%")
+                     ->orWhere('customer_code', $likeOperator, "%{$cleanTerm}%")
+                     ->orWhere('policy_no', $likeOperator, "%{$cleanTerm}%")
+                     ->orWhere('plate_no', $likeOperator, "%{$cleanTerm}%");
               })
-              ->orWhereHas('policy', function ($pq) use ($term, $likeOperator) {
-                  $pq->where('policy_number', $likeOperator, "%{$term}%")
-                     ->orWhereHas('quotation', function ($qq) use ($term, $likeOperator) {
-                         $qq->where('quotation_number', $likeOperator, "%{$term}%")
-                            ->orWhere('ir_number', $likeOperator, "%{$term}%");
+              ->orWhereHas('policy', function ($pq) use ($cleanTerm, $likeOperator) {
+                  $pq->where('policy_number', $likeOperator, "%{$cleanTerm}%")
+                     ->orWhereHas('quotation', function ($qq) use ($cleanTerm, $likeOperator) {
+                         $qq->where('quotation_number', $likeOperator, "%{$cleanTerm}%")
+                            ->orWhere('ir_number', $likeOperator, "%{$cleanTerm}%");
                      });
               })
-              ->orWhereHas('payments', function ($payq) use ($term, $likeOperator) {
-                  $payq->where('payment_number', $likeOperator, "%{$term}%")
-                       ->orWhere('reference_number', $likeOperator, "%{$term}%");
+              ->orWhereHas('payments', function ($payq) use ($cleanTerm, $cleanTermNoHyphen, $likeOperator) {
+                  $payq->where('payment_number', $likeOperator, "%{$cleanTerm}%")
+                       ->orWhere('payment_number', $likeOperator, "%{$cleanTermNoHyphen}%")
+                       ->orWhere('reference_number', $likeOperator, "%{$cleanTerm}%");
               });
         });
     }

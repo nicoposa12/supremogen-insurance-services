@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   DollarSign, 
@@ -98,12 +98,13 @@ export default function CollectionPage() {
   }, [querySearch]);
 
   useEffect(() => {
+    if (invoiceSearchInput === querySearch) return;
     const handler = setTimeout(() => {
       setInvoiceSearch(invoiceSearchInput);
       setInvoicePage(1);
     }, 300);
     return () => clearTimeout(handler);
-  }, [invoiceSearchInput]);
+  }, [invoiceSearchInput, querySearch]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -125,7 +126,9 @@ export default function CollectionPage() {
       page: invoicePage,
       per_page: invoicePerPage,
       search: invoiceSearch,
-      status: invoiceStatus === 'all' ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid,voided' : invoiceStatus),
+      status: (invoiceSearch && invoiceSearch.trim() !== '') 
+        ? 'sent,partial,overdue,paid,overpaid,voided' 
+        : (invoiceStatus === 'all' ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid,overpaid,voided' : invoiceStatus)),
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
@@ -209,15 +212,28 @@ export default function CollectionPage() {
 
   const invoicesList = invoicesRes?.data?.data ?? [];
 
+  const autoOpenedSearchRef = useRef<string | null>(null);
+
   // Auto-open collection modal when coming from notification click
   useEffect(() => {
-    if (searchParams.get('autoOpen') === 'true' && invoicesList.length > 0 && !selectedInvoice) {
-      const match = invoicesList[0];
+    const isAutoOpen = searchParams.get('autoOpen') === 'true';
+    if (isAutoOpen && querySearch && !invoicesLoading && invoicesList.length > 0 && autoOpenedSearchRef.current !== querySearch) {
+      const searchUpper = querySearch.toUpperCase();
+      const match = invoicesList.find((inv: Invoice) => {
+        const hasMatchingPayment = inv.payments?.some(
+          (p) => p.payment_number?.toUpperCase() === searchUpper || p.reference_number?.toUpperCase() === searchUpper
+        );
+        const hasMatchingInvoiceNo = inv.invoice_number?.toUpperCase() === searchUpper;
+        const hasMatchingCustomer = inv.customer &&
+          `${inv.customer.first_name} ${inv.customer.last_name}`.toUpperCase().includes(searchUpper);
+        return hasMatchingPayment || hasMatchingInvoiceNo || hasMatchingCustomer;
+      }) || invoicesList[0];
+
       if (match) {
-        handleOpenCollection(match);
+        autoOpenedSearchRef.current = querySearch;
       }
     }
-  }, [invoicesList, searchParams]);
+  }, [invoicesList, searchParams, querySearch, invoicesLoading]);
 
   const handleOpenCollection = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
