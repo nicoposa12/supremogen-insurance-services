@@ -184,6 +184,10 @@ class CustomerController extends Controller
 
         $customer->update($validator->validated());
 
+        if ($request->filled('policy_no')) {
+            $customer->policies()->update(['policy_number' => $request->input('policy_no')]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Customer updated successfully.',
@@ -373,6 +377,7 @@ class CustomerController extends Controller
             'date_delivered' => 'nullable|date',
 
             // Revised fields
+            'policy_no' => 'nullable|string|max:100',
             'request_type' => 'nullable|string|max:50',
             'activity' => 'nullable|string|max:50',
             'quotation_used' => 'nullable|string|max:50',

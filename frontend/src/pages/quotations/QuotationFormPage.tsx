@@ -128,6 +128,9 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { user, roles = [] } = useAuth();
+  const isSalesOrRenewal = roles.some((r) => r === 'Sales Agent' || r === 'Team Renewal');
+  const isUnderwriterOrAdmin = roles.some((r) => r === 'Underwriter' || r === 'Admin' || r === 'Super Admin');
+  const canEditPolicyNo = isUnderwriterOrAdmin || !isSalesOrRenewal;
 
   // Form states
   const [customerId, setCustomerId] = useState<number>(0);
@@ -1522,7 +1525,24 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className={labelClass}>Policy No.#</label>
-                  <input type="text" value={policyNo} onChange={(e) => setPolicyNo(e.target.value)} className={inputClass} placeholder="Enter policy number..." />
+                  {canEditPolicyNo ? (
+                    <input
+                      type="text"
+                      value={policyNo}
+                      onChange={(e) => setPolicyNo(e.target.value)}
+                      className={inputClass}
+                      placeholder="Enter policy number..."
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={policyNo || ''}
+                      readOnly
+                      disabled
+                      className={`${inputClass} bg-slate-100/80 text-slate-400 cursor-not-allowed`}
+                      placeholder="To be assigned by Underwriter"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className={labelClass}>Agent</label>

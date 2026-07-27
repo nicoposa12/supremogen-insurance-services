@@ -32,6 +32,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   const bankFileInputRef = useRef<HTMLInputElement>(null);
 
   // Editable customer fields
+  const [policyNo, setPolicyNo] = useState('');
   const [assuredClient, setAssuredClient] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
   const [city, setCity] = useState('');
@@ -74,7 +75,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   // Populate state from loaded data
   useEffect(() => {
     if (quotation) {
-
+      setPolicyNo(quotation.customer?.policy_no || (quotation as any).policy?.policy_number || '');
       const c = quotation.customer;
       if (c) {
         const fullName = [c.first_name, c.middle_name, c.last_name, c.suffix].filter(Boolean).join(' ');
@@ -100,8 +101,8 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
 
   // Mutations
   const reviewMut = useMutation({
-    mutationFn: ({ action, remarks }: { action: 'approve' | 'reject'; remarks: string }) =>
-      reviewQuotation(id, action, remarks),
+    mutationFn: ({ action, remarks, policyNumber }: { action: 'approve' | 'reject'; remarks: string; policyNumber?: string }) =>
+      reviewQuotation(id, action, remarks, undefined, undefined, policyNumber),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['insurance-requests'] });
@@ -145,6 +146,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
 
       // Save customer info
       await updateCustomer(quotation.customer_id, {
+        policy_no: policyNo,
         first_name: firstName,
         last_name: lastName,
         middle_name: middleName,
@@ -223,6 +225,22 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
           <button onClick={() => bankFileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer no-print">
             {uploadAttachmentMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />} Upload Bank Attachment
           </button>
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">POLICY NO. :</span>
+            {isEditable ? (
+              <input
+                type="text"
+                value={policyNo}
+                onChange={(e) => setPolicyNo(e.target.value)}
+                placeholder="Assign Policy No..."
+                className="px-3.5 py-1.5 bg-white border border-slate-300 hover:border-slate-400 focus:border-[#4A0E17] font-mono text-xs font-bold text-[#4A0E17] rounded-xl shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/15 transition-all w-48 placeholder:font-sans placeholder:font-normal placeholder:text-slate-400"
+              />
+            ) : (
+              <span className="inline-flex items-center px-3.5 py-1.5 bg-slate-100 text-slate-800 font-mono text-xs font-bold rounded-xl border border-slate-200">
+                {policyNo || quotation.customer?.policy_no || (quotation as any).policy?.policy_number || '—'}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">IR NO. :</span>
             <span className="inline-flex items-center px-4 py-1.5 bg-amber-400 text-slate-900 font-mono text-base font-extrabold rounded-lg shadow-sm tracking-wider border border-amber-500">
@@ -859,13 +877,23 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
           ) : (
             <div className="space-y-4">
               <div>
+                <label className="block text-xs font-bold text-violet-800 uppercase tracking-wider mb-1">Assign Policy Number</label>
+                <input
+                  type="text"
+                  value={policyNo}
+                  onChange={(e) => setPolicyNo(e.target.value)}
+                  placeholder="Enter policy number to assign..."
+                  className="w-full px-3.5 py-2 bg-white border border-violet-200 rounded-xl text-sm font-mono font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition mb-3"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-violet-700 mb-1.5">Remarks</label>
                 <textarea value={reviewRemarks} onChange={(e) => setReviewRemarks(e.target.value)}
                   rows={3} placeholder="Add your review remarks..."
                   className="w-full px-3.5 py-2.5 bg-white border border-violet-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition" />
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => reviewMut.mutate({ action: 'approve', remarks: reviewRemarks })}
+                <button onClick={() => reviewMut.mutate({ action: 'approve', remarks: reviewRemarks, policyNumber: policyNo })}
                   disabled={reviewMut.isPending}
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-xl hover:bg-emerald-700 disabled:opacity-50 shadow-sm shadow-emerald-600/20 transition cursor-pointer">
                   <CheckCircle2 className="h-4 w-4" /> Approve

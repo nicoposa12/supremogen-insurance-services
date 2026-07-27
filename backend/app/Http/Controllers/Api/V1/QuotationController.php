@@ -26,6 +26,7 @@ class QuotationController extends Controller
         $query = Quotation::with([
             'customer',
             'customer.attachments',
+            'policy',
             'items',
             'preparedBy:id,name'
         ]);
@@ -122,6 +123,7 @@ class QuotationController extends Controller
     {
         $quotation = Quotation::with([
             'customer',
+            'policy',
             'items.insuranceProduct',
             'preparedBy:id,name,email',
             'reviewedBy:id,name,email',
@@ -337,6 +339,7 @@ class QuotationController extends Controller
             'reviewer_remarks' => 'nullable|string|max:2000',
             'or_number' => 'nullable|string|max:100',
             'trip_number' => 'nullable|string|max:100',
+            'policy_number' => 'nullable|string|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -360,24 +363,49 @@ class QuotationController extends Controller
                 'trip_number' => $request->input('trip_number', $quotation->trip_number),
             ]);
 
-            // Automatically create Policy and Invoice if approved
+            // Automatically create or update Policy and Invoice if approved
             if ($action === 'approve') {
                 $customer = $quotation->customer;
                 $productId = $quotation->items->first()?->insurance_product_id;
-                
-                $policy = \App\Models\Policy::create([
-                    'policy_number' => \App\Models\Policy::generateNumber(),
-                    'quotation_id' => $quotation->id,
-                    'customer_id' => $quotation->customer_id,
-                    'insurance_product_id' => $productId,
-                    'issued_by' => $request->user()->id,
-                    'status' => 'active',
-                    'effective_date' => $customer?->inception_date ?? now(),
-                    'expiry_date' => $customer?->expiry_date ?? now()->addYear(),
-                    'total_premium' => $customer?->policy_premium ?? 0,
-                    'sum_insured' => $customer?->assured_value ?? 0,
-                    'terms_and_conditions' => $quotation->notes,
-                ]);
+                $providedPolicyNo = $request->input('policy_number');
+
+                if ($customer && $providedPolicyNo) {
+                    $customer->update(['policy_no' => $providedPolicyNo]);
+                }
+
+                $policyNoToUse = $providedPolicyNo ?: ($customer?->policy_no ?: \App\Models\Policy::generateNumber());
+
+                // Find existing policy for this quotation or customer
+                $policy = \App\Models\Policy::where('quotation_id', $quotation->id)
+                    ->orWhere(function ($q) use ($quotation) {
+                        if ($quotation->customer_id) {
+                            $q->where('customer_id', $quotation->customer_id);
+                        }
+                    })->first();
+
+                if ($policy) {
+                    $policy->update([
+                        'policy_number' => $policyNoToUse,
+                        'quotation_id' => $quotation->id,
+                        'customer_id' => $quotation->customer_id,
+                        'insurance_product_id' => $productId,
+                        'status' => 'active',
+                    ]);
+                } else {
+                    $policy = \App\Models\Policy::create([
+                        'policy_number' => $policyNoToUse,
+                        'quotation_id' => $quotation->id,
+                        'customer_id' => $quotation->customer_id,
+                        'insurance_product_id' => $productId,
+                        'issued_by' => $request->user()->id,
+                        'status' => 'active',
+                        'effective_date' => $customer?->inception_date ?? now(),
+                        'expiry_date' => $customer?->expiry_date ?? now()->addYear(),
+                        'total_premium' => $customer?->policy_premium ?? 0,
+                        'sum_insured' => $customer?->assured_value ?? 0,
+                        'terms_and_conditions' => $quotation->notes,
+                    ]);
+                }
 
                 // Create default coverages for the policy matching quotation items
                 foreach ($quotation->items as $item) {

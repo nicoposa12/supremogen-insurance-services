@@ -30,7 +30,14 @@ export const RequestCancellationModal: React.FC<RequestCancellationModalProps> =
   const clientName = cust
     ? [cust.first_name, cust.middle_name, cust.last_name].filter(Boolean).join(' ')
     : '—';
-  const policyNumber = cust?.policy_no || (quotation as any).policy?.policy_number || quotation.policy_number || '—';
+  const policyNumber =
+    (quotation as any).policy?.policy_number ||
+    cust?.policy_no ||
+    quotation.policy_number ||
+    (quotation as any).cancellation_details?.policy_number ||
+    cov.policy_number ||
+    cov.policy_no ||
+    '—';
   const plateNumber = cov.plate_no || cov.plate_number || cust?.plate_no || '—';
   const provider = cov.insurance_provider || cov.provider || cust?.insurance_provider || 'ALPHA';
   const initialInception = cust?.inception_date ? String(cust.inception_date).split('T')[0] : '';

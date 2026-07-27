@@ -50,13 +50,15 @@ export async function reviewQuotation(
   action: 'approve' | 'reject',
   reviewerRemarks?: string,
   orNumber?: string,
-  tripNumber?: string
+  tripNumber?: string,
+  policyNumber?: string
 ): Promise<SingleResponse<Quotation>> {
   const { data } = await axios.post<SingleResponse<Quotation>>(`${BASE}/${id}/review`, {
     action,
     reviewer_remarks: reviewerRemarks,
     or_number: orNumber,
     trip_number: tripNumber,
+    policy_number: policyNumber,
   });
   return data;
 }

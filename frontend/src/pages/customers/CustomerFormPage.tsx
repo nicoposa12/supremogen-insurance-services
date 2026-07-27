@@ -73,6 +73,10 @@ export default function CustomerFormPage() {
     },
   });
 
+  const isSalesOrRenewal = roles?.some((r) => r === 'Sales Agent' || r === 'Team Renewal');
+  const isUnderwriterOrAdmin = roles?.some((r) => r === 'Underwriter' || r === 'Admin' || r === 'Super Admin');
+  const canEditPolicyNo = isUnderwriterOrAdmin || !isSalesOrRenewal;
+
   // ─── Fetch for Edit Mode ────────────
   const { data: existing, isLoading: loadingExisting } = useQuery({
     queryKey: ['customer', id],
@@ -583,13 +587,15 @@ export default function CustomerFormPage() {
           <h3 className="text-sm font-semibold text-[#4A0E17] uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Policy & Coverage details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <label className={labelClass}>Policy No.# *</label>
+              <label className={labelClass}>Policy No.# {canEditPolicyNo ? '*' : ''}</label>
               <input
-                {...register('policy_no', { required: 'Policy number is required' })}
-                className={inputClass(errors.policy_no)}
-                placeholder="e.g. MOP-123-1234-12"
+                {...register('policy_no', { required: canEditPolicyNo ? 'Policy number is required' : false })}
+                readOnly={!canEditPolicyNo}
+                disabled={!canEditPolicyNo}
+                className={`${inputClass(errors.policy_no)} ${!canEditPolicyNo ? 'bg-slate-100/80 text-slate-400 cursor-not-allowed' : ''}`}
+                placeholder={canEditPolicyNo ? 'e.g. MOP-123-1234-12' : 'To be assigned by Underwriter'}
               />
-              {errors.policy_no && <p className="text-xs text-red-500 mt-1">{errors.policy_no.message}</p>}
+              {canEditPolicyNo && errors.policy_no && <p className="text-xs text-red-500 mt-1">{errors.policy_no.message}</p>}
             </div>
             <div>
               <label className={labelClass}>Inception Date *</label>
