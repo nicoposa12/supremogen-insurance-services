@@ -83,15 +83,22 @@ class Invoice extends Model
               ->orWhereHas('customer', function ($cq) use ($cleanTerm, $likeOperator) {
                   $cq->where('first_name', $likeOperator, "%{$cleanTerm}%")
                      ->orWhere('last_name', $likeOperator, "%{$cleanTerm}%")
+                     ->orWhere('agent', $likeOperator, "%{$cleanTerm}%")
                      ->orWhere('customer_code', $likeOperator, "%{$cleanTerm}%")
                      ->orWhere('policy_no', $likeOperator, "%{$cleanTerm}%")
                      ->orWhere('plate_no', $likeOperator, "%{$cleanTerm}%");
+              })
+              ->orWhereHas('createdBy', function ($uq) use ($cleanTerm, $likeOperator) {
+                  $uq->where('name', $likeOperator, "%{$cleanTerm}%");
               })
               ->orWhereHas('policy', function ($pq) use ($cleanTerm, $likeOperator) {
                   $pq->where('policy_number', $likeOperator, "%{$cleanTerm}%")
                      ->orWhereHas('quotation', function ($qq) use ($cleanTerm, $likeOperator) {
                          $qq->where('quotation_number', $likeOperator, "%{$cleanTerm}%")
-                            ->orWhere('ir_number', $likeOperator, "%{$cleanTerm}%");
+                            ->orWhere('ir_number', $likeOperator, "%{$cleanTerm}%")
+                            ->orWhereHas('preparedBy', function ($prq) use ($cleanTerm, $likeOperator) {
+                                $prq->where('name', $likeOperator, "%{$cleanTerm}%");
+                            });
                      });
               })
               ->orWhereHas('payments', function ($payq) use ($cleanTerm, $cleanTermNoHyphen, $likeOperator) {

@@ -232,8 +232,31 @@ export default function CollectionPage() {
       if (match) {
         autoOpenedSearchRef.current = querySearch;
       }
+
+      // Strip autoOpen from URL so refresh won't re-trigger
+      if (window.location.search.includes('autoOpen')) {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('autoOpen');
+        window.history.replaceState(null, '', newUrl.pathname + newUrl.search);
+      }
     }
   }, [invoicesList, searchParams, querySearch, invoicesLoading]);
+
+  // Listen for Escape key press to close modals
+  useEffect(() => {
+    if (!collectionModalOpen && !previewAttachment) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewAttachment) {
+          setPreviewAttachment(null);
+        } else if (collectionModalOpen) {
+          setCollectionModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [collectionModalOpen, previewAttachment]);
 
   const handleOpenCollection = (invoice: Invoice) => {
     setSelectedInvoice(invoice);

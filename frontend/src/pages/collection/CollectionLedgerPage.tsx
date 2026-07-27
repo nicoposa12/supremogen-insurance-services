@@ -677,7 +677,13 @@ export default function CollectionLedgerPage() {
 
       // Agent filter
       if (agentFilter) {
-        const agent = (customer?.agent || '').toLowerCase();
+        const agent = (
+          customer?.agent ||
+          (typeof row.created_by === 'object' ? row.created_by?.name : '') ||
+          (row.policy as any)?.quotation?.prepared_by?.name ||
+          (row.policy as any)?.quotation?.reviewed_by?.name ||
+          ''
+        ).toLowerCase();
         if (!agent.includes(agentFilter.toLowerCase())) {
           return false;
         }
@@ -798,8 +804,31 @@ export default function CollectionLedgerPage() {
       if (match) {
         setExpandedInvoiceIds((prev) => ({ ...prev, [match.id]: true }));
       }
+
+      // Strip autoOpen from URL so refresh won't re-trigger
+      if (window.location.search.includes('autoOpen')) {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('autoOpen');
+        window.history.replaceState(null, '', newUrl.pathname + newUrl.search);
+      }
     }
   }, [filteredInvoices, searchParams, querySearch, invoicesLoading]);
+
+  // Listen for Escape key press to close modals
+  useEffect(() => {
+    if (!collectionModalOpen && !previewAttachment) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewAttachment) {
+          setPreviewAttachment(null);
+        } else if (collectionModalOpen) {
+          setCollectionModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [collectionModalOpen, previewAttachment]);
   // Mutation for recording a collection payment
   const recordCollectionMut = useMutation({
     mutationFn: (data: PaymentFormData) => recordPayment(data),

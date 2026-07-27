@@ -37,15 +37,16 @@ export default function SummaryCommissionPage() {
 
   // Fetch invoices for live real-time commission tracking
   const { data: invoicesRes, isLoading } = useQuery({
-    queryKey: ['invoices-summary-commission', selectedMonth, currentPage, perPage],
+    queryKey: ['invoices-summary-commission', selectedMonth, searchQuery, currentPage, perPage],
     queryFn: () =>
       getInvoices({
-        page: currentPage,
-        per_page: perPage,
+        page: 1,
+        per_page: 100,
+        search: searchQuery || undefined,
         sort_by: 'created_at',
         sort_dir: 'desc',
       }),
-    refetchInterval: 5000,
+    refetchInterval: 3000,
   });
 
   const rawInvoices = invoicesRes?.data?.data || [];
@@ -55,65 +56,108 @@ export default function SummaryCommissionPage() {
   const availableAgents = useMemo(() => {
     const agents = new Set<string>();
     rawInvoices.forEach((inv) => {
+      const cust = inv.customer;
+      const policy = (inv as any).policy;
+      const quotation = policy?.quotation;
       const agentName =
-        inv.customer?.agent ||
-        (typeof inv.created_by === 'object' ? inv.created_by?.name : null);
-      if (agentName) agents.add(agentName);
+        cust?.agent ||
+        (typeof inv.created_by === 'object' ? inv.created_by?.name : null) ||
+        (typeof quotation?.prepared_by === 'object' ? quotation.prepared_by?.name : null) ||
+        (typeof quotation?.reviewed_by === 'object' ? quotation.reviewed_by?.name : null) ||
+        (typeof policy?.issued_by === 'object' ? policy.issued_by?.name : null);
+      if (agentName && agentName.trim()) agents.add(agentName.trim());
     });
-    return Array.from(agents);
+    return Array.from(agents).sort();
   }, [rawInvoices]);
 
   // Compute items dynamically from actual system records
   const commissionRows = useMemo(() => {
     return rawInvoices.map((inv: Invoice) => {
       const cust = inv.customer;
-      const cov = (inv.policy as any)?.quotation?.items?.[0]?.coverage_details || {};
+      const policy = (inv as any).policy;
+      const quotation = policy?.quotation;
+      const cov = quotation?.items?.[0]?.coverage_details || {};
+
       const agentName =
         cust?.agent ||
-        (typeof inv.created_by === 'object' ? inv.created_by?.name : 'SALES AGENT');
+        (typeof inv.created_by === 'object' ? inv.created_by?.name : null) ||
+        (typeof quotation?.prepared_by === 'object' ? quotation.prepared_by?.name : null) ||
+        (typeof quotation?.reviewed_by === 'object' ? quotation.reviewed_by?.name : null) ||
+        (typeof policy?.issued_by === 'object' ? policy.issued_by?.name : null) ||
+        'SALES AGENT';
 
-      const dateRequest = inv.created_at
-        ? new Date(inv.created_at).toLocaleDateString()
+      const dateRequestRaw = cust?.writing_date
+        ? cust.writing_date.slice(0, 7)
+        : inv.created_at
+        ? inv.created_at.slice(0, 7)
+        : '';
+
+      const dateRequest = cust?.writing_date
+        ? new Date(cust.writing_date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
+        : inv.created_at
+        ? new Date(inv.created_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
         : '—';
 
-      const accountType = (cust as any)?.account_type || 'NEW ACCOUNT';
+      const accountType = (cust as any)?.account_type || (cust as any)?.request_type || 'NEW ACCOUNT';
 
       const activity =
         (cust as any)?.source_activity ||
         (cust as any)?.channel ||
+        (cust as any)?.activity ||
         'SUPREMO MAIN PAGE';
 
-      const provider =
+      const provider = (
         (cust as any)?.insurance_provider ||
+        policy?.insurance_provider ||
+        quotation?.insurance_provider ||
         cov?.provider ||
         cov?.insurance_provider ||
-        'ALPHA';
+        'CBIC'
+      ).toUpperCase();
 
-      const quotationUsed =
-        cust?.quotation_used || cov?.vehicle_type || 'SEDAN';
+      const quotationUsed = (
+        cust?.quotation_used ||
+        quotation?.quotation_type ||
+        quotation?.quotation_used ||
+        cov?.used_rate_type ||
+        cov?.vehicle_type ||
+        'SUV'
+      ).toUpperCase();
 
-      const usage = cust?.usage || cov?.usage || 'PRIVATE';
+      const usage = (
+        cust?.usage ||
+        quotation?.usage ||
+        cov?.usage ||
+        cov?.vehicle_usage ||
+        'PRIVATE'
+      ).toUpperCase();
 
       const assuredName = cust
-        ? `${cust.first_name} ${cust.last_name}`.trim().toUpperCase() +
-          (cust.mortgage ? ` LEASED TO ${cust.mortgage.toUpperCase()}` : '')
+        ? `${cust.first_name} ${cust.last_name}`.trim().toUpperCase()
         : '—';
 
-      const plateNumber = cust?.plate_no || cov?.plate_no || '—';
+      const plateNumber = (
+        cust?.plate_no ||
+        quotation?.plate_no ||
+        cov?.plate_no ||
+        '—'
+      ).toUpperCase();
 
-      const totalPremium = Number(inv.total_amount || 0);
-      const terms = Number(cust?.payment_terms || 1);
+      const totalPremium = Number((cust as any)?.total_premium || cust?.policy_premium || inv.total_amount || 0);
+      const terms = Number(cust?.payment_terms || quotation?.payment_terms || 1);
 
       const verifiedPaymentsCount = (inv.payments || []).filter(
-        (p) => p.verification_status === 'verified'
+        (p) => p.verification_status === 'verified' || (p.verification_status as string)?.startsWith('REFLECTED')
       ).length;
 
       const invStatus = inv.status as string;
       const isCancelled =
         invStatus === 'cancelled' ||
         invStatus === 'voided' ||
-        (inv.policy as any)?.status?.toLowerCase() === 'cancelled' ||
-        cust?.policy_status?.toUpperCase() === 'CANCELLED';
+        policy?.status?.toLowerCase() === 'cancelled' ||
+        quotation?.status?.toLowerCase() === 'cancelled' ||
+        cust?.policy_status?.toLowerCase() === 'cancelled' ||
+        (cust as any)?.status?.toLowerCase() === 'cancelled';
 
       let paymentStatus = 'UNPAID';
       let remarks = '—';
@@ -138,24 +182,30 @@ export default function SummaryCommissionPage() {
         remarks = `${verifiedPaymentsCount}th Installment Verified`;
       }
 
-      // Estimate Commission & Incentive based on tariff
-      const estComm = roundTwo(totalPremium * 0.10); // Standard 10% estimation
-      const estIncentive = terms === 1 ? 500 : 0; // ₱500 incentive for 1-term spot cash
+      const estComm = (cust as any)?.commission ? Number((cust as any).commission) : 0;
+      const estIncentive = (cust as any)?.incentive ? Number((cust as any).incentive) : 0;
+
+      let rawNotes = (inv as any)?.notes || cust?.notes || '';
+      if (rawNotes.includes('Automatically generated invoice')) {
+        rawNotes = cust?.notes || '';
+      }
+      const remarksNotes = rawNotes.trim() ? rawNotes : '—';
 
       return {
         id: inv.id,
         agentName,
+        dateRequestRaw,
         dateRequest,
         type: accountType,
         activity,
-        provider: provider.toUpperCase(),
-        quotationUsed: quotationUsed.toUpperCase(),
-        usage: usage.toUpperCase(),
+        provider,
+        quotationUsed,
+        usage,
         assuredName,
-        plateNumber: plateNumber.toUpperCase(),
+        plateNumber,
         totalPremium,
         terms,
-        remarksNotes: (inv as any)?.remarks || '—',
+        remarksNotes,
         incentive: estIncentive,
         comm: estComm,
         paymentStatus,
@@ -168,11 +218,18 @@ export default function SummaryCommissionPage() {
   // Filter rows by user selections
   const filteredRows = useMemo(() => {
     return commissionRows.filter((row) => {
-      if (
-        selectedAgent !== 'all' &&
-        row.agentName.toLowerCase() !== selectedAgent.toLowerCase()
-      ) {
-        return false;
+      // Apply month filter only if user is NOT searching globally and NOT selecting a specific agent
+      if (selectedMonth && !searchQuery && selectedAgent === 'all' && row.dateRequestRaw) {
+        if (row.dateRequestRaw !== selectedMonth) {
+          return false;
+        }
+      }
+      if (selectedAgent !== 'all') {
+        const selLower = selectedAgent.trim().toLowerCase();
+        const rowAgentLower = row.agentName.trim().toLowerCase();
+        if (rowAgentLower !== selLower && !rowAgentLower.includes(selLower)) {
+          return false;
+        }
       }
       if (
         selectedProvider !== 'all' &&
@@ -198,7 +255,7 @@ export default function SummaryCommissionPage() {
       }
       return true;
     });
-  }, [commissionRows, selectedAgent, selectedProvider, selectedStatus, searchQuery]);
+  }, [commissionRows, selectedMonth, selectedAgent, selectedProvider, selectedStatus, searchQuery]);
 
   // Calculate totals
   const totalPremiumSum = useMemo(
@@ -207,14 +264,26 @@ export default function SummaryCommissionPage() {
   );
 
   const totalCommSum = useMemo(
-    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.comm), 0),
+    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled || r.paymentStatus === 'UNPAID' ? 0 : r.comm), 0),
     [filteredRows]
   );
 
   const totalIncentiveSum = useMemo(
-    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.incentive), 0),
+    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled || r.paymentStatus === 'UNPAID' ? 0 : r.incentive), 0),
     [filteredRows]
   );
+
+  // Client-side pagination for table display
+  const totalFilteredCount = filteredRows.length;
+  const lastPage = Math.max(1, Math.ceil(totalFilteredCount / perPage));
+
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * perPage;
+    return filteredRows.slice(start, start + perPage);
+  }, [filteredRows, currentPage, perPage]);
+
+  const fromIndex = totalFilteredCount > 0 ? (currentPage - 1) * perPage + 1 : 0;
+  const toIndex = Math.min(currentPage * perPage, totalFilteredCount);
 
   // Table Columns
   const columns = [
@@ -327,7 +396,9 @@ export default function SummaryCommissionPage() {
       label: 'INCENTIVE',
       render: (row: any) => (
         <span className="font-mono text-xs font-bold text-amber-700">
-          {row.incentive > 0 ? `₱${formatAmount(row.incentive)}` : '—'}
+          {row.incentive > 0 && !row.isCancelled && row.paymentStatus !== 'UNPAID'
+            ? `₱${formatAmount(row.incentive)}`
+            : '—'}
         </span>
       ),
     },
@@ -336,7 +407,9 @@ export default function SummaryCommissionPage() {
       label: 'COMM',
       render: (row: any) => (
         <span className="font-mono text-xs font-bold text-[#4A0E17]">
-          ₱{formatAmount(row.comm)}
+          {row.comm > 0 && !row.isCancelled && row.paymentStatus !== 'UNPAID'
+            ? `₱${formatAmount(row.comm)}`
+            : '—'}
         </span>
       ),
     },
@@ -433,7 +506,9 @@ export default function SummaryCommissionPage() {
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Commission</p>
-            <p className="text-lg font-black text-[#4A0E17] font-mono mt-0.5">₱{formatAmount(totalCommSum)}</p>
+            <p className="text-lg font-black text-[#4A0E17] font-mono mt-0.5">
+              {totalCommSum > 0 ? `₱${formatAmount(totalCommSum)}` : '₱0.00'}
+            </p>
           </div>
           <div className="p-2.5 bg-[#4A0E17]/10 rounded-xl text-[#4A0E17]">
             <TrendingUp className="h-5 w-5" />
@@ -443,7 +518,9 @@ export default function SummaryCommissionPage() {
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Incentive</p>
-            <p className="text-lg font-black text-amber-700 font-mono mt-0.5">₱{formatAmount(totalIncentiveSum)}</p>
+            <p className="text-lg font-black text-amber-700 font-mono mt-0.5">
+              {totalIncentiveSum > 0 ? `₱${formatAmount(totalIncentiveSum)}` : '₱0.00'}
+            </p>
           </div>
           <div className="p-2.5 bg-amber-50 rounded-xl text-amber-700">
             <UserCheck className="h-5 w-5" />
@@ -486,6 +563,16 @@ export default function SummaryCommissionPage() {
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
             />
+            {selectedMonth && (
+              <button
+                type="button"
+                onClick={() => setSelectedMonth('')}
+                className="text-[10px] font-extrabold text-[#4A0E17] hover:bg-[#4A0E17]/10 px-1.5 py-0.5 rounded transition cursor-pointer"
+                title="Show All Months"
+              >
+                ALL
+              </button>
+            )}
           </div>
 
           {/* Agent Selector */}
@@ -539,22 +626,22 @@ export default function SummaryCommissionPage() {
 
         <DataTable
           columns={columns}
-          data={filteredRows}
+          data={paginatedRows}
           loading={isLoading}
         />
 
-        {pagination && (
+        {totalFilteredCount > 0 && (
           <div className="p-3 border-t border-slate-100 no-print">
             <Pagination
-              currentPage={pagination.current_page}
-              lastPage={pagination.last_page}
-              perPage={pagination.per_page}
-              total={pagination.total}
-              from={pagination.from}
-              to={pagination.to}
+              currentPage={currentPage}
+              lastPage={lastPage}
+              perPage={perPage}
+              total={totalFilteredCount}
+              from={fromIndex}
+              to={toIndex}
               onPageChange={(page) => setCurrentPage(page)}
-              onPerPageChange={(per_page) => {
-                setPerPage(per_page);
+              onPerPageChange={(newPerPage) => {
+                setPerPage(newPerPage);
                 setCurrentPage(1);
               }}
             />

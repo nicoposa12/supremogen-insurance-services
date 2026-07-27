@@ -35,7 +35,7 @@ export default function ReviewCollectionPaymentPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { token } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get('search') || '';
   const autoOpenModal = searchParams.get('autoOpen') === 'true';
 
@@ -88,12 +88,13 @@ export default function ReviewCollectionPaymentPage() {
     setPreviewUrl(null);
     try {
       const { data } = await axios.get(`/api/v1/attachments/${att.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob',
       });
-      const blobUrl = window.URL.createObjectURL(new Blob([data], { type: att.mime_type || 'image/png' }));
+      const blobUrl = URL.createObjectURL(data);
       setPreviewUrl(blobUrl);
     } catch (err) {
-      showToast('Failed to load proof preview.', 'error');
+      showToast('Failed to load proof attachment.', 'error');
       setPreviewAttachment(null);
     } finally {
       setIsPreviewLoading(false);
@@ -131,8 +132,31 @@ export default function ReviewCollectionPaymentPage() {
       if (match) {
         openVerifyModal(match, 'verified');
       }
+
+      // Clean up autoOpen URL query parameter so browser refresh won't re-trigger modal
+      if (window.location.search.includes('autoOpen')) {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('autoOpen');
+        window.history.replaceState(null, '', newUrl.pathname + newUrl.search);
+      }
     }
   }, [payments, autoOpenModal, searchParamVal]);
+
+  // Listen for Escape key press to close modals
+  useEffect(() => {
+    if (!selectedPayment && !previewAttachment) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewAttachment) {
+          handleClosePreview();
+        } else if (selectedPayment) {
+          setSelectedPayment(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPayment, previewAttachment]);
 
   // Verification Mutation
   const verifyMut = useMutation({
@@ -495,6 +519,8 @@ export default function ReviewCollectionPaymentPage() {
               onClick={() => {
                 setSearchInput('');
                 setParams((p) => ({ ...p, search: '', page: 1 }));
+                setSearchParams({}, { replace: true });
+                window.history.replaceState(null, '', window.location.pathname);
               }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition cursor-pointer flex items-center justify-center"
               title="Clear search"
@@ -557,8 +583,8 @@ export default function ReviewCollectionPaymentPage() {
 
       {/* Verification Confirmation Modal */}
       {selectedPayment && actionType && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer" onClick={() => setSelectedPayment(null)}>
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 cursor-default" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className={`p-2 rounded-xl ${actionType === 'verified' ? 'bg-[#4A0E17]/10 text-[#4A0E17]' : 'bg-rose-100 text-rose-800'}`}>
