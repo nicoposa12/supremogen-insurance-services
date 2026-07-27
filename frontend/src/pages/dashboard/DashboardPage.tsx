@@ -55,17 +55,15 @@ const AVAILABLE_YEARS = [2024, 2025, 2026, 2027, 2028];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { roles } = useAuth();
+  const { user, roles } = useAuth();
   const isClaimsOfficer = roles.includes('Claims Officer');
   const isAccountingOnly = roles.includes('Accounting Officer') && !roles.includes('Administrator') && !roles.includes('Owner');
   const showRevenue = roles.includes('Administrator') || roles.includes('Accounting Officer');
 
-
-
   const { data: response, isLoading } = useQuery({
-    queryKey: ['dashboard'],
+    queryKey: ['dashboard', user?.id],
     queryFn: getDashboardData,
-    refetchInterval: 60000, // auto-refresh every 60s
+    refetchInterval: 30000,
   });
 
   const dashboard: DashboardData | undefined = response?.data;

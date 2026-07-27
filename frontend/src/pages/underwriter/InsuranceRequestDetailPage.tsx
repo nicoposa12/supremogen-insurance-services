@@ -242,8 +242,8 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
             )}
           </div>
           <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">IR NO. :</span>
-            <span className="inline-flex items-center px-4 py-1.5 bg-amber-400 text-slate-900 font-mono text-base font-extrabold rounded-lg shadow-sm tracking-wider border border-amber-500">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">IR NO. :</span>
+            <span className="inline-flex items-center px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-mono text-xs font-black rounded-xl shadow-2xs tracking-wider border border-amber-400/80">
               {quotation.ir_number || '—'}
             </span>
           </div>
@@ -252,34 +252,40 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
 
       {/* ─── CANCELLATION REQUEST BANNER ─────────────────────── */}
       {quotation.status === 'cancellation_requested' && (
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-5 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-amber-100 text-amber-900 rounded-2xl border border-amber-200">
+        <div className="bg-gradient-to-r from-red-500/10 via-amber-500/10 to-rose-500/5 border border-rose-300/80 rounded-2xl p-6 shadow-md backdrop-blur-xs space-y-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-rose-200/60 pb-4">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 bg-gradient-to-br from-red-600 to-rose-700 text-white rounded-2xl shadow-sm ring-4 ring-red-100">
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="text-sm font-extrabold text-amber-950 uppercase tracking-wider">
-                  REQUEST FOR CANCELLATION
-                </h3>
-                <p className="text-xs font-semibold text-amber-800">
-                  Submitted by {typeof quotation.cancellation_requested_by === 'object' ? quotation.cancellation_requested_by?.name : 'Sales Agent'}
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-900 tracking-tight uppercase">
+                    REQUEST FOR CANCELLATION
+                  </h3>
+                  <span className="px-2.5 py-0.5 bg-red-100 text-red-800 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-red-200">
+                    Pending Underwriter Review
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                  Submitted by <span className="text-slate-800 font-bold">{typeof quotation.cancellation_requested_by === 'object' ? quotation.cancellation_requested_by?.name : 'Sales Agent'}</span>
                 </p>
               </div>
             </div>
+
             {canReview && (
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2.5 shrink-0">
                 <button
                   onClick={() => reviewCancellationMut.mutate({ action: 'reject' })}
                   disabled={reviewCancellationMut.isPending}
-                  className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer"
+                  className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition-all active:scale-95 cursor-pointer"
                 >
                   Reject Cancellation
                 </button>
                 <button
                   onClick={() => reviewCancellationMut.mutate({ action: 'approve' })}
                   disabled={reviewCancellationMut.isPending}
-                  className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-xs"
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   Approve Cancellation
                 </button>
@@ -287,45 +293,49 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-white/80 rounded-2xl p-4 border border-amber-200/60">
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Writing Date</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 text-xs">
+            <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3 shadow-2xs space-y-1">
+              <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Writing Date</span>
               <span className="font-bold text-slate-800">{quotation.cancellation_details?.writing_date || '—'}</span>
             </div>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Client Name</span>
-              <span className="font-bold text-slate-800">{quotation.cancellation_details?.client_name || '—'}</span>
+            <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3 shadow-2xs space-y-1">
+              <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Client Name</span>
+              <span className="font-bold text-slate-800">{quotation.cancellation_details?.client_name || [quotation.customer?.first_name, quotation.customer?.last_name].filter(Boolean).join(' ') || '—'}</span>
             </div>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Policy Number</span>
-              <span className="font-bold text-slate-800 font-mono">{quotation.cancellation_details?.policy_number || '—'}</span>
+            <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3 shadow-2xs space-y-1">
+              <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Policy Number</span>
+              <span className="font-mono font-bold text-[#4A0E17]">{quotation.cancellation_details?.policy_number || policyNo || quotation.customer?.policy_no || (quotation as any).policy?.policy_number || '—'}</span>
             </div>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Plate Number</span>
-              <span className="font-bold text-slate-800 font-mono">{quotation.cancellation_details?.plate_number || '—'}</span>
+            <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3 shadow-2xs space-y-1">
+              <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Plate Number</span>
+              <span className="font-mono font-bold text-slate-900 uppercase">{quotation.cancellation_details?.plate_number || quotation.customer?.plate_no || '—'}</span>
             </div>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Provider</span>
-              <span className="font-bold text-slate-800 uppercase">{quotation.cancellation_details?.provider || '—'}</span>
+            <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3 shadow-2xs space-y-1">
+              <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Provider</span>
+              <span className="font-bold text-slate-800 uppercase">{quotation.cancellation_details?.provider || 'ALPHA'}</span>
             </div>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Inception</span>
+            <div className="bg-white/90 border border-slate-200/80 rounded-xl p-3 shadow-2xs space-y-1">
+              <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Inception</span>
               <span className="font-bold text-slate-800">{quotation.cancellation_details?.inception || '—'}</span>
             </div>
-            <div className="col-span-2">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Reason for Cancellation</span>
-              <span className="font-semibold text-red-700">{quotation.cancellation_reason || quotation.cancellation_details?.reason || '—'}</span>
+            <div className="col-span-2 bg-red-50/80 border border-red-200/70 rounded-xl p-3 shadow-2xs space-y-1">
+              <span className="block text-[10px] font-extrabold text-red-700 uppercase tracking-wider">Reason for Cancellation</span>
+              <span className="font-semibold text-red-900 block">{quotation.cancellation_reason || quotation.cancellation_details?.reason || '—'}</span>
             </div>
+
             {quotation.cancellation_details?.attachment_url && (
-              <div className="col-span-4 border-t border-slate-100 pt-2 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-amber-600" />
+              <div className="col-span-4 bg-white/90 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-rose-600" />
+                  <span className="font-semibold text-slate-700 text-xs">Cancellation Supporting Document</span>
+                </div>
                 <a
                   href={quotation.cancellation_details.attachment_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-bold text-blue-600 hover:underline text-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg transition"
                 >
-                  View Attachment / Cancellation Document
+                  <Download className="h-3.5 w-3.5" /> View / Download Attachment
                 </a>
               </div>
             )}
@@ -865,46 +875,80 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
 
       {/* ─── Underwriter Review Panel ────────────────── */}
       {canReview && isReviewable && (
-        <div className="bg-gradient-to-br from-violet-50 to-blue-50 rounded-2xl border border-violet-200/80 p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-violet-800 mb-1">Underwriter Review</h3>
-          <p className="text-xs text-violet-600 mb-4">Review this insurance request and approve or reject it.</p>
-
-          {!showReviewPanel ? (
-            <button onClick={() => setShowReviewPanel(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white text-sm font-medium rounded-xl hover:bg-violet-700 transition cursor-pointer">
-              <FileText className="h-4 w-4" /> Start Review
-            </button>
-          ) : (
-            <div className="space-y-4">
+        <div className="bg-gradient-to-r from-slate-900 via-[#2A080D] to-[#4A0E17] text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-rose-950/40 relative overflow-hidden space-y-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 bg-white/10 text-amber-300 rounded-2xl border border-white/10 backdrop-blur-md">
+                <FileText className="h-6 w-6" />
+              </div>
               <div>
-                <label className="block text-xs font-bold text-violet-800 uppercase tracking-wider mb-1">Assign Policy Number</label>
+                <h3 className="text-base font-black text-white uppercase tracking-wider">
+                  UNDERWRITER DECISION & POLICY ASSIGNMENT
+                </h3>
+                <p className="text-xs font-medium text-slate-300 mt-0.5">
+                  Review submitted policy details, assign official policy number, and finalize approval state.
+                </p>
+              </div>
+            </div>
+
+            {!showReviewPanel && (
+              <button
+                onClick={() => setShowReviewPanel(true)}
+                className="inline-flex items-center gap-2.5 px-5 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer uppercase tracking-wider shrink-0"
+              >
+                <FileText className="h-4 w-4" /> Start Review
+              </button>
+            )}
+          </div>
+
+          {showReviewPanel && (
+            <div className="space-y-4 pt-1">
+              <div>
+                <label className="block text-xs font-black text-amber-300 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <span>Assign Official Policy Number</span>
+                  <span className="text-[10px] text-slate-400 font-medium normal-case font-sans">(Editable by Underwriter)</span>
+                </label>
                 <input
                   type="text"
                   value={policyNo}
                   onChange={(e) => setPolicyNo(e.target.value)}
-                  placeholder="Enter policy number to assign..."
-                  className="w-full px-3.5 py-2 bg-white border border-violet-200 rounded-xl text-sm font-mono font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition mb-3"
+                  placeholder="Enter policy number to assign (e.g. MCP-2026-001)..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 focus:border-amber-400 font-mono text-sm font-bold text-white placeholder-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400/30 transition-all shadow-inner"
                 />
               </div>
+
               <div>
-                <label className="block text-xs font-semibold text-violet-700 mb-1.5">Remarks</label>
-                <textarea value={reviewRemarks} onChange={(e) => setReviewRemarks(e.target.value)}
-                  rows={3} placeholder="Add your review remarks..."
-                  className="w-full px-3.5 py-2.5 bg-white border border-violet-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition" />
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Underwriter Remarks & Audit Notes
+                </label>
+                <textarea
+                  value={reviewRemarks}
+                  onChange={(e) => setReviewRemarks(e.target.value)}
+                  rows={3}
+                  placeholder="Add optional review remarks or underwriting notes..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 focus:border-amber-400 text-sm text-white placeholder-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400/30 transition-all shadow-inner"
+                />
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => reviewMut.mutate({ action: 'approve', remarks: reviewRemarks, policyNumber: policyNo })}
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  onClick={() => reviewMut.mutate({ action: 'approve', remarks: reviewRemarks, policyNumber: policyNo })}
                   disabled={reviewMut.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-xl hover:bg-emerald-700 disabled:opacity-50 shadow-sm shadow-emerald-600/20 transition cursor-pointer">
-                  <CheckCircle2 className="h-4 w-4" /> Approve
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer uppercase tracking-wider"
+                >
+                  <CheckCircle2 className="h-4 w-4" /> Approve & Issue Policy
                 </button>
-                <button onClick={() => reviewMut.mutate({ action: 'reject', remarks: reviewRemarks })}
+                <button
+                  onClick={() => reviewMut.mutate({ action: 'reject', remarks: reviewRemarks })}
                   disabled={reviewMut.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-medium rounded-xl hover:bg-red-700 disabled:opacity-50 transition cursor-pointer">
-                  <XCircle className="h-4 w-4" /> Reject
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer uppercase tracking-wider"
+                >
+                  <XCircle className="h-4 w-4" /> Reject Request
                 </button>
-                <button onClick={() => setShowReviewPanel(false)}
-                  className="px-4 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition cursor-pointer">
+                <button
+                  onClick={() => setShowReviewPanel(false)}
+                  className="px-4 py-3 text-xs font-bold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl transition-all cursor-pointer"
+                >
                   Cancel
                 </button>
               </div>

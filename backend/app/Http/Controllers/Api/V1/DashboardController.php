@@ -31,7 +31,7 @@ class DashboardController extends Controller
 
         $cacheKey = 'dashboard_stats_' . $userId . '_' . ($isAgent ? 'agent' : 'admin');
 
-        $data = Cache::remember($cacheKey, 60, function () use ($isAgent, $userId, $now) {
+        $data = Cache::remember($cacheKey, 5, function () use ($isAgent, $userId, $now) {
             // Helper Queries for Isolation inside closure
             $customerQuery = Customer::approved();
             $policyQuery = Policy::query();
@@ -43,7 +43,12 @@ class DashboardController extends Controller
             $claimNotificationQuery = \App\Models\ClaimNotification::query();
 
             if ($isAgent) {
-                $customerQuery->where('created_by', $userId);
+                $customerQuery->where(function ($q) use ($userId) {
+                    $q->where('created_by', $userId)
+                      ->orWhereHas('quotations', function ($q2) use ($userId) {
+                          $q2->where('prepared_by', $userId);
+                      });
+                });
                 $policyQuery->where(function ($q) use ($userId) {
                     $q->where('issued_by', $userId)
                       ->orWhereHas('quotation', function ($q2) use ($userId) {
