@@ -328,13 +328,13 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     }
   }, [isEdit, roles]);
 
-  // Automatically update usedRate when selling rates change (For REGULAR QUOTA RATE, Sir Jessie, or Sir Jay Partner Rate)
+  // Automatically update usedRate when selling rates change (For REGULAR QUOTA RATE, OLD CAR QUOTATION, Sir Jessie, or Sir Jay Partner Rate)
   useEffect(() => {
     const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
     const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
     const isPartnerAutoRate = isSirJessie || isSirJay;
 
-    if (!usedRateType || usedRateType === 'REGULAR QUOTA RATE' || isPartnerAutoRate) {
+    if (!usedRateType || usedRateType === 'REGULAR QUOTA RATE' || usedRateType === 'OLD CAR QUOTATION' || isPartnerAutoRate) {
       const formatRatePercent = (rate: number): string => {
         const formatted = rate.toFixed(2);
         if (formatted.startsWith('0.')) {
@@ -354,7 +354,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
     const isPartnerAutoRate = isSirJessie || isSirJay;
 
-    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && !isPartnerAutoRate) {
+    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && usedRateType !== 'OLD CAR QUOTATION' && !isPartnerAutoRate) {
       if (!usedRate) return;
       const matches = usedRate.match(/(?:\d+\.?\d*|\.\d+)%?/g);
       if (matches && matches.length > 0) {
@@ -492,8 +492,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
     const isPartnerAutoRate = isSirJessie || isSirJay;
 
-    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && !isPartnerAutoRate) {
-      return; // Custom rate computation applies for Old Car Quotation or custom rates
+    if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && usedRateType !== 'OLD CAR QUOTATION' && !isPartnerAutoRate) {
+      return; // Custom rate computation applies for custom rates
     }
 
     const cleanQuotationUsed = (quotationUsed || '').trim().toUpperCase();
