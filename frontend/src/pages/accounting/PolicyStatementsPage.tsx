@@ -459,8 +459,11 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
   const initialTotalPremium = Number(quotation.total_premium || cov.net_premium || custAny.policy_premium || 15000);
   const [totalPolicyPremium, setTotalPolicyPremium] = useState<number>(initialTotalPremium);
 
+  const agentMarkup = Number(cov.calculator?.agent_markup || cov.agent_markup || custAny.agent_markup || 0);
   const subAgentMarkup = Number(cov.calculator?.sub_agent_markup || cov.sub_agent_markup || custAny.sub_agent_markup || 0);
-  const freebieCashback = Number(cov.calculator?.freebie_cashback || cov.freebie_cashback || cov.freebie || custAny.freebie || 0);
+  const freebie = Number(cov.calculator?.freebie_amount ?? (cov.calculator?.freebie_cashback || cov.freebie || custAny.freebie || 0));
+  const cashback = Number(cov.calculator?.cashback_amount || cov.cashback || custAny.cashback || 0);
+  const totalDeductions = agentMarkup + subAgentMarkup + freebie + cashback;
 
   // ─── ALPHA Calculations ───────────────────────────────────────────────────
   const premOD = roundTwo(sumInsured * (rateOD / 100));
@@ -479,7 +482,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
 
   const alphaRemittanceToProvider = roundTwo(grossTotal - totalCommOnTariff);
   const alphaCompanyIncome = roundTwo(totalPolicyPremium - alphaRemittanceToProvider);
-  const alphaNetIncome = roundTwo(alphaCompanyIncome - subAgentMarkup - freebieCashback);
+  const alphaNetIncome = roundTwo(alphaCompanyIncome - totalDeductions);
 
   // ─── CBIC Calculations ────────────────────────────────────────────────────
   const isTNVS = cbicType === 'TNVS';
@@ -521,7 +524,7 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
   // CBIC Net Remittance & Income
   const cbicNetRemittance = roundTwo(cbicNetGrossPrem - cbicNetTariffComm);
   const cbicCompanyIncome = roundTwo(totalPolicyPremium - cbicNetRemittance);
-  const cbicNetIncome = roundTwo(cbicCompanyIncome - subAgentMarkup - freebieCashback);
+  const cbicNetIncome = roundTwo(cbicCompanyIncome - totalDeductions);
 
   const handlePrint = () => {
     window.print();
@@ -791,13 +794,23 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
                 </div>
 
                 <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
+                  <span>LESS AGENT MARK UP</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(agentMarkup)}</span>
+                </div>
+
+                <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
                   <span>LESS SUB-AGENT MARK UP</span>
                   <span className="font-mono tabular-nums">₱{formatCurrency(subAgentMarkup)}</span>
                 </div>
 
                 <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
-                  <span>LESS FREEBIE & CASHBACK</span>
-                  <span className="font-mono tabular-nums">₱{formatCurrency(freebieCashback)}</span>
+                  <span>LESS FREEBIE</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(freebie)}</span>
+                </div>
+
+                <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
+                  <span>LESS CASHBACK</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(cashback)}</span>
                 </div>
 
                 <div className="flex justify-between font-extrabold text-sm p-3.5 bg-[#064e3b] text-white rounded-xl shadow-xs border border-emerald-800">
@@ -1014,13 +1027,23 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
                 </div>
 
                 <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
+                  <span>LESS AGENT MARK UP</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(agentMarkup)}</span>
+                </div>
+
+                <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
                   <span>LESS SUB-AGENT MARK UP</span>
                   <span className="font-mono tabular-nums">₱{formatCurrency(subAgentMarkup)}</span>
                 </div>
 
                 <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
-                  <span>LESS FREEBIE & CASHBACK</span>
-                  <span className="font-mono tabular-nums">₱{formatCurrency(freebieCashback)}</span>
+                  <span>LESS FREEBIE</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(freebie)}</span>
+                </div>
+
+                <div className="flex justify-between text-slate-500 text-[11px] px-2 font-medium">
+                  <span>LESS CASHBACK</span>
+                  <span className="font-mono tabular-nums">₱{formatCurrency(cashback)}</span>
                 </div>
 
                 <div className="flex justify-between font-extrabold text-sm p-3.5 bg-[#064e3b] text-white rounded-xl shadow-xs border border-emerald-800">

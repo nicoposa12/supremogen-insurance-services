@@ -719,7 +719,7 @@ export default function DashboardPage() {
               </div>
               <span className="text-slate-400 font-sans font-bold">−</span>
               <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Sub-Agent & Cashback</span>
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Markups, Freebies & Cashback</span>
                 <span className="font-bold text-rose-700">₱{accountingMetrics.totalDeductions.toLocaleString('en-US')}</span>
               </div>
               <span className="text-slate-400 font-sans font-bold">=</span>
@@ -773,7 +773,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="mt-4 pt-3 border-t border-emerald-800/60 flex items-center justify-between text-xs text-emerald-200 font-medium">
-              <span>After Markups & Cashback</span>
+              <span>After Markups, Freebies & Cashback</span>
               <span className="inline-flex items-center gap-1 font-bold text-emerald-300">
                 <TrendingUp className="h-3.5 w-3.5" /> Net Profit
               </span>
