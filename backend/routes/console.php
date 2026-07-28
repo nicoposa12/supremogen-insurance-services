@@ -135,3 +135,39 @@ Artisan::command('reminders:send', function () {
 })->purpose('Send automated payment reminders to clients 7 days and 1 day before due date');
 
 Schedule::command('reminders:send')->daily();
+
+Artisan::command('db:reset-transactions', function () {
+    $this->warn('Resetting transactional data while preserving User Accounts & Roles...');
+
+    \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+
+    $tables = [
+        'attachments',
+        'customer_documents',
+        'claim_notifications',
+        'claims',
+        'payments',
+        'invoices',
+        'invoice_items',
+        'policies',
+        'policy_coverages',
+        'quotations',
+        'quotation_items',
+        'renewals',
+        'inquiries',
+        'notifications',
+        'subagent_commissions',
+        'customers',
+    ];
+
+    foreach ($tables as $table) {
+        if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+            \Illuminate\Support\Facades\DB::table($table)->truncate();
+        }
+    }
+
+    \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+
+    $this->info('Transactional data reset successfully. User accounts, roles, and insurance products were kept!');
+})->purpose('Reset all customer/transaction data while keeping user accounts and roles');
+
