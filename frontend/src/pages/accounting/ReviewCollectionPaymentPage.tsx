@@ -211,7 +211,10 @@ export default function ReviewCollectionPaymentPage() {
   // Calculate Metrics from DB summary or paginated records fallback
   const summary = (response as any)?.summary;
   const pendingCount = summary?.pending ?? payments.filter((p) => !p.verification_status || (p.verification_status as string) === 'pending_verification' || (p.verification_status as string) === 'pending').length;
-  const verifiedCount = summary?.verified ?? payments.filter((p) => (p.verification_status as string) === 'verified').length;
+  const verifiedCount = summary?.verified ?? payments.filter((p) => {
+    const v = (p.verification_status as string || '').toLowerCase().trim();
+    return v === 'verified' || v.startsWith('reflected') || v.includes('pbcom') || v.includes('security') || v.includes('jnt') || v.includes('cleared');
+  }).length;
   const rejectedCount = summary?.rejected ?? payments.filter((p) => (p.verification_status as string) === 'rejected').length;
 
   const columns = [
