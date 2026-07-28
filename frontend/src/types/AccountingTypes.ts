@@ -15,6 +15,23 @@ export interface InvoiceItem {
 
 import type { Customer } from './CustomerTypes';
 
+export interface SubagentCommissionData {
+  id?: number;
+  invoice_id?: number;
+  transac?: string;
+  released_to?: string;
+  account_number?: string;
+  released_date_1?: string;
+  amount_1?: number;
+  released_date_2?: string;
+  amount_2?: number;
+  released_date_3?: string;
+  amount_3?: number;
+  released_date_4?: string;
+  amount_4?: number;
+  notes?: string;
+}
+
 export interface Invoice {
   id: number;
   invoice_number: string;
@@ -35,6 +52,8 @@ export interface Invoice {
   policy?: { id: number; policy_number: string; status?: string } | null;
   items?: InvoiceItem[];
   payments?: Payment[];
+  subagent_commission?: SubagentCommissionData;
+  subagentCommission?: SubagentCommissionData;
 }
 
 // ─── Payment ──────────────────────────────────

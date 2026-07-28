@@ -121,6 +121,7 @@ class InvoiceController extends Controller
                 'payments.attachments',
                 'attachments',
                 'attachments.uploadedBy:id,name',
+                'subagentCommission',
             ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
@@ -561,6 +562,40 @@ class InvoiceController extends Controller
         return response()->json([
             'success' => true,
             'message' => "DST Warning notification successfully sent to " . $collectionOfficers->count() . " Collection Officer(s).",
+        ]);
+    }
+
+    /**
+     * Create or update sub-agent commission details for an invoice.
+     */
+    public function updateSubagentCommission(Request $request, $id)
+    {
+        $invoice = Invoice::findOrFail($id);
+
+        $validated = $request->validate([
+            'transac' => 'nullable|string|max:100',
+            'released_to' => 'nullable|string|max:255',
+            'account_number' => 'nullable|string|max:100',
+            'released_date_1' => 'nullable|date',
+            'amount_1' => 'nullable|numeric|min:0',
+            'released_date_2' => 'nullable|date',
+            'amount_2' => 'nullable|numeric|min:0',
+            'released_date_3' => 'nullable|date',
+            'amount_3' => 'nullable|numeric|min:0',
+            'released_date_4' => 'nullable|date',
+            'amount_4' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $subagentCommission = \App\Models\SubagentCommission::updateOrCreate(
+            ['invoice_id' => $invoice->id],
+            $validated
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sub-agent commission record updated successfully.',
+            'data' => $subagentCommission,
         ]);
     }
 }

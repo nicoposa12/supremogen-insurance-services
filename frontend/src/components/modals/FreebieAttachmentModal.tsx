@@ -295,7 +295,7 @@ export default function FreebieAttachmentModal({
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   className="hidden"
-                  accept="image/*,application/pdf,.doc,.docx"
+                  accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
                 />
 
                 {selectedFile ? (

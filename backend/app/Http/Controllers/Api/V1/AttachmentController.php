@@ -391,9 +391,10 @@ class AttachmentController extends Controller
             abort(404, 'File not found on storage.');
         }
 
-        $filePath = Storage::disk($disk)->path($attachment->file_path);
-        return response()->file($filePath, [
-            'Content-Type' => $attachment->mime_type,
+        $mime = $attachment->mime_type ?: (Storage::disk($disk)->mimeType($attachment->file_path) ?: 'application/octet-stream');
+
+        return Storage::disk($disk)->response($attachment->file_path, $attachment->file_name, [
+            'Content-Type' => $mime,
             'Content-Disposition' => 'inline; filename="' . $attachment->file_name . '"'
         ]);
     }

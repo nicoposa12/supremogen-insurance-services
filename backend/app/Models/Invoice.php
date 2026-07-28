@@ -58,6 +58,11 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function subagentCommission(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(SubagentCommission::class);
+    }
+
     /**
      * Get all of the invoice's attachments.
      */
