@@ -32,6 +32,7 @@ import type { Invoice } from '../../types/AccountingTypes';
 import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
 import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 
@@ -1322,14 +1323,21 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
     }
   };
 
-  const handleDeleteProof = async (attachmentId: number) => {
-    if (!window.confirm('Are you sure you want to delete this proof attachment?')) return;
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [isDeletingProof, setIsDeletingProof] = useState<boolean>(false);
+
+  const handleConfirmDeleteProof = async () => {
+    if (!deleteTargetId) return;
+    setIsDeletingProof(true);
     try {
-      await deleteAttachment(attachmentId);
+      await deleteAttachment(deleteTargetId);
       showToast('Proof attachment deleted.', 'info');
       refetchAttachments();
     } catch (err: any) {
       showToast('Failed to delete proof attachment.', 'error');
+    } finally {
+      setIsDeletingProof(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -1383,83 +1391,85 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
     const proofAtt = getProofAttachment(releaseNum);
 
     return (
-      <div className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2.5 hover:border-amber-300/80 transition shadow-2xs">
+      <div className="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-3 shadow-2xs hover:border-slate-300 transition">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-black text-amber-900 uppercase tracking-wide">{label}</span>
+          <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide">{label}</span>
           {proofAtt && (
-            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-full">
-              <CheckCircle2 className="h-2.5 w-2.5 text-emerald-700" /> Proof Attached
+            <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+              <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Proof Attached
             </span>
           )}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">RELEASED DATE</label>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1">RELEASED DATE</label>
             <input
               type="date"
               value={relDate}
               onChange={(e) => setRelDate(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition"
+              className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">AMOUNT (₱)</label>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1">AMOUNT (₱)</label>
             <input
               type="number"
               step="0.01"
               placeholder="0.00"
               value={amt}
               onChange={(e) => setAmt(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition"
+              className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50/70 border border-slate-200 rounded-xl font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition"
             />
           </div>
         </div>
 
-        {/* Clean Professional Proof Attachment Section */}
-        <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 text-[10px] font-extrabold text-slate-500 uppercase">
-            <Paperclip className="h-3 w-3 text-amber-700 shrink-0" /> Proof Attachment
+        {/* Clean Minimal Proof Attachment Section */}
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <Paperclip className="h-3.5 w-3.5 text-slate-400 shrink-0" /> Proof Attachment
           </div>
 
           {proofAtt ? (
             <div className="flex items-center gap-1 shrink-0">
-              <span className="text-[9.5px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg truncate max-w-[100px]" title={proofAtt.file_name}>
+              <span className="text-[10px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-lg truncate max-w-[110px]" title={proofAtt.file_name}>
                 {proofAtt.file_name}
               </span>
-              <button
-                type="button"
-                onClick={() => handleOpenPreview(proofAtt)}
-                className="p-1 hover:bg-slate-200 rounded-lg text-slate-600 transition cursor-pointer"
-                title="View / Preview Proof"
-              >
-                <Eye className="h-3.5 w-3.5 text-blue-600" />
-              </button>
-              <button
-                type="button"
-                onClick={() => downloadAttachment(proofAtt.id, proofAtt.file_name)}
-                className="p-1 hover:bg-slate-200 rounded-lg text-slate-600 transition cursor-pointer"
-                title="Download Proof"
-              >
-                <Download className="h-3.5 w-3.5 text-emerald-600" />
-              </button>
-              {isAccountingOrAdmin && (
+              <div className="flex items-center gap-0.5 bg-slate-50 border border-slate-200/80 rounded-lg p-0.5">
                 <button
                   type="button"
-                  onClick={() => handleDeleteProof(proofAtt.id)}
-                  className="p-1 hover:bg-rose-100 rounded-lg text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                  title="Delete Proof"
+                  onClick={() => handleOpenPreview(proofAtt)}
+                  className="p-1 hover:bg-white rounded text-slate-600 hover:text-blue-600 transition cursor-pointer"
+                  title="Preview Document"
                 >
-                  <Trash2 className="h-3.5 w-3.5 text-rose-500" />
+                  <Eye className="h-3.5 w-3.5" />
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => downloadAttachment(proofAtt.id, proofAtt.file_name)}
+                  className="p-1 hover:bg-white rounded text-slate-600 hover:text-emerald-600 transition cursor-pointer"
+                  title="Download Document"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </button>
+                {isAccountingOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTargetId(proofAtt.id)}
+                    className="p-1 hover:bg-white rounded text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                    title="Delete Document"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           ) : isAccountingOrAdmin ? (
-            <label className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-bold cursor-pointer transition shadow-2xs">
+            <label className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-[11px] font-bold cursor-pointer transition shadow-2xs">
               {uploadingReleaseNum === releaseNum ? (
-                <Loader2 className="h-3 w-3 animate-spin text-amber-700" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#4A0E17]" />
               ) : (
-                <Upload className="h-3 w-3 text-amber-700" />
+                <Upload className="h-3.5 w-3.5 text-slate-500" />
               )}
               <span>{uploadingReleaseNum === releaseNum ? 'Uploading...' : 'Upload Proof'}</span>
               <input
@@ -1481,17 +1491,17 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-fade-in">
       <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-amber-800 via-amber-900 to-[#4A0E17] text-white">
+        {/* Sleek Modal Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#4A0E17] via-[#5A121D] to-[#4A0E17] text-white">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+            <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 shadow-inner">
               <Users className="h-5 w-5 text-amber-300" />
             </div>
             <div>
               <h2 className="text-base font-extrabold tracking-tight">
                 Sub-Agent Commission & Referral Details
               </h2>
-              <p className="text-xs text-amber-200/90 font-medium">
+              <p className="text-xs text-amber-100/85 font-medium">
                 {record.assuredName} • Plate: {record.plateNumber} • Invoice #{record.invoiceNumber || record.id}
               </p>
             </div>
@@ -1507,26 +1517,26 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
 
         {/* Modal Form Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Summary Box */}
-          <div className="grid grid-cols-3 gap-3 p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl">
+          {/* Refined Financial KPI Grid */}
+          <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl">
             <div>
-              <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Mark Up / Referral</span>
-              <span className="text-sm font-black text-amber-950 font-mono">₱{Number(record.subAgentMarkup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Mark Up / Referral</span>
+              <span className="text-sm font-black text-slate-900 font-mono">₱{Number(record.subAgentMarkup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             <div>
-              <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Total Released</span>
-              <span className="text-sm font-black text-emerald-900 font-mono">₱{calculatedTotalReleased.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Total Released</span>
+              <span className="text-sm font-black text-emerald-800 font-mono">₱{calculatedTotalReleased.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             <div>
-              <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider block">Remaining Balance</span>
-              <span className="text-sm font-black text-rose-900 font-mono">₱{calculatedRemaining.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Remaining Balance</span>
+              <span className="text-sm font-black text-rose-800 font-mono">₱{calculatedRemaining.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
 
           {/* Account Details Section */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <CreditCard className="h-4 w-4 text-amber-700" /> Account & Transaction Information
+            <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <CreditCard className="h-4 w-4 text-[#4A0E17]" /> Account & Transaction Details
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -1536,7 +1546,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
                 <select
                   value={transac}
                   onChange={(e) => setTransac(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition"
+                  className="w-full px-3 py-2 text-xs font-bold text-slate-800 bg-slate-50/80 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition cursor-pointer"
                 >
                   <option value="CASH">CASH</option>
                   <option value="GCASH">GCASH</option>
@@ -1555,7 +1565,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
                   placeholder="e.g. JOHN MACALALAD"
                   value={releasedTo}
                   onChange={(e) => setReleasedTo(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition"
+                  className="w-full px-3 py-2 text-xs font-bold text-slate-800 bg-slate-50/80 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition"
                 />
               </div>
 
@@ -1568,7 +1578,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
                   placeholder="e.g. 9399628619"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition font-mono"
+                  className="w-full px-3 py-2 text-xs font-bold text-slate-800 bg-slate-50/80 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition font-mono"
                 />
               </div>
             </div>
@@ -1576,8 +1586,8 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
 
           {/* Release Installments Grid */}
           <div className="space-y-3 pt-2 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Building2 className="h-4 w-4 text-amber-700" /> Release Schedule & Proof Attachments (1st to 4th)
+            <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <Building2 className="h-4 w-4 text-[#4A0E17]" /> Release Schedule & Proof Attachments (1st to 4th)
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1589,7 +1599,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
           </div>
 
           {/* Modal Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
@@ -1600,7 +1610,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
             <button
               type="submit"
               disabled={updateMut.isPending}
-              className="px-5 py-2 bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 bg-[#4A0E17] hover:bg-[#3A0A12] text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer disabled:opacity-50 flex items-center gap-2"
             >
               {updateMut.isPending ? (
                 <>
@@ -1608,7 +1618,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Save Sub-Agent Release
+                  <CheckCircle2 className="h-3.5 w-3.5 text-amber-300" /> Save Sub-Agent Release
                 </>
               )}
             </button>
@@ -1676,6 +1686,19 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
             </div>
           </div>
         )}
+
+        {/* Confirm Delete Proof Modal */}
+        <ConfirmModal
+          open={Boolean(deleteTargetId)}
+          title="Delete Proof Attachment"
+          message="Are you sure you want to delete this release proof attachment? This action cannot be undone."
+          confirmLabel="Delete Proof"
+          cancelLabel="Cancel"
+          variant="danger"
+          loading={isDeletingProof}
+          onConfirm={handleConfirmDeleteProof}
+          onCancel={() => setDeleteTargetId(null)}
+        />
       </div>
     </div>
   );
