@@ -96,3 +96,8 @@ export async function reviewQuotationCancellation(
   });
   return data;
 }
+
+export async function toggleQuotationRemittance(id: number): Promise<SingleResponse<Quotation>> {
+  const { data } = await axios.put<SingleResponse<Quotation>>(`${BASE}/${id}/remittance`);
+  return data;
+}

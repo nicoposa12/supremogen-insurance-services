@@ -36,6 +36,7 @@ export interface Quotation {
   prepared_by: number | { id: number; name: string; email?: string };
   reviewed_by: number | { id: number; name: string; email?: string } | null;
   status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'expired' | 'cancellation_requested' | 'cancelled';
+  is_remitted?: boolean;
   valid_until: string | null;
   total_premium: number;
   notes: string | null;

@@ -25,6 +25,7 @@ class Quotation extends Model
         'prepared_by',
         'reviewed_by',
         'status',
+        'is_remitted',
         'valid_until',
         'total_premium',
         'notes',
@@ -43,6 +44,7 @@ class Quotation extends Model
     protected function casts(): array
     {
         return [
+            'is_remitted' => 'boolean',
             'valid_until' => 'date',
             'total_premium' => 'decimal:2',
             'submitted_at' => 'datetime',

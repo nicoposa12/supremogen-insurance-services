@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/quotations/{quotation}/metadata', [QuotationController::class, 'updateMetadata']);
         Route::post('/quotations/{quotation}/request-cancellation', [QuotationController::class, 'requestCancellation']);
         Route::post('/quotations/{quotation}/review-cancellation', [QuotationController::class, 'reviewCancellation']);
+        Route::put('/quotations/{quotation}/remittance', [QuotationController::class, 'toggleRemittance']);
 
         // Policies
         Route::apiResource('/policies', PolicyController::class);

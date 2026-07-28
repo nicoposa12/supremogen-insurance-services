@@ -1,15 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FileSpreadsheet, Search, Eye, Printer, Loader2, ArrowLeft,
-  RefreshCw, X, Calendar
+  RefreshCw, X, Calendar, CheckCircle2, Clock
 } from 'lucide-react';
 
-import { getQuotations } from '../../services/quotationApi';
+import { getQuotations, toggleQuotationRemittance } from '../../services/quotationApi';
 import type { Quotation } from '../../types/SalesTypes';
 import Pagination from '../../components/ui/Pagination';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
+import { useToast } from '../../components/ui/Toast';
 
 const roundTwo = (num: number): number => Math.round(num * 100 + 1e-9) / 100;
 const formatCurrency = (val: number | string | undefined | null): string => {
@@ -60,6 +61,8 @@ const getCbicTariffPremiums = (coverageAmt: number, isCV: boolean) => {
 };
 
 export default function PolicyStatementsPage() {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [searchParams] = useSearchParams();
   const urlSearch = searchParams.get('search') || '';
   const [searchInput, setSearchInput] = useState(urlSearch);
@@ -71,6 +74,20 @@ export default function PolicyStatementsPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+
+  const remittanceMutation = useMutation({
+    mutationFn: (quotationId: number) => toggleQuotationRemittance(quotationId),
+    onSuccess: (res) => {
+      showToast(res.message || 'Remittance status updated', 'success');
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      if (selectedQuotation && selectedQuotation.id === res.data.id) {
+        setSelectedQuotation(res.data);
+      }
+    },
+    onError: () => {
+      showToast('Failed to update remittance status', 'error');
+    },
+  });
 
   useEffect(() => {
     if (urlSearch) {
@@ -260,6 +277,7 @@ export default function PolicyStatementsPage() {
                       <th className="px-5 py-3.5">Net Remittance</th>
                       <th className="px-5 py-3.5">Company Income</th>
                       <th className="px-5 py-3.5">Net Income</th>
+                      <th className="px-5 py-3.5">Remittance Status</th>
                       <th className="px-5 py-3.5">Agent</th>
                       <th className="px-5 py-3.5">Date & Time</th>
                     </tr>
@@ -360,6 +378,21 @@ export default function PolicyStatementsPage() {
                           </td>
                           <td className="px-5 py-4 font-extrabold text-emerald-700 font-mono text-xs">
                             ₱{formatCurrency(netIncome)}
+                          </td>
+                          <td className="px-5 py-4 text-xs" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => remittanceMutation.mutate(q.id)}
+                              disabled={remittanceMutation.isPending}
+                              title="Click to toggle remittance status"
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide border transition-all active:scale-95 cursor-pointer ${
+                                q.is_remitted
+                                  ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200 hover:bg-emerald-100/90'
+                                  : 'bg-slate-50 text-slate-600 border-slate-200/90 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${q.is_remitted ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                              <span>{q.is_remitted ? 'Remitted' : 'Unremitted'}</span>
+                            </button>
                           </td>
                           <td className="px-5 py-4 font-medium text-slate-600 text-xs">
                             {agentName}
@@ -530,6 +563,19 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
     window.print();
   };
 
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const remittanceMutation = useMutation({
+    mutationFn: (quotationId: number) => toggleQuotationRemittance(quotationId),
+    onSuccess: (res) => {
+      showToast(res.message || 'Remittance status updated', 'success');
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+    },
+    onError: () => {
+      showToast('Failed to update remittance status', 'error');
+    },
+  });
+
   return (
     <div className="space-y-6">
       {/* Top Action Bar (Screen only) */}
@@ -541,12 +587,28 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
           <ArrowLeft className="h-4 w-4" /> Back to Statements List
         </button>
 
-        <button
-          onClick={handlePrint}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
-        >
-          <Printer className="h-4 w-4" /> Print Accounting Statement
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => remittanceMutation.mutate(quotation.id)}
+            disabled={remittanceMutation.isPending}
+            title="Click to toggle remittance status"
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wide border transition-all active:scale-95 cursor-pointer ${
+              quotation.is_remitted
+                ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200 hover:bg-emerald-100/90'
+                : 'bg-slate-50 text-slate-600 border-slate-200/90 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full shrink-0 ${quotation.is_remitted ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            <span>{quotation.is_remitted ? 'Remitted' : 'Unremitted'}</span>
+          </button>
+
+          <button
+            onClick={handlePrint}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
+          >
+            <Printer className="h-4 w-4" /> Print Accounting Statement
+          </button>
+        </div>
       </div>
 
       {/* Cancellation Notice Banner */}

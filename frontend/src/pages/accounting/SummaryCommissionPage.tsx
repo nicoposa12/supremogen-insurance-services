@@ -182,8 +182,16 @@ export default function SummaryCommissionPage() {
         remarks = `${verifiedPaymentsCount}th Installment Verified`;
       }
 
-      const estComm = (cust as any)?.commission ? Number((cust as any).commission) : 0;
-      const estIncentive = (cust as any)?.incentive ? Number((cust as any).incentive) : 0;
+      const agentMarkup = Number(
+        cov.calculator?.agent_markup ||
+        cov.agent_markup ||
+        (cust as any)?.agent_markup ||
+        (cust as any)?.commission ||
+        0
+      );
+
+      const estComm = agentMarkup;
+      const estIncentive = Number((cust as any)?.incentive || 1000);
 
       let rawNotes = (inv as any)?.notes || cust?.notes || '';
       if (rawNotes.includes('Automatically generated invoice')) {
@@ -264,12 +272,12 @@ export default function SummaryCommissionPage() {
   );
 
   const totalCommSum = useMemo(
-    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled || r.paymentStatus === 'UNPAID' ? 0 : r.comm), 0),
+    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.comm), 0),
     [filteredRows]
   );
 
   const totalIncentiveSum = useMemo(
-    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled || r.paymentStatus === 'UNPAID' ? 0 : r.incentive), 0),
+    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.incentive), 0),
     [filteredRows]
   );
 
@@ -289,25 +297,28 @@ export default function SummaryCommissionPage() {
   const columns = [
     {
       key: 'agentName',
-      label: "AGENT'S NAME",
+      label: 'AGENT',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-bold text-slate-800 uppercase text-xs">
+        <span className="font-bold text-slate-800 uppercase text-[10px]">
           {row.agentName}
         </span>
       ),
     },
     {
       key: 'dateRequest',
-      label: 'DATE REQUEST',
+      label: 'DATE',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="text-slate-600 text-xs font-mono">{row.dateRequest}</span>
+        <span className="text-slate-600 text-[10px] font-mono">{row.dateRequest}</span>
       ),
     },
     {
       key: 'type',
       label: 'TYPE',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+        <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
           {row.type}
         </span>
       ),
@@ -315,16 +326,18 @@ export default function SummaryCommissionPage() {
     {
       key: 'activity',
       label: 'ACTIVITY',
+      className: 'max-w-[90px] truncate',
       render: (row: any) => (
-        <span className="text-slate-600 text-xs font-medium">{row.activity}</span>
+        <span className="text-slate-600 text-[10px] font-medium truncate block" title={row.activity}>{row.activity}</span>
       ),
     },
     {
       key: 'provider',
       label: 'PROVIDER',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
         <span
-          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+          className={`inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-extrabold uppercase ${
             row.provider.includes('CBIC')
               ? 'bg-amber-50 text-amber-900 border border-amber-200'
               : 'bg-[#4A0E17]/10 text-[#4A0E17] border border-[#4A0E17]/20'
@@ -336,41 +349,46 @@ export default function SummaryCommissionPage() {
     },
     {
       key: 'quotationUsed',
-      label: 'QUOTATION USED',
+      label: 'QUOTATION',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-bold text-slate-800 text-xs">{row.quotationUsed}</span>
+        <span className="font-bold text-slate-800 text-[10px]">{row.quotationUsed}</span>
       ),
     },
     {
       key: 'usage',
       label: 'USAGE',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="text-slate-600 text-xs">{row.usage}</span>
+        <span className="text-slate-600 text-[10px]">{row.usage}</span>
       ),
     },
     {
       key: 'assuredName',
       label: 'ASSURED NAME',
+      className: 'max-w-[100px] truncate',
       render: (row: any) => (
-        <span className="font-bold text-slate-900 text-xs uppercase">
+        <span className="font-bold text-slate-900 text-[10px] uppercase truncate block" title={row.assuredName}>
           {row.assuredName}
         </span>
       ),
     },
     {
       key: 'plateNumber',
-      label: 'PLATE NUMBER',
+      label: 'PLATE NO.',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-mono text-xs font-semibold text-slate-700">
+        <span className="font-mono text-[10px] font-semibold text-slate-700">
           {row.plateNumber}
         </span>
       ),
     },
     {
       key: 'totalPremium',
-      label: 'TOTAL PREMIUM',
+      label: 'PREMIUM',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-mono text-xs font-bold text-emerald-700">
+        <span className="font-mono text-[10px] font-bold text-emerald-700">
           ₱{formatAmount(row.totalPremium)}
         </span>
       ),
@@ -378,25 +396,28 @@ export default function SummaryCommissionPage() {
     {
       key: 'terms',
       label: 'TERMS',
+      className: 'text-center whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-mono text-xs font-bold text-slate-700">
+        <span className="font-mono text-[10px] font-bold text-slate-700">
           {row.terms}
         </span>
       ),
     },
     {
       key: 'remarksNotes',
-      label: 'REMARKS / NOTES',
+      label: 'NOTES',
+      className: 'max-w-[60px] truncate',
       render: (row: any) => (
-        <span className="text-slate-400 text-xs italic">{row.remarksNotes}</span>
+        <span className="text-slate-400 text-[10px] italic truncate block" title={row.remarksNotes}>{row.remarksNotes}</span>
       ),
     },
     {
       key: 'incentive',
       label: 'INCENTIVE',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-mono text-xs font-bold text-amber-700">
-          {row.incentive > 0 && !row.isCancelled && row.paymentStatus !== 'UNPAID'
+        <span className="font-mono text-[10px] font-bold text-amber-700">
+          {!row.isCancelled && row.incentive > 0
             ? `₱${formatAmount(row.incentive)}`
             : '—'}
         </span>
@@ -405,9 +426,10 @@ export default function SummaryCommissionPage() {
     {
       key: 'comm',
       label: 'COMM',
+      className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-mono text-xs font-bold text-[#4A0E17]">
-          {row.comm > 0 && !row.isCancelled && row.paymentStatus !== 'UNPAID'
+        <span className="font-mono text-[10px] font-bold text-[#4A0E17]">
+          {!row.isCancelled && row.comm > 0
             ? `₱${formatAmount(row.comm)}`
             : '—'}
         </span>
@@ -415,24 +437,25 @@ export default function SummaryCommissionPage() {
     },
     {
       key: 'paymentStatus',
-      label: 'PAYMENT STATUS',
+      label: 'STATUS',
+      className: 'whitespace-nowrap',
       render: (row: any) => {
         if (row.isCancelled) {
           return (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200 uppercase">
+            <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-rose-100 text-rose-800 border border-rose-200 uppercase">
               CANCELLED
             </span>
           );
         }
         if (row.paymentStatus === 'FULLY PAID') {
           return (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+            <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
               FULLY PAID
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 uppercase">
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-amber-50 text-amber-900 border border-amber-200 uppercase">
             {row.paymentStatus}
           </span>
         );
@@ -441,11 +464,13 @@ export default function SummaryCommissionPage() {
     {
       key: 'remarks',
       label: 'REMARKS',
+      className: 'max-w-[90px] truncate',
       render: (row: any) => {
         const isHighlight = row.remarks.includes('ALREADY RELEASED');
         return (
           <span
-            className={`text-[11px] font-medium px-2 py-0.5 rounded ${
+            title={row.remarks}
+            className={`text-[9.5px] font-medium px-1 py-0.5 rounded truncate block ${
               isHighlight
                 ? 'bg-amber-100 text-amber-950 font-bold border border-amber-200'
                 : row.isCancelled
@@ -625,6 +650,7 @@ export default function SummaryCommissionPage() {
         </div>
 
         <DataTable
+          dense
           columns={columns}
           data={paginatedRows}
           loading={isLoading}

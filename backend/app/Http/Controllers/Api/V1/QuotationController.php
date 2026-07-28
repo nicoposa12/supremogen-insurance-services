@@ -770,4 +770,30 @@ class QuotationController extends Controller
             'data' => $quotation->fresh(['customer', 'items.insuranceProduct', 'reviewedBy']),
         ]);
     }
+
+    /**
+     * Toggle remittance status for a policy statement / quotation.
+     */
+    public function toggleRemittance(Request $request, string $id)
+    {
+        $quotation = Quotation::find($id);
+
+        if (!$quotation) {
+            return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
+        }
+
+        $newVal = !(bool) $quotation->is_remitted;
+        $boolString = $newVal ? 'true' : 'false';
+
+        // PostgreSQL requires raw boolean keyword (true/false) instead of integer binding (1/0)
+        DB::statement("UPDATE quotations SET is_remitted = {$boolString}, updated_at = NOW() WHERE id = ?", [$quotation->id]);
+
+        $quotation->refresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => $newVal ? 'Policy statement marked as Remitted.' : 'Policy statement marked as Unremitted.',
+            'data' => $quotation->fresh(['customer', 'policy']),
+        ]);
+    }
 }
