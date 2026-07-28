@@ -187,6 +187,9 @@ export default function CustomersPage() {
     },
   });
 
+  const usedRateType = watch('used_rate_type');
+  const isPartnerRate = usedRateType === 'partner_rate' || usedRateType === 'Partner Rate';
+
   // Reset form when opening/closing or changing edit target
   useEffect(() => {
     if (isFormOpen) {
@@ -454,8 +457,11 @@ export default function CustomersPage() {
       data.landmark = 'N/A';
     }
 
-    if (!formEditTarget && (!orcrFile || !ellaScreenshotFile)) {
-      showToast('Please upload all required attachments (ORCR and Ella Langrio Screenshot).', 'error');
+    const usedRateTypeValue = watch('used_rate_type');
+    const isPartnerRate = (usedRateTypeValue || '').toUpperCase().includes('PARTNER') || (usedRateTypeValue || '').toUpperCase().includes('SIR JESS');
+
+    if (!formEditTarget && (!orcrFile || (isPartnerRate && !ellaScreenshotFile))) {
+      showToast(isPartnerRate ? 'Please upload all required attachments (ORCR and Ella Langrio Screenshot).' : 'Please upload required ORCR attachment.', 'error');
       return;
     }
 
@@ -1950,62 +1956,64 @@ export default function CustomersPage() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
-                          Ella Langrio Convo Screenshot (Upload) <span className="text-rose-500 font-bold">*</span>
-                        </label>
-                        <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
-                          ellaScreenshotFile 
-                            ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
-                            : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
-                        }`}>
-                          {ellaScreenshotFile ? (
-                            <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
-                              <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
-                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                      {isPartnerRate && (
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 tracking-wide uppercase flex items-center gap-1 mb-2">
+                            Ella Langrio Convo Screenshot (Upload) <span className="text-rose-500 font-bold">*</span>
+                          </label>
+                          <div className={`relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 p-4 ${
+                            ellaScreenshotFile 
+                              ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/60 shadow-sm shadow-emerald-100/50' 
+                              : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400/80 hover:shadow-sm'
+                          }`}>
+                            {ellaScreenshotFile ? (
+                              <div className="flex flex-col items-center justify-center space-y-1 w-full max-w-[90%] text-center">
+                                <div className="h-9 w-9 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                                <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={ellaScreenshotFile.name}>
+                                  {ellaScreenshotFile.name}
+                                </span>
+                                <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
+                                  {(ellaScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • Ready
+                                </span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setEllaScreenshotFile(null)} 
+                                  className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
+                                  title="Remove file"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
                               </div>
-                              <span className="text-xs text-emerald-900 font-bold truncate max-w-full" title={ellaScreenshotFile.name}>
-                                {ellaScreenshotFile.name}
-                              </span>
-                              <span className="text-[10px] text-emerald-600 font-semibold tracking-wider uppercase font-mono">
-                                {(ellaScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • Ready
-                              </span>
-                              <button 
-                                type="button" 
-                                onClick={() => setEllaScreenshotFile(null)} 
-                                className="absolute top-2.5 right-2.5 h-6 w-6 rounded-full bg-slate-200/50 hover:bg-rose-100 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors"
-                                title="Remove file"
-                              >
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          ) : (
-                            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
-                              <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
-                                <UploadCloud className="h-5 w-5" />
-                              </div>
-                              <span className="text-xs text-slate-700 font-bold">
-                                Click to select file
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-medium mt-0.5">
-                                Upload Convo Screenshot (max 10MB)
-                              </span>
-                              <input 
-                                type="file" 
-                                className="hidden" 
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files.length > 0) setEllaScreenshotFile(e.target.files[0]);
-                                }} 
-                                accept="image/*,application/pdf" 
-                              />
-                            </label>
-                          )}
+                            ) : (
+                              <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                                <div className="h-9 w-9 bg-white border border-slate-200 text-slate-400 rounded-xl flex items-center justify-center shadow-sm mb-1.5 transition-colors hover:border-slate-300">
+                                  <UploadCloud className="h-5 w-5" />
+                                </div>
+                                <span className="text-xs text-slate-700 font-bold">
+                                  Click to select file
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  Upload Convo Screenshot (max 10MB)
+                                </span>
+                                <input 
+                                  type="file" 
+                                  className="hidden" 
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) setEllaScreenshotFile(e.target.files[0]);
+                                  }} 
+                                  accept="image/*,application/pdf" 
+                                />
+                              </label>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(watch('ownership') || '') && (
                         <div>

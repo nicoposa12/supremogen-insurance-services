@@ -13,8 +13,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop check constraint on invoices status if present
-        DB::statement("ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_status_check;");
+        // Drop check constraint on invoices status if present in PostgreSQL
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_status_check;");
+        }
 
         // Synchronize all currently cancelled quotations with their policies and invoices
         $cancelledQuotations = Quotation::where('status', 'cancelled')->with('policy')->get();

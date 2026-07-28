@@ -7,6 +7,7 @@ import {
 
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from './Toast';
+import ConfirmModal from './ConfirmModal';
 import { 
   getAttachments, uploadAttachment, 
   downloadAttachment, deleteAttachment 
@@ -30,6 +31,7 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadDocType, setUploadDocType] = useState<string>('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   // Fetch attachments
   const { data: response, isLoading } = useQuery({
@@ -155,11 +157,7 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
         </button>
         {isWritable && (
           <button 
-            onClick={() => {
-              if (confirm('Are you sure you want to delete this attachment?')) {
-                deleteMut.mutate(att.id);
-              }
-            }}
+            onClick={() => setDeleteConfirmId(att.id)}
             disabled={deleteMut.isPending}
             className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
             title="Delete"
@@ -307,6 +305,28 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
           )}
         </div>
       </div>
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={deleteConfirmId !== null}
+        title="Delete Attachment"
+        message={(() => {
+          const target = attachments.find((a: Attachment) => a.id === deleteConfirmId);
+          return target
+            ? `Are you sure you want to delete "${target.file_name}"? This action cannot be undone.`
+            : 'Are you sure you want to delete this attachment? This action cannot be undone.';
+        })()}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteMut.isPending}
+        onConfirm={() => {
+          if (deleteConfirmId !== null) {
+            deleteMut.mutate(deleteConfirmId, {
+              onSettled: () => setDeleteConfirmId(null),
+            });
+          }
+        }}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </div>
   );
 }

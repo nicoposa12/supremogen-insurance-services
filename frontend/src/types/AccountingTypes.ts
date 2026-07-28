@@ -21,7 +21,7 @@ export interface Invoice {
   policy_id: number | null;
   customer_id: number;
   created_by: number | { id: number; name: string; email?: string };
-  status: 'draft' | 'sent' | 'partial' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'partial' | 'paid' | 'overdue' | 'cancelled' | 'voided' | string;
   due_date: string;
   subtotal: number;
   tax_amount: number;
@@ -52,7 +52,7 @@ export interface Payment {
   payment_date: string;
   reference_number: string | null;
   notes: string | null;
-  status: 'completed' | 'refunded' | 'voided';
+  status: 'completed' | 'refunded' | 'voided' | string;
   verification_status?: 'pending_verification' | 'verified' | 'rejected';
   verification_notes?: string | null;
   verified_by?: number | { id: number; name: string } | null;
@@ -64,6 +64,8 @@ export interface Payment {
     invoice_number: string;
     total_amount: number;
     balance: number;
+    status?: string;
+    policy?: { id: number; policy_number: string; status?: string } | null;
     customer?: {
       id: number;
       customer_code: string;

@@ -180,7 +180,9 @@ class PaymentController extends Controller
             })->get();
 
             if ($accountingOfficers->isEmpty()) {
-                $accountingOfficers = \App\Models\User::whereIn('role_name', ['Accounting Officer', 'Accounting', 'Admin', 'Super Admin'])->get();
+                $accountingOfficers = \App\Models\User::whereHas('roles', function ($q) {
+                    $q->where('name', 'like', '%Accounting%')->orWhere('name', 'like', '%Admin%');
+                })->get();
             }
 
             foreach ($accountingOfficers as $officer) {
@@ -189,6 +191,21 @@ class PaymentController extends Controller
                     'title'   => 'Collection Payment Pending Review',
                     'message' => "New collection payment {$ref} (₱{$amountFormatted}) for {$clientName} was submitted by {$collectorName} and is ready for accounting verification.",
                     'type'    => 'warning',
+                    'read_at' => null,
+                ]);
+            }
+
+            // Notify Collection Officers about recorded payment
+            $collectionOfficers = \App\Models\User::whereHas('roles', function ($q) {
+                $q->where('name', 'Collection')->orWhere('name', 'Collection Officer');
+            })->get();
+
+            foreach ($collectionOfficers as $officer) {
+                \App\Models\Notification::create([
+                    'user_id' => $officer->id,
+                    'title'   => 'Payment Received',
+                    'message' => "A payment of ₱{$amountFormatted} for Invoice {$invoice->invoice_number} has been recorded.",
+                    'type'    => 'info',
                     'read_at' => null,
                 ]);
             }
@@ -472,7 +489,9 @@ class PaymentController extends Controller
             })->get();
 
             if ($collectionUsers->isEmpty()) {
-                $collectionUsers = \App\Models\User::whereIn('role_name', ['Collection', 'Collection Officer', 'Collector'])->get();
+                $collectionUsers = \App\Models\User::whereHas('roles', function ($q) {
+                    $q->where('name', 'like', '%Collection%')->orWhere('name', 'like', '%Collector%');
+                })->get();
             }
 
             $userIdsToNotify = $collectionUsers->pluck('id')->toArray();

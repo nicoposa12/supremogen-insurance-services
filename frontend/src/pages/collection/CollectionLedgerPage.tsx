@@ -23,13 +23,15 @@ import {
   FileText,
   Paperclip,
   Download,
-  XCircle
+  XCircle,
+  Gift
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
+import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
 import { getInvoices, sendInvoiceReminder } from '../../services/invoiceApi';
 import { recordPayment, updatePayment } from '../../services/paymentApi';
 import { downloadAttachment, getAttachmentPreview } from '../../services/attachmentApi';
@@ -546,6 +548,7 @@ export default function CollectionLedgerPage() {
   const [collectNotes, setCollectNotes] = useState('');
   const [collectProof, setCollectProof] = useState<File | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
+  const [freebieModalTarget, setFreebieModalTarget] = useState<Invoice | null>(null);
 
   const [previewAttachment, setPreviewAttachment] = useState<any | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -1853,10 +1856,44 @@ export default function CollectionLedgerPage() {
                               <div className="flex flex-col items-center gap-2">
                                 <button
                                   onClick={() => printReceiptHtml(row)}
-                                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
+                                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
                                 >
                                   <FileText className="h-3 w-3" /> Receipt
                                 </button>
+                                {(() => {
+                                  const rowAny = row as any;
+                                  const freebieAttCount = [
+                                    ...(rowAny.attachments || []),
+                                    ...(rowAny.policy?.quotation?.attachments || []),
+                                    ...((rowAny.payments || []).flatMap((p: any) => p.attachments || []))
+                                  ].filter(
+                                    att => att.document_type === 'freebie_proof' ||
+                                           att.document_type?.toLowerCase().includes('freebie') ||
+                                           att.file_name?.toLowerCase().includes('freebie')
+                                  ).length;
+
+                                  const isPaidOrHasFreebie = (row.status as string) === 'paid' ||
+                                    (row.status as string) === 'overpaid' ||
+                                    (row.balance !== undefined && Number(row.balance) <= 0 && Number(row.total_amount || 0) > 0) ||
+                                    freebieAttCount > 0;
+
+                                  if (!isPaidOrHasFreebie) return null;
+
+                                  return (
+                                    <button
+                                      onClick={() => setFreebieModalTarget(row)}
+                                      className={`w-full whitespace-nowrap inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                                        freebieAttCount > 0
+                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100/80'
+                                          : 'bg-amber-50/80 text-amber-800 border-amber-200/80 hover:bg-amber-100/80'
+                                      }`}
+                                      title={freebieAttCount > 0 ? `${freebieAttCount} Freebie Proof Attachment(s) Uploaded` : 'Upload / View Freebie Delivery Proof'}
+                                    >
+                                      <Gift className={`h-3.5 w-3.5 shrink-0 ${freebieAttCount > 0 ? 'text-emerald-600' : 'text-amber-600'}`} />
+                                      <span>{freebieAttCount > 0 ? `Freebie (${freebieAttCount})` : 'Freebie Proof'}</span>
+                                    </button>
+                                  );
+                                })()}
                               </div>
                             </td>
                           </tr>
@@ -2652,6 +2689,32 @@ export default function CollectionLedgerPage() {
         </div>
       )}
 
+      {/* Freebie Attachment Modal */}
+      {freebieModalTarget && (
+        <FreebieAttachmentModal
+          isOpen={Boolean(freebieModalTarget)}
+          onClose={() => setFreebieModalTarget(null)}
+          attachableType="invoice"
+          attachableId={freebieModalTarget.id}
+          title={freebieModalTarget.invoice_number || `INV-${freebieModalTarget.id}`}
+          customerName={
+            freebieModalTarget.customer
+              ? (freebieModalTarget.customer.full_name || [freebieModalTarget.customer.first_name, freebieModalTarget.customer.last_name].filter(Boolean).join(' ') || freebieModalTarget.customer.company_name)
+              : 'Assured Customer'
+          }
+          isCancelled={Boolean(
+            freebieModalTarget.status === 'cancelled' ||
+            (freebieModalTarget.status as string) === 'voided' ||
+            freebieModalTarget.policy?.status === 'cancelled' ||
+            (freebieModalTarget as any).policy?.quotation?.status === 'cancelled'
+          )}
+          freebieInfo={
+            (freebieModalTarget as any).policy?.quotation?.items?.[0]?.coverage_details?.calculator?.freebie_amount ??
+            ((freebieModalTarget as any).policy?.quotation?.items?.[0]?.coverage_details?.calculator?.freebie_cashback || (freebieModalTarget.customer as any)?.freebie || 0)
+          }
+          onAttachmentUploaded={() => queryClient.invalidateQueries({ queryKey: ['invoices-ledger'] })}
+        />
+      )}
     </div>
   );
 }

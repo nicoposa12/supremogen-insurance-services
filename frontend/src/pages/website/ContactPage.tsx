@@ -174,7 +174,7 @@ export default function ContactPage() {
                   </svg>
                 </a>
                 <a
-                  href="https://www.instagram.com/supremogeninsurance/"
+                  href="https://www.instagram.com/supremogeninsuranceservices/"
                   target="_blank"
                   rel="noreferrer"
                   aria-label="Instagram"
@@ -187,7 +187,7 @@ export default function ContactPage() {
                   </svg>
                 </a>
                 <a
-                  href="https://www.tiktok.com/@supremogeninsurancesrvcs"
+                  href="https://www.tiktok.com/@supremogeninsurancesrvcs?lang=en"
                   target="_blank"
                   rel="noreferrer"
                   aria-label="TikTok"

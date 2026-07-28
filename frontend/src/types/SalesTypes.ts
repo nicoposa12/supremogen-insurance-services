@@ -1,4 +1,5 @@
 import type { Customer } from './CustomerTypes';
+import type { Attachment } from '../services/attachmentApi';
 
 // ─── Insurance Product ────────────────────────
 
@@ -51,6 +52,8 @@ export interface Quotation {
   updated_at: string;
   customer?: Customer;
   items?: QuotationItem[];
+  policy?: Policy & { invoice?: any };
+  attachments?: Attachment[];
 }
 
 // ─── Policy ───────────────────────────────────

@@ -18,13 +18,15 @@ import {
   Download,
   Building2,
   Truck,
-  Filter
+  Filter,
+  Gift
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
+import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
 import { getPayments, verifyPayment } from '../../services/paymentApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
 import type { Payment, PaymentListParams } from '../../types/AccountingTypes';
@@ -54,6 +56,7 @@ export default function ReviewCollectionPaymentPage() {
   const [actionType, setActionType] = useState<'verified' | 'rejected' | null>(null);
   const [selectedVerificationStatus, setSelectedVerificationStatus] = useState<string>('REFLECTED PBCOM');
   const [specialFile, setSpecialFile] = useState<File | null>(null);
+  const [freebieModalTarget, setFreebieModalTarget] = useState<Payment | null>(null);
 
   const hasAutoOpenedRef = useRef(false);
 
@@ -422,8 +425,22 @@ export default function ReviewCollectionPaymentPage() {
         }
 
         if (isVerified) {
+          const inv = p.invoice as any;
+          const isInvoicePaid = Boolean(
+            inv && (inv.status === 'paid' || inv.status === 'overpaid' || (inv.balance !== undefined && Number(inv.balance) <= 0 && Number(inv.total_amount || 0) > 0))
+          );
+
           return (
-            <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+              {isInvoicePaid && (
+                <button
+                  onClick={() => setFreebieModalTarget(p)}
+                  className="whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50/80 hover:bg-amber-100/80 text-amber-800 font-bold text-xs rounded-xl border border-amber-200/80 transition cursor-pointer shadow-2xs"
+                  title="Upload or view freebie delivery attachment"
+                >
+                  <Gift className="h-3.5 w-3.5 text-amber-600 shrink-0" /> Freebie Proof
+                </button>
+              )}
               <button
                 onClick={() => openVerifyModal(p, 'verified')}
                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#4A0E17]/10 hover:bg-[#4A0E17]/20 text-[#4A0E17] font-bold text-xs rounded-xl border border-[#4A0E17]/20 transition cursor-pointer shadow-2xs"
@@ -763,6 +780,32 @@ export default function ReviewCollectionPaymentPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Freebie Attachment Modal */}
+      {freebieModalTarget && (
+        <FreebieAttachmentModal
+          isOpen={Boolean(freebieModalTarget)}
+          onClose={() => setFreebieModalTarget(null)}
+          attachableType="payment"
+          attachableId={freebieModalTarget.id}
+          title={freebieModalTarget.payment_number || `PAY-${freebieModalTarget.id}`}
+          customerName={
+            freebieModalTarget.invoice?.customer
+              ? [freebieModalTarget.invoice.customer.first_name, freebieModalTarget.invoice.customer.last_name].filter(Boolean).join(' ')
+              : 'Assured Customer'
+          }
+          isCancelled={Boolean(
+            freebieModalTarget.status === 'voided' ||
+            freebieModalTarget.invoice?.status === 'cancelled' ||
+            freebieModalTarget.invoice?.status === 'voided' ||
+            freebieModalTarget.invoice?.policy?.status === 'cancelled'
+          )}
+          onAttachmentUploaded={() => {
+            queryClient.invalidateQueries({ queryKey: ['payments-review'] });
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+          }}
+        />
       )}
     </div>
   );

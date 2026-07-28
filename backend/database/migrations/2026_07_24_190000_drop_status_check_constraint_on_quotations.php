@@ -10,10 +10,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        try {
-            DB::statement("ALTER TABLE quotations DROP CONSTRAINT IF EXISTS quotations_status_check;");
-        } catch (\Throwable $e) {
-            // Ignore if constraint does not exist
+        if (DB::getDriverName() === 'pgsql') {
+            try {
+                DB::statement("ALTER TABLE quotations DROP CONSTRAINT IF EXISTS quotations_status_check;");
+            } catch (\Throwable $e) {
+                // Ignore if constraint does not exist
+            }
         }
     }
 

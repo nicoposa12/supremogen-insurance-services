@@ -40,6 +40,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationApi';
 import { useToast } from '../../components/ui/Toast';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import type { SystemNotification } from '../../types/NotificationTypes';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 
@@ -466,6 +467,7 @@ export default function DashboardLayout() {
   const knownNotificationIds = useRef<Set<number>>(new Set());
   const [sseActive, setSseActive] = useState(true);
   const isFirstLoad = useRef(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Fetch notifications (include user?.id in queryKey to reset cache on login/logout)
   const { data: notificationsRes } = useQuery({
@@ -513,6 +515,9 @@ export default function DashboardLayout() {
       queryClient.invalidateQueries({ queryKey: ['insurance-requests'] });
       queryClient.invalidateQueries({ queryKey: ['policies'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices-ledger'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices-collections'] });
+      queryClient.invalidateQueries({ queryKey: ['payments-collections'] });
       queryClient.invalidateQueries({ queryKey: ['approved-statements'] });
     }
   }, [notificationsRes, showToast, queryClient]);
@@ -821,6 +826,8 @@ export default function DashboardLayout() {
                                 const code = matchQuotation[0];
                                 if (isAccounting) {
                                   navigate(`/dashboard/policy-statements?search=${code}`);
+                                } else if (isCollection) {
+                                  navigate(`/dashboard/collection/ledger?search=${code}&autoOpen=true`);
                                 } else if (roles.includes('Underwriter')) {
                                   navigate(`/dashboard/insurance-requests?search=${code}`);
                                 } else {
@@ -863,9 +870,11 @@ export default function DashboardLayout() {
                                 } else {
                                   navigate('/dashboard/payments');
                                 }
-                              } else if (title.toLowerCase().includes('quotation') || title.toLowerCase().includes('statement') || title.toLowerCase().includes('policy')) {
+                              } else if (title.toLowerCase().includes('quotation') || title.toLowerCase().includes('statement') || title.toLowerCase().includes('policy') || title.toLowerCase().includes('freebie')) {
                                 if (isAccounting) {
                                   navigate('/dashboard/policy-statements');
+                                } else if (isCollection) {
+                                  navigate('/dashboard/collection/ledger?autoOpen=true');
                                 } else if (roles.includes('Underwriter')) {
                                   navigate('/dashboard/insurance-requests');
                                 } else {
@@ -882,7 +891,13 @@ export default function DashboardLayout() {
                                   navigate('/dashboard/invoices');
                                 }
                               } else if (title.toLowerCase().includes('policy')) {
-                                navigate('/dashboard/renewals');
+                                if (isCollection) {
+                                  navigate('/dashboard/collection/ledger');
+                                } else {
+                                  navigate('/dashboard/renewals');
+                                }
+                              } else if (isCollection) {
+                                navigate('/dashboard/collection/ledger');
                               }
                             }}
                             className={`p-3 text-left hover:bg-slate-50 cursor-pointer transition ${!n.read_at ? 'bg-blue-50/20' : ''
@@ -961,7 +976,10 @@ export default function DashboardLayout() {
                       Settings
                     </button>
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setShowLogoutConfirm(true);
+                      }}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-slate-50 transition"
                     >
                       <LogOut className="h-4 w-4" />
@@ -979,6 +997,17 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+      {/* Sign Out Confirmation Modal */}
+      <ConfirmModal
+        open={showLogoutConfirm}
+        title="Sign Out"
+        message={`Are you sure you want to sign out${user?.name ? `, ${user.name}` : ''}? You will need to log in again to access the dashboard.`}
+        confirmLabel="Sign Out"
+        cancelLabel="Stay"
+        variant="warning"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 }

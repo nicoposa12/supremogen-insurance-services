@@ -143,4 +143,81 @@ class CollectionNotificationTest extends TestCase
         $this->assertEquals('Payment Received', $notifications->first()->title);
         $this->assertStringContainsString('payment of ₱5,000.00', $notifications->first()->message);
     }
+
+    public function test_freebie_attachment_upload_notifies_collection_officers(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $accountingUser = User::create([
+            'name' => 'Accounting Officer',
+            'email' => 'accounting.test@supremogen.com',
+            'password' => bcrypt('password'),
+        ]);
+        $accountingUser->assignRole('Accounting Officer');
+
+        $invoice = Invoice::create([
+            'invoice_number' => 'INV-FREEBIE01',
+            'customer_id' => $this->customer->id,
+            'created_by' => $this->admin->id,
+            'status' => 'sent',
+            'due_date' => '2026-07-01',
+            'subtotal' => 12000.00,
+            'total_amount' => 12000.00,
+            'amount_paid' => 0.00,
+            'balance' => 12000.00,
+        ]);
+
+        $file = \Illuminate\Http\UploadedFile::fake()->create('freebie_proof.pdf', 100);
+
+        $response = $this->actingAs($accountingUser)
+            ->postJson('/api/v1/attachments', [
+                'attachable_type' => 'invoice',
+                'attachable_id' => $invoice->id,
+                'document_type' => 'freebie_proof',
+                'file' => $file,
+            ]);
+
+        $response->assertStatus(201);
+
+        $notifications = Notification::where('user_id', $this->collectionUser->id)->get();
+        $this->assertCount(1, $notifications);
+        $this->assertEquals('Freebie Proof Uploaded', $notifications->first()->title);
+        $this->assertStringContainsString('uploaded a freebie proof attachment', $notifications->first()->message);
+        $this->assertStringContainsString('John Doe', $notifications->first()->message);
+    }
+
+    public function test_freebie_attachment_upload_fails_for_cancelled_quotation_or_policy(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $accountingUser = User::create([
+            'name' => 'Accounting Officer 2',
+            'email' => 'accounting2.test@supremogen.com',
+            'password' => bcrypt('password'),
+        ]);
+        $accountingUser->assignRole('Accounting Officer');
+
+        $cancelledQuotation = Quotation::create([
+            'quotation_number' => 'QUO-CANCELLED01',
+            'customer_id' => $this->customer->id,
+            'customer_name' => 'John Doe',
+            'prepared_by' => $this->admin->id,
+            'status' => 'cancelled',
+            'cancellation_reason' => 'Client requested cancellation',
+            'total_premium' => 12000.00,
+        ]);
+
+        $file = \Illuminate\Http\UploadedFile::fake()->create('freebie_proof.pdf', 100);
+
+        $response = $this->actingAs($accountingUser)
+            ->postJson('/api/v1/attachments', [
+                'attachable_type' => 'quotation',
+                'attachable_id' => $cancelledQuotation->id,
+                'document_type' => 'freebie_proof',
+                'file' => $file,
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonFragment(['message' => 'Cannot upload freebie delivery attachment for a cancelled policy or quotation.']);
+    }
 }

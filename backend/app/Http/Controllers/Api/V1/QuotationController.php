@@ -27,6 +27,10 @@ class QuotationController extends Controller
             'customer',
             'customer.attachments',
             'policy',
+            'policy.invoice',
+            'policy.invoice.payments',
+            'attachments',
+            'attachments.uploadedBy:id,name',
             'items',
             'preparedBy:id,name'
         ]);

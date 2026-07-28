@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FileSpreadsheet, Search, Eye, Printer, Loader2, ArrowLeft,
-  RefreshCw, X, Calendar, CheckCircle2, Clock
+  RefreshCw, X, Calendar, CheckCircle2, Clock, Gift, Paperclip, Upload
 } from 'lucide-react';
 
 import { getQuotations, toggleQuotationRemittance } from '../../services/quotationApi';
@@ -11,6 +11,7 @@ import type { Quotation } from '../../types/SalesTypes';
 import Pagination from '../../components/ui/Pagination';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 import { useToast } from '../../components/ui/Toast';
+import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
 
 const roundTwo = (num: number): number => Math.round(num * 100 + 1e-9) / 100;
 const formatCurrency = (val: number | string | undefined | null): string => {
@@ -68,6 +69,7 @@ export default function PolicyStatementsPage() {
   const [searchInput, setSearchInput] = useState(urlSearch);
   const [selectedProvider, setSelectedProvider] = useState<'ALL' | 'ALPHA' | 'CBIC'>('ALL');
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
+  const [freebieModalTarget, setFreebieModalTarget] = useState<Quotation | null>(null);
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -250,6 +252,7 @@ export default function PolicyStatementsPage() {
         <StatementDetailView
           quotation={selectedQuotation}
           onBack={() => setSelectedQuotation(null)}
+          onOpenFreebieModal={(q) => setFreebieModalTarget(q)}
         />
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -278,6 +281,7 @@ export default function PolicyStatementsPage() {
                       <th className="px-5 py-3.5">Company Income</th>
                       <th className="px-5 py-3.5">Net Income</th>
                       <th className="px-5 py-3.5">Remittance Status</th>
+                      <th className="px-5 py-3.5">Freebies & Delivery</th>
                       <th className="px-5 py-3.5">Agent</th>
                       <th className="px-5 py-3.5">Date & Time</th>
                     </tr>
@@ -394,6 +398,48 @@ export default function PolicyStatementsPage() {
                               <span>{q.is_remitted ? 'Remitted' : 'Unremitted'}</span>
                             </button>
                           </td>
+                          <td className="px-5 py-4 text-xs" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const invoice = q.policy?.invoice;
+                              const terms = Number(q.customer?.payment_terms || custAny.payment_terms || 1);
+                              const verifiedPayments = (invoice?.payments || []).filter(
+                                (p: any) => p.verification_status === 'verified' || (p.verification_status as string)?.toUpperCase() === 'VERIFIED' || (p.verification_status as string)?.toUpperCase() === 'REFLECTED PBCOM'
+                              );
+                              const invBalance = invoice ? Number(invoice.balance ?? (Number(invoice.total_amount) - Number(invoice.amount_paid))) : null;
+                              const invAmountPaid = invoice ? Number(invoice.amount_paid || 0) : 0;
+                              const invTotalAmount = invoice ? Number(invoice.total_amount || 0) : Number(q.total_premium || 0);
+
+                              const isFullyPaid = Boolean(
+                                (invoice && (invoice.status === 'paid' || invoice.status === 'overpaid')) ||
+                                (invBalance !== null && invBalance <= 0 && invTotalAmount > 0) ||
+                                (invAmountPaid >= invTotalAmount && invTotalAmount > 0) ||
+                                (verifiedPayments.length >= terms && terms > 0)
+                              );
+
+                              const freebieAttCount = (q.attachments || []).filter(
+                                att => att.document_type === 'freebie_proof' || att.document_type?.toLowerCase().includes('freebie') || att.file_name.toLowerCase().includes('freebie')
+                              ).length;
+
+                              if (!isFullyPaid) {
+                                return <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap italic">Pending Paid</span>;
+                              }
+
+                              return (
+                                <button
+                                  onClick={() => setFreebieModalTarget(q)}
+                                  title={freebieAttCount > 0 ? `${freebieAttCount} Freebie Proof Attachment(s) Uploaded` : 'Upload Freebie Delivery Proof'}
+                                  className={`whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                                    freebieAttCount > 0
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100/80'
+                                      : 'bg-amber-50/80 text-amber-800 border-amber-200/80 hover:bg-amber-100/80'
+                                  }`}
+                                >
+                                  <Gift className={`h-3.5 w-3.5 shrink-0 ${freebieAttCount > 0 ? 'text-emerald-600' : 'text-amber-600'}`} />
+                                  <span>{freebieAttCount > 0 ? `Attached (${freebieAttCount})` : 'Upload Freebie'}</span>
+                                </button>
+                              );
+                            })()}
+                          </td>
                           <td className="px-5 py-4 font-medium text-slate-600 text-xs">
                             {agentName}
                           </td>
@@ -427,11 +473,35 @@ export default function PolicyStatementsPage() {
           )}
         </div>
       )}
+
+      {/* Freebie Delivery Attachment Modal */}
+      {freebieModalTarget && (
+        <FreebieAttachmentModal
+          isOpen={Boolean(freebieModalTarget)}
+          onClose={() => setFreebieModalTarget(null)}
+          attachableType="quotation"
+          attachableId={freebieModalTarget.id}
+          title={freebieModalTarget.quotation_number || freebieModalTarget.ir_number || `IR-${freebieModalTarget.id}`}
+          customerName={getAssuredName(freebieModalTarget)}
+          isCancelled={Boolean(
+            freebieModalTarget.status === 'cancelled' ||
+            (freebieModalTarget as any).cancellation_reason ||
+            freebieModalTarget.policy?.status === 'cancelled'
+          )}
+          freebieInfo={
+            Number(
+              freebieModalTarget.items?.[0]?.coverage_details?.calculator?.freebie_amount ??
+              (freebieModalTarget.items?.[0]?.coverage_details?.calculator?.freebie_cashback || (freebieModalTarget.customer as any)?.freebie || 0)
+            )
+          }
+          onAttachmentUploaded={() => refetch()}
+        />
+      )}
     </div>
   );
 }
 
-function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBack: () => void }) {
+function StatementDetailView({ quotation, onBack, onOpenFreebieModal }: { quotation: Quotation; onBack: () => void; onOpenFreebieModal: (q: Quotation) => void }) {
   const firstItem = quotation.items?.[0];
   const cov = firstItem?.coverage_details || {};
   const custAny = (quotation.customer || {}) as any;
@@ -442,6 +512,22 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
 
   const initialUsage = ((custAny.usage || '') + ' ' + (custAny.quotation_used || '') + ' ' + (cov.usage || '')).toUpperCase();
   const cbicType: 'PRIVATE' | 'TNVS' = initialUsage.includes('TNVS') || initialUsage.includes('HIRE') || initialUsage.includes('YELLOW') ? 'TNVS' : 'PRIVATE';
+
+  const detailInvoice = quotation.policy?.invoice;
+  const detailTerms = Number(quotation.customer?.payment_terms || custAny.payment_terms || 1);
+  const detailVerifiedPayments = (detailInvoice?.payments || []).filter(
+    (p: any) => p.verification_status === 'verified' || (p.verification_status as string)?.toUpperCase() === 'VERIFIED' || (p.verification_status as string)?.toUpperCase() === 'REFLECTED PBCOM'
+  );
+  const detailInvBalance = detailInvoice ? Number(detailInvoice.balance ?? (Number(detailInvoice.total_amount) - Number(detailInvoice.amount_paid))) : null;
+  const detailInvAmountPaid = detailInvoice ? Number(detailInvoice.amount_paid || 0) : 0;
+  const detailInvTotalAmount = detailInvoice ? Number(detailInvoice.total_amount || 0) : Number(quotation.total_premium || 0);
+
+  const isFullyPaidDetail = Boolean(
+    (detailInvoice && (detailInvoice.status === 'paid' || detailInvoice.status === 'overpaid')) ||
+    (detailInvBalance !== null && detailInvBalance <= 0 && detailInvTotalAmount > 0) ||
+    (detailInvAmountPaid >= detailInvTotalAmount && detailInvTotalAmount > 0) ||
+    (detailVerifiedPayments.length >= detailTerms && detailTerms > 0)
+  );
 
   // Extract initial parameters or set smart defaults matching Excel calculations
   const assuredName = getAssuredName(quotation);
@@ -601,6 +687,17 @@ function StatementDetailView({ quotation, onBack }: { quotation: Quotation; onBa
             <span className={`w-2 h-2 rounded-full shrink-0 ${quotation.is_remitted ? 'bg-emerald-500' : 'bg-slate-400'}`} />
             <span>{quotation.is_remitted ? 'Remitted' : 'Unremitted'}</span>
           </button>
+
+          {isFullyPaidDetail && (
+            <button
+              onClick={() => onOpenFreebieModal(quotation)}
+              title="Upload proof of delivered freebie for this policy statement"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold tracking-wide border bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 transition cursor-pointer shadow-2xs"
+            >
+              <Gift className="h-4 w-4 text-amber-600 shrink-0" />
+              <span>Upload Freebie Proof</span>
+            </button>
+          )}
 
           <button
             onClick={handlePrint}

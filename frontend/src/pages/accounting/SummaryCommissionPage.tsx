@@ -11,11 +11,13 @@ import {
   UserCheck,
   TrendingUp,
   Filter,
+  Gift,
 } from 'lucide-react';
 import { getInvoices } from '../../services/invoiceApi';
 import type { Invoice } from '../../types/AccountingTypes';
 import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
+import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
 
 export default function SummaryCommissionPage() {
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
@@ -27,6 +29,7 @@ export default function SummaryCommissionPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
+  const [freebieModalTarget, setFreebieModalTarget] = useState<any | null>(null);
 
   const formatAmount = (val: number): string => {
     return Number(val || 0).toLocaleString(undefined, {
@@ -36,7 +39,7 @@ export default function SummaryCommissionPage() {
   };
 
   // Fetch invoices for live real-time commission tracking
-  const { data: invoicesRes, isLoading } = useQuery({
+  const { data: invoicesRes, isLoading, refetch } = useQuery({
     queryKey: ['invoices-summary-commission', selectedMonth, searchQuery, currentPage, perPage],
     queryFn: () =>
       getInvoices({
@@ -449,9 +452,19 @@ export default function SummaryCommissionPage() {
         }
         if (row.paymentStatus === 'FULLY PAID') {
           return (
-            <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
-              FULLY PAID
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+                FULLY PAID
+              </span>
+              <button
+                type="button"
+                onClick={() => setFreebieModalTarget(row)}
+                title="Upload/View Freebie Delivery Proof"
+                className="whitespace-nowrap px-2.5 py-1 bg-amber-50/80 hover:bg-amber-100/80 text-amber-800 border border-amber-200/80 rounded-xl text-[10px] font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-2xs"
+              >
+                <Gift className="h-3 w-3 text-amber-600 shrink-0" /> Freebie Proof
+              </button>
+            </div>
           );
         }
         return (
@@ -672,6 +685,23 @@ export default function SummaryCommissionPage() {
               }}
             />
           </div>
+        )}
+
+        {/* Freebie Attachment Modal */}
+        {freebieModalTarget && (
+          <FreebieAttachmentModal
+            isOpen={Boolean(freebieModalTarget)}
+            onClose={() => setFreebieModalTarget(null)}
+            attachableType="invoice"
+            attachableId={freebieModalTarget.invoiceId || freebieModalTarget.id}
+            title={freebieModalTarget.quotationNo || freebieModalTarget.refNo || `RECORD-${freebieModalTarget.id}`}
+            customerName={freebieModalTarget.customerName}
+            isCancelled={Boolean(
+              freebieModalTarget.status === 'cancelled' ||
+              freebieModalTarget.status === 'voided'
+            )}
+            onAttachmentUploaded={() => refetch()}
+          />
         )}
       </div>
     </div>

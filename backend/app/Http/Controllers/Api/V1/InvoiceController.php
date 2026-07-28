@@ -115,9 +115,12 @@ class InvoiceController extends Controller
                 'policy.quotation.items.insuranceProduct',
                 'policy.quotation.preparedBy:id,name',
                 'policy.quotation.reviewedBy:id,name',
+                'policy.quotation.attachments',
                 'policy.issuedBy:id,name',
                 'createdBy:id,name',
                 'payments.attachments',
+                'attachments',
+                'attachments.uploadedBy:id,name',
             ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
