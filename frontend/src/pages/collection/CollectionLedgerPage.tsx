@@ -597,7 +597,11 @@ export default function CollectionLedgerPage() {
       page: page,
       per_page: perPage,
       search: searchVal,
-      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm') ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid,overpaid,voided' : invoiceStatus),
+      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm')
+        ? 'sent,partial,overdue'
+        : (invoiceStatus === 'every'
+            ? 'sent,partial,overdue,paid,overpaid,cancelled,voided'
+            : (invoiceStatus === 'voided' ? 'cancelled,voided' : invoiceStatus)),
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
@@ -1832,7 +1836,7 @@ export default function CollectionLedgerPage() {
                               );
                             })}
                             <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">
-                              {Number((row as any).amount_paid) > Number((row as any).total_amount) ? (
+                              {(Number((row as any).amount_paid) - Number((row as any).total_amount)) >= 1.00 ? (
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-slate-400 font-normal line-through text-[10px]">₱0.00</span>
                                   <span className="px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-300 rounded text-[9px] font-extrabold uppercase whitespace-nowrap">

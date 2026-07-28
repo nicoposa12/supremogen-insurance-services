@@ -115,7 +115,8 @@ class Invoice extends Model
 
     public function getOverpaymentAmountAttribute(): float
     {
-        return max(0, (float) $this->amount_paid - (float) $this->total_amount);
+        $overpaid = (float) $this->amount_paid - (float) $this->total_amount;
+        return $overpaid >= 1.00 ? $overpaid : 0.0;
     }
 
     public function scopeOfStatus($query, ?string $status)
@@ -123,10 +124,24 @@ class Invoice extends Model
         if (!$status || $status === 'all') return $query;
 
         $statuses = explode(',', $status);
+
+        if (in_array('voided', $statuses) || in_array('cancelled', $statuses)) {
+            $statuses = array_unique(array_merge($statuses, ['cancelled', 'voided']));
+            return $query->where(function ($q) use ($statuses) {
+                $q->whereIn('status', $statuses)
+                  ->orWhereHas('policy', function ($pq) use ($statuses) {
+                      $pq->whereIn('status', $statuses);
+                  })
+                  ->orWhereHas('policy.quotation', function ($qq) use ($statuses) {
+                      $qq->whereIn('status', $statuses);
+                  });
+            });
+        }
+
         if (in_array('overpaid', $statuses)) {
             return $query->where(function ($q) use ($statuses) {
                 $q->whereIn('status', $statuses)
-                  ->orWhereRaw('amount_paid > total_amount');
+                  ->orWhereRaw('(amount_paid - total_amount) >= 1.00');
             });
         }
 
@@ -174,9 +189,10 @@ class Invoice extends Model
             })
             ->sum('amount');
 
-        // Auto-update status based on balance & overpayment
+        // Auto-update status based on balance & overpayment (Only >= ₱1.00 is recorded as overpaid)
         if ($this->status !== 'cancelled' && $this->status !== 'draft') {
-            if ((float) $this->amount_paid > (float) $this->total_amount + 0.01) {
+            $overpaidDifference = (float) $this->amount_paid - (float) $this->total_amount;
+            if ($overpaidDifference >= 1.00) {
                 $this->status = 'overpaid';
                 $this->balance = 0;
             } elseif ((float) $this->amount_paid >= (float) $this->total_amount - 0.01) {

@@ -127,8 +127,12 @@ export default function CollectionPage() {
       per_page: invoicePerPage,
       search: invoiceSearch,
       status: (invoiceSearch && invoiceSearch.trim() !== '') 
-        ? 'sent,partial,overdue,paid,overpaid,voided' 
-        : (invoiceStatus === 'all' ? 'sent,partial,overdue' : (invoiceStatus === 'every' ? 'sent,partial,overdue,paid,overpaid,voided' : invoiceStatus)),
+        ? 'sent,partial,overdue,paid,overpaid,cancelled,voided' 
+        : (invoiceStatus === 'all'
+            ? 'sent,partial,overdue'
+            : (invoiceStatus === 'every'
+                ? 'sent,partial,overdue,paid,overpaid,cancelled,voided'
+                : (invoiceStatus === 'voided' ? 'cancelled,voided' : invoiceStatus))),
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
@@ -408,7 +412,7 @@ export default function CollectionPage() {
       key: 'balance',
       label: 'Balance Due',
       render: (r: Invoice) => (
-        Number(r.amount_paid) > Number(r.total_amount) ? (
+        (Number(r.amount_paid) - Number(r.total_amount)) >= 1.00 ? (
           <span className="font-bold text-purple-900 bg-purple-100 px-2 py-0.5 rounded border border-purple-300 text-xs">
             +₱{(Number(r.amount_paid) - Number(r.total_amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })} Overpaid
           </span>
