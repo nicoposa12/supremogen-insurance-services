@@ -130,7 +130,9 @@ export default function SettingsPage() {
   const { data: usersRes, isLoading: loadingUsers } = useQuery({
     queryKey: ['users-list'],
     queryFn: async () => {
-      const res = await axios.get('/api/v1/users');
+      const res = await axios.get('/api/v1/users', {
+        params: { no_paginate: true },
+      });
       return res.data;
     },
     enabled: isAdmin && activeTab === 'accounts',

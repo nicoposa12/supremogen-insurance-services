@@ -17,17 +17,44 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $perPage = min((int) $request->input('per_page', 15), 100);
-        
-        $users = User::with('roles')
+        $query = User::with('roles')
             ->when($request->user()->hasRole('Underwriter'), function ($q) {
                 $q->whereNotIn('email', ['admin@supremogen.com', 'owner@supremogen.com']);
             })
             ->when($request->input('search'), function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%");
-            })
-            ->paginate($perPage);
+            });
+
+        if ($request->boolean('no_paginate')) {
+            $items = $query->get();
+            $items->transform(function ($user) {
+                $user->role_name = $user->getRoleNames()->first() ?? 'None';
+                return $user;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'current_page' => 1,
+                    'data' => $items,
+                    'first_page_url' => '',
+                    'from' => 1,
+                    'last_page' => 1,
+                    'last_page_url' => '',
+                    'next_page_url' => null,
+                    'path' => $request->url(),
+                    'per_page' => $items->count(),
+                    'prev_page_url' => null,
+                    'to' => $items->count(),
+                    'total' => $items->count(),
+                ],
+            ]);
+        }
+
+        $perPage = min((int) $request->input('per_page', 15), 500);
+
+        $users = $query->paginate($perPage);
 
         // Map roles to a simple string array for frontend convenience
         $users->getCollection()->transform(function ($user) {
