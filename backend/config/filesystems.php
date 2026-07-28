@@ -66,7 +66,7 @@ return [
             'secret' => env('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
             'region' => 'auto',
             'bucket' => env('CLOUDFLARE_R2_BUCKET'),
-            'url' => env('CLOUDFLARE_R2_URL'),
+            'url' => env('CLOUDFLARE_R2_URL') ? (str_starts_with(env('CLOUDFLARE_R2_URL'), 'http') ? env('CLOUDFLARE_R2_URL') : 'https://' . env('CLOUDFLARE_R2_URL')) : null,
             'endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
             'use_path_style_endpoint' => true,
             'throw' => true,
