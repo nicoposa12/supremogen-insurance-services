@@ -248,6 +248,7 @@ class AttachmentController extends Controller
             'mime_type' => $file->getMimeType(),
             'document_type' => $request->input('document_type'),
             'uploaded_by' => $request->user()?->id,
+            'storage_disk' => $disk,
         ]);
 
         // Notify on claim_notification attachments
@@ -357,6 +358,15 @@ class AttachmentController extends Controller
         ], 201); // 201 Created
     }
 
+    /**
+     * Resolve the storage disk for a given attachment.
+     * Uses the recorded storage_disk if available, otherwise falls back to the current default.
+     */
+    private function resolveAttachmentDisk(Attachment $attachment): string
+    {
+        return $attachment->storage_disk ?: config('filesystems.default');
+    }
+
     public function download(string $id)
     {
         $attachment = Attachment::find($id);
@@ -365,9 +375,15 @@ class AttachmentController extends Controller
             abort(404, 'Attachment not found.');
         }
 
-        $disk = config('filesystems.default');
+        $disk = $this->resolveAttachmentDisk($attachment);
 
         if (!Storage::disk($disk)->exists($attachment->file_path)) {
+            // Old files uploaded on ephemeral local storage before cloud storage was configured
+            if ($disk === 'local' || $disk === 'public') {
+                return response()->json([
+                    'message' => 'This file was uploaded before cloud storage was configured and is no longer available. Please re-upload the document.',
+                ], 410); // 410 Gone
+            }
             abort(404, 'File not found on storage.');
         }
 
@@ -385,9 +401,14 @@ class AttachmentController extends Controller
             abort(404, 'Attachment not found.');
         }
 
-        $disk = config('filesystems.default');
+        $disk = $this->resolveAttachmentDisk($attachment);
 
         if (!Storage::disk($disk)->exists($attachment->file_path)) {
+            if ($disk === 'local' || $disk === 'public') {
+                return response()->json([
+                    'message' => 'This file was uploaded before cloud storage was configured and is no longer available. Please re-upload the document.',
+                ], 410); // 410 Gone
+            }
             abort(404, 'File not found on storage.');
         }
 
@@ -425,8 +446,8 @@ class AttachmentController extends Controller
             }
         }
 
-        // Delete from physical storage
-        $disk = config('filesystems.default');
+        // Delete from physical storage using the disk it was originally stored on
+        $disk = $this->resolveAttachmentDisk($attachment);
         if (Storage::disk($disk)->exists($attachment->file_path)) {
             Storage::disk($disk)->delete($attachment->file_path);
         }

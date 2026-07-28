@@ -74,8 +74,12 @@ export default function QuotationsPage() {
       });
       const blobUrl = window.URL.createObjectURL(new Blob([data], { type: att.mime_type }));
       setPreviewUrl(blobUrl);
-    } catch (err) {
-      showToast('Failed to load document preview.', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 410) {
+        showToast('This file was uploaded before cloud storage was configured and is no longer available. Please re-upload the document.', 'error');
+      } else {
+        showToast('Failed to load document preview.', 'error');
+      }
       setPreviewAttachment(null);
     } finally {
       setIsPreviewLoading(false);

@@ -96,8 +96,12 @@ export default function ReviewCollectionPaymentPage() {
       });
       const blobUrl = URL.createObjectURL(data);
       setPreviewUrl(blobUrl);
-    } catch (err) {
-      showToast('Failed to load proof attachment.', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 410) {
+        showToast('This file was uploaded before cloud storage was configured and is no longer available. Please re-upload the document.', 'error');
+      } else {
+        showToast('Failed to load proof attachment.', 'error');
+      }
       setPreviewAttachment(null);
     } finally {
       setIsPreviewLoading(false);

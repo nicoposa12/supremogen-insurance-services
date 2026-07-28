@@ -20,6 +20,7 @@ class Attachment extends Model
         'mime_type',
         'document_type',
         'uploaded_by',
+        'storage_disk',
     ];
 
     /**
