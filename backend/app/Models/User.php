@@ -86,6 +86,10 @@ class User extends Authenticatable
             return null;
         }
 
+        if (str_starts_with($this->profile_photo_path, 'http://') || str_starts_with($this->profile_photo_path, 'https://')) {
+            return $this->profile_photo_path;
+        }
+
         $disk = config('filesystems.default');
         if ($disk === 'local') {
             $disk = 'public';
