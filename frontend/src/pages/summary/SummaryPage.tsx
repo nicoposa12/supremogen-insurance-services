@@ -114,6 +114,7 @@ export default function SummaryPage() {
     sort_by: 'created_at',
     sort_dir: 'desc',
     no_paginate: true,
+    include_cancelled: true,
     start_date,
     end_date,
   }), [start_date, end_date]);
@@ -346,7 +347,12 @@ export default function SummaryPage() {
       }
 
       if (matchedAgent) {
-        const isCancelled = (row.policy_status || '').toUpperCase().trim() === 'CANCELLED';
+        const policyStatus = (row.policy_status || '').toUpperCase().trim();
+        const customerStatus = (row.status || '').toLowerCase().trim();
+        const hasCancelledQuotation = row.quotations && Array.isArray(row.quotations) && row.quotations.some((q: any) => (q.status || '').toLowerCase() === 'cancelled');
+
+        const isCancelled = policyStatus === 'CANCELLED' || customerStatus === 'cancelled' || hasCancelledQuotation;
+        
         stats[matchedAgent].bookings += 1;
         if (isCancelled) {
           stats[matchedAgent].cancelled += 1;

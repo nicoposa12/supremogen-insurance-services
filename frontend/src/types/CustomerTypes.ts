@@ -35,6 +35,7 @@ export interface Customer {
   documents?: CustomerDocument[];
   attachments?: Attachment[];
   created_by_user?: { id: number; name: string; email: string };
+  quotations?: any[];
 
   // Transaction fields
   record_no?: string;
@@ -222,6 +223,7 @@ export interface CustomerListParams {
   start_date?: string;
   end_date?: string;
   no_paginate?: boolean;
+  include_cancelled?: boolean;
 }
 
 export interface CustomerFormData {

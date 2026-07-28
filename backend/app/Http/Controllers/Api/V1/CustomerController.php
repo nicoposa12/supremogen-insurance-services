@@ -28,7 +28,14 @@ class CustomerController extends Controller
         }
         $sortDir = strtolower($sortDir) === 'asc' ? 'asc' : 'desc';
 
-        $query = Customer::with(['createdBy.roles'])->approved();
+        if ($request->boolean('include_cancelled')) {
+            $query = Customer::with(['createdBy.roles', 'quotations'])
+                ->whereHas('quotations', function ($q) {
+                    $q->whereIn('status', ['approved', 'cancelled', 'cancellation_requested']);
+                });
+        } else {
+            $query = Customer::with(['createdBy.roles'])->approved();
+        }
 
         if ($request->user()->isSalesOrRenewal()) {
             $query->where('created_by', $request->user()->id);
