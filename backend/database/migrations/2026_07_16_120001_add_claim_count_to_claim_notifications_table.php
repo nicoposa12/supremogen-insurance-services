@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('claim_notifications', function (Blueprint $table) {
-            $table->string('claim_count')->nullable()->after('notes');
+            if (!Schema::hasColumn('claim_notifications', 'claim_count')) {
+                $table->string('claim_count')->nullable()->after('notes');
+            }
         });
     }
 
