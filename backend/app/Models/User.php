@@ -99,6 +99,7 @@ class User extends Authenticatable
             return '/storage/' . $this->profile_photo_path;
         }
 
-        return \Illuminate\Support\Facades\Storage::disk($disk)->url($this->profile_photo_path);
+        // For cloud storage (R2, S3), serve through backend proxy
+        return '/api/v1/storage/' . $this->profile_photo_path;
     }
 }

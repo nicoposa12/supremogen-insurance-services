@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\AttachmentController;
 use App\Http\Controllers\Api\V1\ClaimNotificationController;
+use App\Http\Controllers\Api\V1\StorageController;
 
 Route::prefix('v1')->group(function () {
     // Public routes
@@ -26,6 +27,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    // Storage proxy for cloud-stored files (profile photos, etc.)
+    Route::get('/storage/{path}', [StorageController::class, 'serve'])->where('path', '.*');
     // Stream notifications (authenticated via query param token or bearer token)
     Route::get('/notifications/stream', [NotificationController::class, 'stream'])
         ->middleware(['auth:sanctum']);
