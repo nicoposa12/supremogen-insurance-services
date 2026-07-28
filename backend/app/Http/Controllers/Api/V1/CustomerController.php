@@ -309,7 +309,11 @@ class CustomerController extends Controller
         }
 
         // Remove file from storage
-        Storage::disk('public')->delete($document->file_path);
+        $disk = config('filesystems.default');
+        if ($disk === 'local') {
+            $disk = 'public';
+        }
+        Storage::disk($disk)->delete($document->file_path);
 
         $document->delete();
 
