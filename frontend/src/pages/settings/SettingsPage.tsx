@@ -398,6 +398,8 @@ export default function SettingsPage() {
 
   const roleLabels: Record<string, string> = {
     'Administrator': 'Administrator / Full Access',
+    'General Manager': 'General Manager (Full Access / View Only)',
+    'Operational Manager': 'Operational Manager (Full Access / View Only)',
     'Sales Agent': 'Sales Agent (Sales / Customer Records)',
     'Underwriter': 'Underwriter (Quotations / Policies)',
     'Accounting Officer': 'Accounting Officer (Billing / Payments)',
@@ -822,6 +824,8 @@ export default function SettingsPage() {
                             <td className="px-4 py-3 bg-white">
                               <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
                                 u.role_name === 'Administrator' ? 'bg-red-50 text-red-700' :
+                                u.role_name === 'General Manager' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                                u.role_name === 'Operational Manager' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' :
                                 u.role_name === 'Underwriter' ? 'bg-blue-50 text-blue-700' :
                                 u.role_name === 'Accounting Officer' ? 'bg-emerald-50 text-emerald-700' :
                                 u.role_name === 'Claims Officer' ? 'bg-purple-50 text-purple-700' :

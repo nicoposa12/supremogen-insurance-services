@@ -57,8 +57,8 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { user, roles } = useAuth();
   const isClaimsOfficer = roles.includes('Claims Officer');
-  const isAccountingOnly = roles.includes('Accounting Officer') && !roles.includes('Administrator') && !roles.includes('Owner');
-  const showRevenue = roles.includes('Administrator') || roles.includes('Accounting Officer');
+  const isAccountingOnly = roles.includes('Accounting Officer') && !roles.includes('Administrator') && !roles.includes('Owner') && !roles.includes('General Manager') && !roles.includes('Operational Manager');
+  const showRevenue = roles.includes('Administrator') || roles.includes('Accounting Officer') || roles.includes('General Manager') || roles.includes('Operational Manager');
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['dashboard', user?.id],

@@ -291,8 +291,8 @@ function SidebarDivider({ label, collapsed }: { label: string; collapsed: boolea
 function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const { roles } = useAuth();
 
-  // Administrators and Owners can see all nav items — never filter them out
-  const isAdminUser = roles.includes('Administrator') || roles.includes('Owner');
+  // Administrators, Owners, General Managers, and Operational Managers can see all nav items — never filter them out
+  const isAdminUser = roles.includes('Administrator') || roles.includes('Owner') || roles.includes('General Manager') || roles.includes('Operational Manager');
   if (isAdminUser) {
     // Render all items without restriction
     return (
@@ -586,7 +586,7 @@ export default function DashboardLayout() {
     navigate('/agentportal');
   };
 
-  const isAdmin = roles.includes('Administrator') || roles.includes('Owner');
+  const isAdmin = roles.includes('Administrator') || roles.includes('Owner') || roles.includes('General Manager') || roles.includes('Operational Manager');
 
   // Get current page title from navigation
   const titleLookup = isAdmin ? allAdminNavItems : navItems;
@@ -729,9 +729,13 @@ export default function DashboardLayout() {
                   <span>
                     {roles?.includes('Administrator')
                       ? 'Administrator'
-                      : (roles?.includes('Accounting Officer')
-                        ? 'Accounting Officer'
-                        : (roles?.[0] ?? 'Staff'))}
+                      : (roles?.includes('General Manager')
+                        ? 'General Manager'
+                        : (roles?.includes('Operational Manager')
+                          ? 'Operational Manager'
+                          : (roles?.includes('Accounting Officer')
+                            ? 'Accounting Officer'
+                            : (roles?.[0] ?? 'Staff'))))}
                   </span>
                 </div>
 
@@ -951,9 +955,13 @@ export default function DashboardLayout() {
                     <p className="text-[11px] text-slate-400">
                       {roles?.includes('Administrator')
                         ? 'Administrator'
-                        : (roles?.includes('Accounting Officer')
-                          ? 'Accounting Officer'
-                          : (roles?.[0] ?? 'Staff'))}
+                        : (roles?.includes('General Manager')
+                          ? 'General Manager'
+                          : (roles?.includes('Operational Manager')
+                            ? 'Operational Manager'
+                            : (roles?.includes('Accounting Officer')
+                              ? 'Accounting Officer'
+                              : (roles?.[0] ?? 'Staff'))))}
                     </p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-slate-400 hidden sm:block" />

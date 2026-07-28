@@ -201,6 +201,28 @@ class RoleAndPermissionSeeder extends Seeder
             'reports.view',
         ]);
 
+        $viewPermissions = [
+            'dashboard.view',
+            'customers.view',
+            'quotations.view',
+            'policies.view',
+            'claims.view',
+            'invoices.view',
+            'payments.view',
+            'renewals.view',
+            'reports.view',
+            'users.view',
+            'settings.view',
+        ];
+
+        // 9. General Manager - Full View Access
+        $gmRole = Role::findOrCreate('General Manager');
+        $gmRole->givePermissionTo($viewPermissions);
+
+        // 10. Operational Manager - Full View Access
+        $omRole = Role::findOrCreate('Operational Manager');
+        $omRole->givePermissionTo($viewPermissions);
+
         // Create the default administrator account only.
         // All other user accounts should be created through the application's Settings panel.
         $defaultUsers = [
