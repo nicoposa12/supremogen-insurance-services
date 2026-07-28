@@ -585,19 +585,9 @@ export default function SummaryCommissionPage() {
         }
         if (row.paymentStatus === 'FULLY PAID') {
           return (
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
-                FULLY PAID
-              </span>
-              <button
-                type="button"
-                onClick={() => setFreebieModalTarget(row)}
-                title="Upload/View Freebie Delivery Proof"
-                className="whitespace-nowrap px-2.5 py-1 bg-amber-50/80 hover:bg-amber-100/80 text-amber-800 border border-amber-200/80 rounded-xl text-[10px] font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-2xs"
-              >
-                <Gift className="h-3 w-3 text-amber-600 shrink-0" /> Freebie Proof
-              </button>
-            </div>
+            <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+              FULLY PAID
+            </span>
           );
         }
         return (
@@ -638,7 +628,7 @@ export default function SummaryCommissionPage() {
       label: 'REQUEST',
       className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="text-slate-600 text-[10px] font-mono">{row.dateRequest}</span>
+        <span className="text-slate-600 text-[9.5px] font-mono">{row.dateRequest}</span>
       ),
     },
     {
@@ -646,15 +636,15 @@ export default function SummaryCommissionPage() {
       label: 'MONTH',
       className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="text-slate-700 text-[10px] font-semibold">{row.monthName}</span>
+        <span className="text-slate-700 text-[9.5px] font-semibold">{row.monthName}</span>
       ),
     },
     {
       key: 'subAgentName',
-      label: "AGENT'S NAME",
-      className: 'whitespace-nowrap',
+      label: 'AGENT',
+      className: 'whitespace-nowrap max-w-[90px] truncate',
       render: (row: any) => (
-        <span className="font-bold text-slate-800 uppercase text-[10px]">
+        <span className="font-bold text-slate-800 uppercase text-[9.5px] truncate block" title={row.subAgentName}>
           {row.subAgentName}
         </span>
       ),
@@ -662,39 +652,39 @@ export default function SummaryCommissionPage() {
     {
       key: 'assuredName',
       label: 'ASSURED NAME',
-      className: 'max-w-[120px] truncate',
+      className: 'max-w-[110px] truncate',
       render: (row: any) => (
-        <span className="font-bold text-slate-900 text-[10px] uppercase truncate block" title={row.assuredName}>
+        <span className="font-bold text-slate-900 text-[9.5px] uppercase truncate block" title={row.assuredName}>
           {row.assuredName}
         </span>
       ),
     },
     {
       key: 'plateNumber',
-      label: 'PLATE NUMBER',
+      label: 'PLATE NO.',
       className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-mono text-[10px] font-semibold text-slate-700">
+        <span className="font-mono text-[9.5px] font-semibold text-slate-700">
           {row.plateNumber}
         </span>
       ),
     },
     {
       key: 'subAgentMarkup',
-      label: 'MARK UP OR REFERRAL',
+      label: 'MARK UP',
       className: 'whitespace-nowrap bg-amber-50/50',
       render: (row: any) => (
-        <span className="font-mono text-[10px] font-extrabold text-amber-900">
+        <span className="font-mono text-[9.5px] font-extrabold text-amber-900">
           ₱{formatAmount(row.subAgentMarkup)}
         </span>
       ),
     },
     {
       key: 'totalPremium',
-      label: 'TOTAL PREMIUM',
+      label: 'PREMIUM',
       className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-mono text-[10px] font-bold text-emerald-700">
+        <span className="font-mono text-[9.5px] font-bold text-emerald-700">
           ₱{formatAmount(row.totalPremium)}
         </span>
       ),
@@ -704,7 +694,7 @@ export default function SummaryCommissionPage() {
       label: 'TERMS',
       className: 'text-center whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-mono text-[10px] font-bold text-slate-700">
+        <span className="font-mono text-[9.5px] font-bold text-slate-700">
           {row.terms}
         </span>
       ),
@@ -714,7 +704,7 @@ export default function SummaryCommissionPage() {
       label: 'TRANSAC',
       className: 'whitespace-nowrap',
       render: (row: any) => (
-        <span className="font-bold text-[10px] text-slate-800 uppercase px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">
+        <span className="font-bold text-[9px] text-slate-800 uppercase px-1 py-0.5 rounded bg-slate-100 border border-slate-200">
           {row.transac}
         </span>
       ),
@@ -722,34 +712,34 @@ export default function SummaryCommissionPage() {
     {
       key: 'releasedTo',
       label: 'RELEASED TO',
-      className: 'max-w-[100px] truncate',
+      className: 'max-w-[90px] truncate',
       render: (row: any) => (
-        <span className="text-slate-800 text-[10px] font-semibold uppercase truncate block" title={row.releasedTo}>
+        <span className="text-slate-800 text-[9.5px] font-semibold uppercase truncate block" title={row.releasedTo}>
           {row.releasedTo}
         </span>
       ),
     },
     {
       key: 'accountNumber',
-      label: 'ACCOUNT NUMBER',
-      className: 'whitespace-nowrap font-mono',
+      label: 'ACCOUNT NO.',
+      className: 'whitespace-nowrap font-mono max-w-[85px] truncate',
       render: (row: any) => (
-        <span className="text-slate-600 text-[10px]">{row.accountNumber}</span>
+        <span className="text-slate-600 text-[9.5px] truncate block" title={row.accountNumber}>{row.accountNumber}</span>
       ),
     },
     {
       key: 'rel1',
-      label: 'RELEASE 1 (DATE & AMT)',
+      label: 'REL 1',
       className: 'whitespace-nowrap text-center',
       render: (row: any) => (
         <div className="flex flex-col items-center leading-tight">
           {row.relDate1 ? (
-            <span className="text-[9px] text-slate-500 font-mono">{new Date(row.relDate1).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.relDate1).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           ) : (
-            <span className="text-[9px] text-slate-350">—</span>
+            <span className="text-[8.5px] text-slate-350">—</span>
           )}
           <div className="flex items-center gap-1 mt-0.5">
-            <span className={`font-mono text-[10px] font-bold ${row.amt1 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+            <span className={`font-mono text-[9.5px] font-bold ${row.amt1 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
               {row.amt1 > 0 ? `₱${formatAmount(row.amt1)}` : '—'}
             </span>
             {row.proofAtt1 && (
@@ -768,17 +758,17 @@ export default function SummaryCommissionPage() {
     },
     {
       key: 'rel2',
-      label: 'RELEASE 2 (DATE & AMT)',
+      label: 'REL 2',
       className: 'whitespace-nowrap text-center',
       render: (row: any) => (
         <div className="flex flex-col items-center leading-tight">
           {row.relDate2 ? (
-            <span className="text-[9px] text-slate-500 font-mono">{new Date(row.relDate2).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.relDate2).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           ) : (
-            <span className="text-[9px] text-slate-350">—</span>
+            <span className="text-[8.5px] text-slate-350">—</span>
           )}
           <div className="flex items-center gap-1 mt-0.5">
-            <span className={`font-mono text-[10px] font-bold ${row.amt2 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+            <span className={`font-mono text-[9.5px] font-bold ${row.amt2 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
               {row.amt2 > 0 ? `₱${formatAmount(row.amt2)}` : '—'}
             </span>
             {row.proofAtt2 && (
@@ -797,17 +787,17 @@ export default function SummaryCommissionPage() {
     },
     {
       key: 'rel3',
-      label: 'RELEASE 3 (DATE & AMT)',
+      label: 'REL 3',
       className: 'whitespace-nowrap text-center',
       render: (row: any) => (
         <div className="flex flex-col items-center leading-tight">
           {row.relDate3 ? (
-            <span className="text-[9px] text-slate-500 font-mono">{new Date(row.relDate3).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.relDate3).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           ) : (
-            <span className="text-[9px] text-slate-350">—</span>
+            <span className="text-[8.5px] text-slate-350">—</span>
           )}
           <div className="flex items-center gap-1 mt-0.5">
-            <span className={`font-mono text-[10px] font-bold ${row.amt3 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+            <span className={`font-mono text-[9.5px] font-bold ${row.amt3 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
               {row.amt3 > 0 ? `₱${formatAmount(row.amt3)}` : '—'}
             </span>
             {row.proofAtt3 && (
@@ -826,17 +816,17 @@ export default function SummaryCommissionPage() {
     },
     {
       key: 'rel4',
-      label: 'RELEASE 4 (DATE & AMT)',
+      label: 'REL 4',
       className: 'whitespace-nowrap text-center',
       render: (row: any) => (
         <div className="flex flex-col items-center leading-tight">
           {row.relDate4 ? (
-            <span className="text-[9px] text-slate-500 font-mono">{new Date(row.relDate4).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.relDate4).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           ) : (
-            <span className="text-[9px] text-slate-350">—</span>
+            <span className="text-[8.5px] text-slate-350">—</span>
           )}
           <div className="flex items-center gap-1 mt-0.5">
-            <span className={`font-mono text-[10px] font-bold ${row.amt4 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+            <span className={`font-mono text-[9.5px] font-bold ${row.amt4 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
               {row.amt4 > 0 ? `₱${formatAmount(row.amt4)}` : '—'}
             </span>
             {row.proofAtt4 && (
@@ -858,7 +848,7 @@ export default function SummaryCommissionPage() {
       label: 'REMAINING',
       className: 'whitespace-nowrap font-mono',
       render: (row: any) => (
-        <span className={`text-[10px] font-black ${row.remaining > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
+        <span className={`text-[9.5px] font-black ${row.remaining > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
           {row.remaining > 0 ? `₱${formatAmount(row.remaining)}` : '—'}
         </span>
       ),
@@ -873,10 +863,10 @@ export default function SummaryCommissionPage() {
               <button
                 type="button"
                 onClick={() => setEditingSubagentRecord(row)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-bold shadow-2xs transition cursor-pointer"
-                title="Edit Sub-Agent Release Details & Upload Proofs"
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[9px] font-bold transition cursor-pointer"
+                title="Edit Release"
               >
-                <Edit2 className="h-3 w-3 text-amber-700" /> Edit Release
+                <Edit2 className="h-2.5 w-2.5 text-amber-700" /> Edit
               </button>
             ),
           },
@@ -889,9 +879,9 @@ export default function SummaryCommissionPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Sleek Header Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 no-print">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
             Summary Commission
@@ -904,28 +894,29 @@ export default function SummaryCommissionPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-2xs transition cursor-pointer"
           >
             <Printer className="h-3.5 w-3.5 text-slate-500" /> Print Statement
           </button>
         </div>
       </div>
 
-      {/* Primary Tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2 no-print">
+      {/* Sleek Segmented Tab Control */}
+      <div className="inline-flex items-center p-1 bg-slate-200/60 border border-slate-200/90 rounded-2xl no-print shadow-2xs">
         <button
           type="button"
           onClick={() => {
             setActiveTab('main');
             setCurrentPage(1);
           }}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all duration-200 cursor-pointer ${
             activeTab === 'main'
-              ? 'bg-[#4A0E17] text-white shadow-md'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              ? 'bg-white text-[#4A0E17] shadow-sm border border-slate-200/60 ring-1 ring-black/5'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'
           }`}
         >
-          <Briefcase className="h-4 w-4" /> Main Agent Commission
+          <Briefcase className={`h-4 w-4 ${activeTab === 'main' ? 'text-[#4A0E17]' : 'text-slate-400'}`} />
+          Main Agent Commission
         </button>
 
         <button
@@ -934,97 +925,98 @@ export default function SummaryCommissionPage() {
             setActiveTab('subagent');
             setCurrentPage(1);
           }}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all duration-200 cursor-pointer ${
             activeTab === 'subagent'
-              ? 'bg-amber-600 text-white shadow-md'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              ? 'bg-white text-[#4A0E17] shadow-sm border border-slate-200/60 ring-1 ring-black/5'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'
           }`}
         >
-          <Users className="h-4 w-4" /> Sub-Agent & Referral Commission
+          <Users className={`h-4 w-4 ${activeTab === 'subagent' ? 'text-[#4A0E17]' : 'text-slate-400'}`} />
+          Sub-Agent & Referral Commission
         </button>
       </div>
 
       {/* Clean KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 no-print">
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 no-print">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Premium</p>
-            <p className="text-lg font-black text-slate-900 font-mono mt-0.5">₱{formatAmount(totalPremiumSum)}</p>
+            <p className="text-base font-black text-slate-900 font-mono mt-0.5">₱{formatAmount(totalPremiumSum)}</p>
           </div>
-          <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-700">
-            <DollarSign className="h-5 w-5" />
+          <div className="p-2 bg-emerald-50 rounded-xl text-emerald-700">
+            <DollarSign className="h-4 w-4" />
           </div>
         </div>
 
         {activeTab === 'main' ? (
           <>
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Agent Comm</p>
-                <p className="text-lg font-black text-[#4A0E17] font-mono mt-0.5">
+                <p className="text-base font-black text-[#4A0E17] font-mono mt-0.5">
                   {totalCommSum > 0 ? `₱${formatAmount(totalCommSum)}` : '₱0.00'}
                 </p>
               </div>
-              <div className="p-2.5 bg-[#4A0E17]/10 rounded-xl text-[#4A0E17]">
-                <TrendingUp className="h-5 w-5" />
+              <div className="p-2 bg-[#4A0E17]/10 rounded-xl text-[#4A0E17]">
+                <TrendingUp className="h-4 w-4" />
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Incentive</p>
-                <p className="text-lg font-black text-amber-700 font-mono mt-0.5">
+                <p className="text-base font-black text-amber-700 font-mono mt-0.5">
                   {filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.incentive), 0) > 0
                     ? `₱${formatAmount(filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.incentive), 0))}`
                     : '₱0.00'}
                 </p>
               </div>
-              <div className="p-2.5 bg-amber-50 rounded-xl text-amber-700">
-                <UserCheck className="h-5 w-5" />
+              <div className="p-2 bg-amber-50 rounded-xl text-amber-700">
+                <UserCheck className="h-4 w-4" />
               </div>
             </div>
           </>
         ) : (
           <>
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Sub-Agent Markup</p>
-                <p className="text-lg font-black text-amber-900 font-mono mt-0.5">
+                <p className="text-base font-black text-amber-900 font-mono mt-0.5">
                   {totalSubAgentMarkupSum > 0 ? `₱${formatAmount(totalSubAgentMarkupSum)}` : '₱0.00'}
                 </p>
               </div>
-              <div className="p-2.5 bg-amber-50 rounded-xl text-amber-800">
-                <TrendingUp className="h-5 w-5" />
+              <div className="p-2 bg-amber-50 rounded-xl text-amber-800">
+                <TrendingUp className="h-4 w-4" />
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Released</p>
-                <p className="text-lg font-black text-emerald-800 font-mono mt-0.5">
+                <p className="text-base font-black text-emerald-800 font-mono mt-0.5">
                   {totalSubAgentReleasedSum > 0 ? `₱${formatAmount(totalSubAgentReleasedSum)}` : '₱0.00'}
                 </p>
               </div>
-              <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-700">
-                <CheckCircle2 className="h-5 w-5" />
+              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-700">
+                <CheckCircle2 className="h-4 w-4" />
               </div>
             </div>
           </>
         )}
 
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Accounts</p>
-            <p className="text-lg font-black text-slate-800 font-mono mt-0.5">{filteredRows.filter((r) => !r.isCancelled).length}</p>
+            <p className="text-base font-black text-slate-800 font-mono mt-0.5">{filteredRows.filter((r) => !r.isCancelled).length}</p>
           </div>
-          <div className="p-2.5 bg-slate-100 rounded-xl text-slate-600">
-            <Layers className="h-5 w-5" />
+          <div className="p-2 bg-slate-100 rounded-xl text-slate-600">
+            <Layers className="h-4 w-4" />
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-3 no-print">
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-2.5 no-print">
         <div className="flex flex-col md:flex-row items-center gap-2">
           {/* Search Input */}
           <div className="relative flex-grow w-full md:w-auto">
@@ -1097,7 +1089,7 @@ export default function SummaryCommissionPage() {
 
       {/* Main Spreadsheet Card Container */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        <div className="px-4 py-3 bg-[#4A0E17]/5 border-b border-[#4A0E17]/10 flex items-center justify-between no-print">
+        <div className="px-3.5 py-2.5 bg-[#4A0E17]/5 border-b border-[#4A0E17]/10 flex items-center justify-between no-print">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4 text-[#4A0E17]" />
             <span className="font-extrabold text-xs text-[#4A0E17] uppercase tracking-wider">
@@ -1109,15 +1101,17 @@ export default function SummaryCommissionPage() {
           </span>
         </div>
 
-        <DataTable
-          dense
-          columns={activeTab === 'main' ? mainColumns : subAgentColumns}
-          data={paginatedRows}
-          loading={isLoading}
-        />
+        <div className="overflow-x-auto w-full">
+          <DataTable
+            dense
+            columns={activeTab === 'main' ? mainColumns : subAgentColumns}
+            data={paginatedRows}
+            loading={isLoading}
+          />
+        </div>
 
         {totalFilteredCount > 0 && (
-          <div className="p-3 border-t border-slate-100 no-print">
+          <div className="p-2.5 border-t border-slate-100 no-print">
             <Pagination
               currentPage={currentPage}
               lastPage={lastPage}

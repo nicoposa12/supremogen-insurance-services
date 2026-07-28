@@ -428,22 +428,8 @@ export default function ReviewCollectionPaymentPage() {
         }
 
         if (isVerified) {
-          const inv = p.invoice as any;
-          const isInvoicePaid = Boolean(
-            inv && (inv.status === 'paid' || inv.status === 'overpaid' || (inv.balance !== undefined && Number(inv.balance) <= 0 && Number(inv.total_amount || 0) > 0))
-          );
-
           return (
             <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-              {isInvoicePaid && (
-                <button
-                  onClick={() => setFreebieModalTarget(p)}
-                  className="whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50/80 hover:bg-amber-100/80 text-amber-800 font-bold text-xs rounded-xl border border-amber-200/80 transition cursor-pointer shadow-2xs"
-                  title="Upload or view freebie delivery attachment"
-                >
-                  <Gift className="h-3.5 w-3.5 text-amber-600 shrink-0" /> Freebie Proof
-                </button>
-              )}
               <button
                 onClick={() => openVerifyModal(p, 'verified')}
                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#4A0E17]/10 hover:bg-[#4A0E17]/20 text-[#4A0E17] font-bold text-xs rounded-xl border border-[#4A0E17]/20 transition cursor-pointer shadow-2xs"
