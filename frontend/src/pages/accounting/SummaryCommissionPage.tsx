@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import axios from 'axios';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   FileSpreadsheet,
@@ -112,23 +113,55 @@ export default function SummaryCommissionPage() {
 
   const rawInvoices = invoicesRes?.data?.data || [];
 
-  // Extract unique agents from raw invoices
+  // Fetch all registered Sales Agents and Team Renewals from database API
+  const { data: dbAgentsRes } = useQuery({
+    queryKey: ['registered-agents-list'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/agents');
+      return res.data;
+    },
+  });
+
+  const dbAgents: Array<{ id: number; name: string; role_name: string }> = useMemo(
+    () => dbAgentsRes?.data || [],
+    [dbAgentsRes]
+  );
+
+  // Extract unique agents combining DB agents and invoice records
   const availableAgents = useMemo(() => {
-    const agents = new Set<string>();
+    const agentsMap = new Map<string, { name: string; role: string }>();
+
+    // Registered DB agents (Sales Agent / Team Renewal)
+    dbAgents.forEach((ag) => {
+      const clean = ag.name.trim();
+      agentsMap.set(clean.toLowerCase(), {
+        name: clean,
+        role: ag.role_name || 'Agent',
+      });
+    });
+
+    // Invoice agents
     rawInvoices.forEach((inv) => {
       const cust = inv.customer;
       const policy = (inv as any).policy;
       const quotation = policy?.quotation;
       const agentName =
         cust?.agent ||
+        (typeof (cust as any)?.created_by === 'object' ? (cust as any)?.created_by?.name : null) ||
         (typeof inv.created_by === 'object' ? inv.created_by?.name : null) ||
         (typeof quotation?.prepared_by === 'object' ? quotation.prepared_by?.name : null) ||
-        (typeof quotation?.reviewed_by === 'object' ? quotation.reviewed_by?.name : null) ||
         (typeof policy?.issued_by === 'object' ? policy.issued_by?.name : null);
-      if (agentName && agentName.trim()) agents.add(agentName.trim());
+
+      if (agentName && agentName.trim()) {
+        const clean = agentName.trim();
+        if (!agentsMap.has(clean.toLowerCase())) {
+          agentsMap.set(clean.toLowerCase(), { name: clean, role: 'Agent' });
+        }
+      }
     });
-    return Array.from(agents).sort();
-  }, [rawInvoices]);
+
+    return Array.from(agentsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [dbAgents, rawInvoices]);
 
   // Compute main commission rows dynamically
   const commissionRows = useMemo(() => {
@@ -140,6 +173,7 @@ export default function SummaryCommissionPage() {
 
       const agentName =
         cust?.agent ||
+        (typeof (cust as any)?.created_by === 'object' ? (cust as any)?.created_by?.name : null) ||
         (typeof inv.created_by === 'object' ? inv.created_by?.name : null) ||
         (typeof quotation?.prepared_by === 'object' ? quotation.prepared_by?.name : null) ||
         (typeof quotation?.reviewed_by === 'object' ? quotation.reviewed_by?.name : null) ||
@@ -1063,8 +1097,8 @@ export default function SummaryCommissionPage() {
             >
               <option value="all">All Agents</option>
               {availableAgents.map((ag) => (
-                <option key={ag} value={ag}>
-                  {ag}
+                <option key={ag.name} value={ag.name}>
+                  {ag.name} ({ag.role})
                 </option>
               ))}
             </select>

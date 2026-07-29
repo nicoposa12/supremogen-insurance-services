@@ -111,6 +111,8 @@ class InvoiceController extends Controller
 
         $invoices = Invoice::with([
                 'customer',
+                'customer.createdBy:id,name',
+                'customer.createdBy.roles',
                 'policy',
                 'policy.quotation.items.insuranceProduct',
                 'policy.quotation.preparedBy:id,name',

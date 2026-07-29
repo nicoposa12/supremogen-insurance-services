@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -87,7 +88,17 @@ export default function CustomerFormPage() {
     enabled: isEdit,
   });
 
-  // Set default request type based on user role when creating
+  // Fetch registered agents from /api/v1/agents
+  const { data: agentsRes } = useQuery({
+    queryKey: ['registered-agents-list'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/agents');
+      return res.data;
+    },
+  });
+  const dbAgents: Array<{ id: number; name: string; role_name: string }> = agentsRes?.data || [];
+
+  // Set default request type and agent based on user role when creating
   useEffect(() => {
     if (!isEdit && roles) {
       if (roles.includes('Sales Agent')) {
@@ -95,8 +106,11 @@ export default function CustomerFormPage() {
       } else if (roles.includes('Team Renewal')) {
         setValue('request_type', 'RENEWAL CLIENT');
       }
+      if (user?.name) {
+        setValue('agent', user.name);
+      }
     }
-  }, [isEdit, roles, setValue]);
+  }, [isEdit, roles, user, setValue]);
 
   // Populate form when editing
   useEffect(() => {
@@ -346,6 +360,21 @@ export default function CustomerFormPage() {
                 <option value="RENEWAL CLIENT">RENEWAL CLIENT</option>
               </select>
               {errors.request_type && <p className="text-xs text-red-500 mt-1">{errors.request_type.message}</p>}
+            </div>
+            <div>
+              <label className={labelClass}>Agent *</label>
+              <select 
+                {...register('agent', { required: 'Agent selection is required' })} 
+                className={inputClass(errors.agent)}
+              >
+                <option value="">Select Agent</option>
+                {dbAgents.map((ag) => (
+                  <option key={ag.id} value={ag.name}>
+                    {ag.name} ({ag.role_name})
+                  </option>
+                ))}
+              </select>
+              {errors.agent && <p className="text-xs text-red-500 mt-1">{errors.agent.message}</p>}
             </div>
             <div>
               <label className={labelClass}>Activity *</label>

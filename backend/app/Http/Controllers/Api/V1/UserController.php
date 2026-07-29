@@ -242,7 +242,7 @@ class UserController extends Controller
      */
     public function agents()
     {
-        $agents = User::role(['Sales Agent', 'Team Renewal'])->with('roles')->get();
+        $agents = User::role(['Sales Agent', 'Team Renewal'])->with('roles')->orderBy('name', 'asc')->get();
         $agents->transform(function ($user) {
             $user->role_name = $user->getRoleNames()->first() ?? 'None';
             return $user;
