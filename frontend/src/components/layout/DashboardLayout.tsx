@@ -88,7 +88,7 @@ const adminNavGroups: NavGroup[] = [
     accent: '#3b82f6', // blue
     children: [
       { label: 'Policy Issuance Request', path: '/dashboard/quotations?role=Sales Agent', icon: FileText },
-      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications?role=Sales Agent', icon: AlertTriangle },
     ],
   },
   {
@@ -97,13 +97,6 @@ const adminNavGroups: NavGroup[] = [
     accent: '#8b5cf6', // violet
     children: [
       { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
-      { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
-      { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
-      { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileText },
-      { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CheckCircle2 },
-      { label: 'Summary Commission', path: '/dashboard/summary-commission', icon: BarChart3 },
-      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
-      { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
     ],
   },
   {
@@ -112,7 +105,7 @@ const adminNavGroups: NavGroup[] = [
     accent: '#10b981', // emerald
     children: [
       { label: 'Policy Issuance Request', path: '/dashboard/quotations?role=Team Renewal', icon: FileText },
-      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications?role=Team Renewal', icon: AlertTriangle },
     ],
   },
   {
@@ -120,13 +113,9 @@ const adminNavGroups: NavGroup[] = [
     icon: DollarSign,
     accent: '#f59e0b', // amber
     children: [
-      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileSpreadsheet },
       { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CreditCard },
       { label: 'Summary Commission', path: '/dashboard/summary-commission', icon: FileSpreadsheet },
-      { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
-      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
-      { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
     ],
   },
   {
@@ -145,7 +134,6 @@ const adminNavGroups: NavGroup[] = [
     children: [
       { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
       { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
-      { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
     ],
   },
 ];
@@ -175,7 +163,10 @@ function SidebarSubItem({ item, collapsed }: { item: NavItem; collapsed: boolean
   const currentParams = new URLSearchParams(location.search);
 
   // If item path specifies a role parameter, it must match the current URL parameter
-  const roleMatch = !itemParams.has('role') || itemParams.get('role') === currentParams.get('role');
+  const itemRole = itemParams.get('role');
+  const currentRole = currentParams.get('role');
+  const roleMatch = itemRole ? itemRole === currentRole : !currentRole;
+
   const isActive = (cleanPath === '/dashboard'
     ? location.pathname === '/dashboard'
     : (cleanPath === '/dashboard/collection'
@@ -235,7 +226,8 @@ function SidebarNavGroup({
   const hasActiveChild = group.children.some((child) => {
     const cleanPath = child.path.split('?')[0];
     const childParams = new URLSearchParams(child.path.split('?')[1] || '');
-    const roleMatch = !childParams.has('role') || childParams.get('role') === currentParams.get('role');
+    const childRole = childParams.get('role');
+    const roleMatch = childRole ? childRole === currentParams.get('role') : !currentParams.get('role');
     
     return location.pathname.startsWith(cleanPath) && roleMatch;
   });

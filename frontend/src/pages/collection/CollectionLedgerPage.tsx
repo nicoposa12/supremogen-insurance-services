@@ -50,7 +50,7 @@ export default function CollectionLedgerPage() {
   const [searchParams] = useSearchParams();
 
   const canManageCollection = roles.some((r: string) =>
-    ['Collection', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+    ['Collection', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
   const querySearch = searchParams.get('search') || '';
 

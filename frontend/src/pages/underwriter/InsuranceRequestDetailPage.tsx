@@ -24,7 +24,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   const { roles = [], permissions = [], token } = useAuth();
 
   const isUnderwriterOrAdmin = roles.some((r: string) =>
-    ['Underwriter', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+    ['Underwriter', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
 
   // Review state

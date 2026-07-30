@@ -38,15 +38,28 @@ class ClaimNotificationController extends Controller
             $query->whereDate('created_at', $request->input('created_date'));
         }
 
-        // Non-admin, non-claims-officer users see only their own submissions
+        if ($request->filled('role')) {
+            $roleFilter = $request->input('role');
+            $query->whereHas('submittedBy', function ($q) use ($roleFilter) {
+                $q->whereHas('roles', function ($rq) use ($roleFilter) {
+                    $rq->where('name', $roleFilter);
+                });
+            });
+        }
+
+        // Non-admin, non-claims-officer, non-auditing users see only their own submissions
         $user  = $request->user();
         $roles = $user->getRoleNames()->toArray();
 
-        $isAdmin         = in_array('Administrator', $roles) || in_array('Owner', $roles);
+        $isAdmin         = in_array('Administrator', $roles) || in_array('Owner', $roles) || in_array('Super Admin', $roles);
         $isClaimsOfficer = in_array('Claims Officer', $roles);
         $isAccounting    = in_array('Accounting Officer', $roles);
+        $isUnderwriter   = in_array('Underwriter', $roles);
+        $isManager       = in_array('General Manager', $roles) || in_array('Operational Manager', $roles);
 
-        if (!$isAdmin && !$isClaimsOfficer && !$isAccounting) {
+        $canViewAll = $isAdmin || $isClaimsOfficer || $isAccounting || $isUnderwriter || $isManager;
+
+        if (!$canViewAll) {
             $query->where('submitted_by', $user->id);
         }
 

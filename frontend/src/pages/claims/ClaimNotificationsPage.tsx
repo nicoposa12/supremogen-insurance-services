@@ -186,10 +186,10 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
   const { showToast } = useToast();
   const { roles, user, token } = useAuth();
   const isClaimsOfficer = roles.some((r: string) =>
-    ['Claims Officer', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+    ['Claims Officer', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
   const isAdmin = roles.some((r: string) =>
-    ['Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+    ['Administrator', 'Owner', 'Super Admin'].includes(r)
   );
   const canSubmit = roles.includes('Sales Agent') || roles.includes('Team Renewal') || isAdmin;
 
@@ -522,15 +522,17 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
   };
 
   // ─── Queries & Mutations ────────────────────
+  const roleParam = searchParams.get('role') || undefined;
   const effectiveStatus = completedOnly
     ? 'completed'
     : (params.status === 'all' ? undefined : params.status);
 
   const { data: response, isLoading } = useQuery({
-    queryKey: ['claim-notifications', params, completedOnly],
+    queryKey: ['claim-notifications', params, completedOnly, roleParam],
     queryFn: () => getClaimNotifications({
       ...params,
       status: effectiveStatus,
+      role: roleParam,
     }),
     placeholderData: (prev) => prev,
   });
