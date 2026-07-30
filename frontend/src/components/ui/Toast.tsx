@@ -75,6 +75,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, message, variant }]);
   }, []);
 
+  // Listen for global toast events dispatched from outside React (e.g. Axios interceptors)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { message, variant } = (e as CustomEvent).detail;
+      showToast(message, variant || 'error');
+    };
+    window.addEventListener('global-toast', handler);
+    return () => window.removeEventListener('global-toast', handler);
+  }, [showToast]);
+
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);

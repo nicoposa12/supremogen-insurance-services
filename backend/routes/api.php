@@ -23,10 +23,10 @@ use App\Http\Controllers\Api\V1\StorageController;
 
 Route::prefix('v1')->group(function () {
     // Public routes
-    Route::post('/inquiries', [InquiryController::class, 'store']);
-    Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/inquiries', [InquiryController::class, 'store'])->middleware('throttle:api');
+    Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:forgot-password');
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
     // Storage proxy for cloud-stored files (profile photos, etc.)
     Route::get('/storage/{path}', [StorageController::class, 'serve'])->where('path', '.*');
     // Stream notifications (authenticated via query param token or bearer token)
@@ -34,7 +34,7 @@ Route::prefix('v1')->group(function () {
         ->middleware(['auth:sanctum']);
 
     // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/profile', [AuthController::class, 'profile']);
         Route::put('/auth/profile', [AuthController::class, 'updateProfile']);

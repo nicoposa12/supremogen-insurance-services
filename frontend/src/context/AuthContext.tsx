@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  // Set up Axios interceptor for 401 Unauthorized responses
+  // Set up Axios interceptor for 401 Unauthorized and 429 Too Many Requests responses
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
@@ -85,6 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           delete axios.defaults.headers.common['Authorization'];
         }
+
+        // Rate limit exceeded — dispatch a global toast event
+        if (error.response && error.response.status === 429) {
+          const message = error.response.data?.message || 'Too many requests. Please slow down.';
+          window.dispatchEvent(new CustomEvent('global-toast', {
+            detail: { message, variant: 'error' },
+          }));
+        }
+
         return Promise.reject(error);
       }
     );

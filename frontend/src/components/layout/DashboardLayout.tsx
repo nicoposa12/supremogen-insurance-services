@@ -244,7 +244,7 @@ function SidebarNavGroup({
         <div
           className="flex items-center justify-center p-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-zinc-800/40"
           title={`${group.roleLabel}${isViewOnly ? ' (View Only)' : ''}`}
-          style={{ color: hasActiveChild ? group.accent : undefined }}
+          style={{ color: (hasActiveChild || isOpen) ? group.accent : undefined }}
         >
           <group.icon className="h-5 w-5 shrink-0" />
         </div>
@@ -273,11 +273,12 @@ function SidebarNavGroup({
       >
         <group.icon
           className="h-[18px] w-[18px] shrink-0 transition-colors"
-          style={{ color: hasActiveChild ? group.accent : undefined }}
+          style={{ color: (hasActiveChild || isOpen) ? group.accent : undefined }}
         />
-        <span className="truncate">{group.roleLabel}</span>
+        <span className={`truncate ${isOpen ? 'text-zinc-200 font-medium' : ''}`}>{group.roleLabel}</span>
         <ChevronDown
           className={`group-chevron h-3.5 w-3.5 ${isOpen ? 'rotated' : ''}`}
+          style={{ color: isOpen ? group.accent : undefined }}
         />
       </div>
 
