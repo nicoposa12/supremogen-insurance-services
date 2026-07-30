@@ -50,7 +50,7 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 480), // 480 min = 8 hours (1 work day)
 
     /*
     |--------------------------------------------------------------------------

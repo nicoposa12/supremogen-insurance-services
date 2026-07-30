@@ -135,3 +135,6 @@ Artisan::command('reminders:send', function () {
 })->purpose('Send automated payment reminders to clients 7 days and 1 day before due date');
 
 Schedule::command('reminders:send')->daily();
+
+// Purge expired Sanctum tokens daily (tokens older than configured expiration)
+Schedule::command('sanctum:prune-expired --hours=24')->daily();

@@ -47,6 +47,9 @@ class AuthController extends Controller
         $roles = $user->getRoleNames();
         $permissions = $user->getAllPermissions()->pluck('name');
 
+        // Revoke all existing tokens (enforce single active session)
+        $user->tokens()->delete();
+
         // Create API token
         $token = $user->createToken('auth_token')->plainTextToken;
 
