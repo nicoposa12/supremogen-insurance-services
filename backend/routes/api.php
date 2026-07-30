@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\AttachmentController;
 use App\Http\Controllers\Api\V1\ClaimNotificationController;
 use App\Http\Controllers\Api\V1\StorageController;
+use App\Http\Controllers\Api\V1\AuditLogController;
 
 Route::prefix('v1')->group(function () {
     // Public routes
@@ -127,5 +128,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/attachments/{id}/download', [AttachmentController::class, 'download']);
         Route::get('/attachments/{id}/preview', [AttachmentController::class, 'preview']);
         Route::delete('/attachments/{id}', [AttachmentController::class, 'destroy']);
+
+        // Audit Logs (admin only)
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('permission:users.view');
     });
 });

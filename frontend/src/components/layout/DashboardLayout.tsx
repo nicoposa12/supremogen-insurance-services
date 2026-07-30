@@ -28,6 +28,7 @@ import {
   Moon,
   ClipboardList,
   FileSpreadsheet,
+  FileSearch,
 
   Briefcase,
   Search,
@@ -145,6 +146,7 @@ const adminGeneralItems: NavItem[] = [
   { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
   { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
+  { label: 'Audit Logs', path: '/dashboard/audit-logs', icon: FileSearch },
 ];
 
 // All admin nav items flattened (for currentTitle lookup)

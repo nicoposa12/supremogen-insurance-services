@@ -7,9 +7,11 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\Auditable;
 
 class PaymentController extends Controller
 {
+    use Auditable;
     /**
      * Paginated list of payments.
      */
@@ -335,6 +337,11 @@ class PaymentController extends Controller
 
         $payment->update(['status' => 'voided']);
 
+        $this->audit('payment.void', $payment, 'Voided payment #' . $payment->payment_number,
+            ['status' => 'completed'],
+            ['status' => 'voided'],
+        );
+
         // Recalculate invoice
         $payment->invoice->recalculate();
 
@@ -386,12 +393,19 @@ class PaymentController extends Controller
             }
         }
 
+        $oldVerificationStatus = $payment->verification_status;
+
         $payment->update([
             'verification_status' => $status,
             'verification_notes'  => $notes,
             'verified_by'         => $request->user()->id,
             'verified_at'         => now(),
         ]);
+
+        $this->audit('payment.verify', $payment, 'Verified payment #' . $payment->payment_number . ' as: ' . $status,
+            ['verification_status' => $oldVerificationStatus],
+            ['verification_status' => $status],
+        );
 
         if ($request->hasFile('special_attachment')) {
             $file = $request->file('special_attachment');

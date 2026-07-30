@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Claim;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\Auditable;
 
 class ClaimController extends Controller
 {
+    use Auditable;
     /**
      * Paginated list of claims.
      */
@@ -170,6 +172,12 @@ class ClaimController extends Controller
             'status' => 'under_investigation',
         ]);
 
+        $assignee = \App\Models\User::find($request->input('assigned_to'));
+        $this->audit('claim.assign', $claim, 'Assigned claim #' . $claim->claim_number . ' to ' . ($assignee->name ?? 'User #' . $request->input('assigned_to')),
+            ['status' => 'filed'],
+            ['status' => 'under_investigation', 'assigned_to' => $request->input('assigned_to')],
+        );
+
         // Notify the assigned Claims Officer
         try {
             if ($claim->assigned_to) {
@@ -228,12 +236,21 @@ class ClaimController extends Controller
             return response()->json(['success' => false, 'message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
         }
 
+        $oldStatus = $claim->status;
         $action = $request->input('action');
         $claim->update([
             'status' => $action === 'approve' ? 'approved' : 'denied',
             'approved_amount' => $action === 'approve' ? $request->input('approved_amount') : null,
             'adjuster_remarks' => $request->input('adjuster_remarks'),
         ]);
+
+        $this->audit(
+            $action === 'approve' ? 'claim.approve' : 'claim.deny',
+            $claim,
+            ($action === 'approve' ? 'Approved' : 'Denied') . ' claim #' . $claim->claim_number,
+            ['status' => $oldStatus],
+            ['status' => $action === 'approve' ? 'approved' : 'denied', 'approved_amount' => $request->input('approved_amount')],
+        );
 
         // Notify the creator of the claim
         try {
@@ -285,6 +302,11 @@ class ClaimController extends Controller
             'settlement_date' => $request->input('settlement_date'),
             'adjuster_remarks' => $request->input('adjuster_remarks') ?? $claim->adjuster_remarks,
         ]);
+
+        $this->audit('claim.settle', $claim, 'Settled claim #' . $claim->claim_number . ' for ₱' . number_format((float) $request->input('settlement_amount'), 2),
+            ['status' => 'approved'],
+            ['status' => 'settled', 'settlement_amount' => $request->input('settlement_amount')],
+        );
 
         // Notify the creator of the claim
         try {

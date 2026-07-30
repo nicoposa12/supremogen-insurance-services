@@ -9,9 +9,11 @@ use App\Models\Quotation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\Auditable;
 
 class PolicyController extends Controller
 {
+    use Auditable;
     /**
      * Paginated list of policies.
      */
@@ -298,6 +300,11 @@ class PolicyController extends Controller
             'cancelled_at' => now(),
             'cancellation_reason' => $request->input('cancellation_reason'),
         ]);
+
+        $this->audit('policy.cancel', $policy, 'Cancelled policy #' . $policy->policy_number,
+            ['status' => 'active'],
+            ['status' => 'cancelled', 'reason' => $request->input('cancellation_reason')],
+        );
 
         return response()->json([
             'success' => true,

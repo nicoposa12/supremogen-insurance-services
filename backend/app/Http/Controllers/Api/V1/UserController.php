@@ -9,9 +9,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
 use Illuminate\Validation\Rules\Password;
+use App\Traits\Auditable;
 
 class UserController extends Controller
 {
+    use Auditable;
     /**
      * Display a listing of the users.
      */
@@ -272,6 +274,8 @@ class UserController extends Controller
 
         // Create API token
         $token = $user->createToken('auth_token_impersonate')->plainTextToken;
+
+        $this->audit('user.impersonate', $user, $request->user()->name . ' impersonated ' . $user->name . ' (' . $user->email . ')');
 
         return response()->json([
             'success' => true,

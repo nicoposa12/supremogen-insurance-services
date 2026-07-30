@@ -8,9 +8,11 @@ use App\Models\QuotationItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\Auditable;
 
 class QuotationController extends Controller
 {
+    use Auditable;
     /**
      * Paginated list of quotations with search, filter, sort.
      */
@@ -253,6 +255,8 @@ class QuotationController extends Controller
                 'message' => 'Only draft quotations can be deleted.',
             ], 422);
         }
+
+        $this->audit('quotation.delete', $quotation, 'Deleted quotation #' . ($quotation->quotation_number ?? $quotation->id));
 
         $quotation->delete();
 
@@ -530,6 +534,14 @@ class QuotationController extends Controller
         }
 
         $message = $action === 'approve' ? 'Quotation approved.' : 'Quotation rejected.';
+
+        $this->audit(
+            $action === 'approve' ? 'quotation.approve' : 'quotation.reject',
+            $quotation,
+            $message . ' Quotation #' . ($quotation->quotation_number ?? $quotation->id),
+            ['status' => 'submitted'],
+            ['status' => $action === 'approve' ? 'approved' : 'rejected'],
+        );
 
         return response()->json([
             'success' => true,

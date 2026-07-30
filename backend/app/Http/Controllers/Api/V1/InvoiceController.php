@@ -7,9 +7,11 @@ use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\Auditable;
 
 class InvoiceController extends Controller
 {
+    use Auditable;
     /**
      * Paginated list of invoices.
      */
@@ -413,6 +415,8 @@ class InvoiceController extends Controller
         if ($invoice->status !== 'draft') {
             return response()->json(['success' => false, 'message' => 'Only draft invoices can be deleted.'], 422);
         }
+        $this->audit('invoice.delete', $invoice, 'Deleted invoice #' . $invoice->invoice_number);
+
         $invoice->delete();
         return response()->json(['success' => true, 'message' => 'Invoice deleted.']);
     }
@@ -447,7 +451,13 @@ class InvoiceController extends Controller
             return response()->json(['success' => false, 'message' => 'This invoice cannot be cancelled.'], 422);
         }
 
+        $oldStatus = $invoice->status;
         $invoice->update(['status' => 'cancelled']);
+
+        $this->audit('invoice.cancel', $invoice, 'Cancelled invoice #' . $invoice->invoice_number,
+            ['status' => $oldStatus],
+            ['status' => 'cancelled'],
+        );
 
         return response()->json([
             'success' => true, 'message' => 'Invoice cancelled.',

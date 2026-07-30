@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
+use App\Traits\Auditable;
 
 class AuthController extends Controller
 {
+    use Auditable;
     /**
      * Authenticate user and return token.
      */
@@ -37,6 +39,11 @@ class AuthController extends Controller
             ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            $this->audit('auth.login_failed', null, 'Failed login attempt for: ' . $loginInput, null, [
+                'attempted_input' => $loginInput,
+                'ip' => $request->ip(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials.'
@@ -52,6 +59,8 @@ class AuthController extends Controller
 
         // Create API token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        $this->audit('auth.login', $user, 'User logged in: ' . $user->name . ' (' . $user->email . ')');
 
         return response()->json([
             'success' => true,
@@ -76,6 +85,8 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $this->audit('auth.logout', $request->user(), 'User logged out: ' . $request->user()->name);
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

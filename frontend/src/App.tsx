@@ -64,6 +64,7 @@ const RenewalsPage = lazy(() => import('./pages/renewals/RenewalsPage'));
 // Reports & Settings (Phase 2 — Reports, Notifications, Settings & Final Polish)
 const ReportsPage = lazy(() => import('./pages/reports/ReportsPage'));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
+const AuditLogPage = lazy(() => import('./pages/settings/AuditLogPage'));
 const SummaryPage = lazy(() => import('./pages/summary/SummaryPage'));
 const CollectionPage = lazy(() => import('./pages/collection/CollectionPage'));
 const CollectionLedgerPage = lazy(() => import('./pages/collection/CollectionLedgerPage'));
@@ -171,6 +172,7 @@ export default function App() {
 
                 {/* Settings */}
                 <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                <Route path="audit-logs" element={<ProtectedRoute requiredPermission="users.view"><AuditLogPage /></ProtectedRoute>} />
 
                 {/* Collection */}
                 <Route path="collection" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Claims Officer']}><CollectionPage /></ProtectedRoute>} />
