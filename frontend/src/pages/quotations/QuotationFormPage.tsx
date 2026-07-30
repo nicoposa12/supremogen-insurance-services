@@ -331,11 +331,15 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     }
   }, [isEdit, roles]);
 
-  // Automatically update usedRate when selling rates change (For REGULAR QUOTA RATE, OLD CAR QUOTATION, Sir Jessie, or Sir Jay Partner Rate)
+  // Automatically update usedRate when selling rates change (For REGULAR QUOTA RATE, OLD CAR QUOTATION, or Partner Rates)
   useEffect(() => {
-    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
-    const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
-    const isPartnerAutoRate = isSirJessie || isSirJay;
+    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && (partnerName === 'JESSIE MILCA' || partnerName === 'SIR JESSIE'));
+    const isSirJay = usedRateType === "PARTNER'S RATE" && (partnerName === 'JAY ROLDAN' || partnerName === 'SIR JAY PARTNER');
+    const isAutoreliable = usedRateType === "PARTNER'S RATE" && partnerName === 'AUTORELIABLE INSURANCE';
+    const isF1 = usedRateType === "PARTNER'S RATE" && partnerName === 'F1 INSURANCE SERVICES';
+    const isReelDrive = usedRateType === "PARTNER'S RATE" && partnerName === 'REEL DRIVE';
+    const isActiveBest = usedRateType === "PARTNER'S RATE" && partnerName === 'ACTIVE BEST';
+    const isPartnerAutoRate = isSirJessie || isSirJay || isAutoreliable || isF1 || isReelDrive || isActiveBest;
 
     if (!usedRateType || usedRateType === 'REGULAR QUOTA RATE' || usedRateType === 'OLD CAR QUOTATION' || isPartnerAutoRate) {
       const formatRatePercent = (rate: number): string => {
@@ -353,9 +357,13 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
 
   // Parse custom rate string when using other Used Rate Types
   useEffect(() => {
-    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
-    const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
-    const isPartnerAutoRate = isSirJessie || isSirJay;
+    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && (partnerName === 'JESSIE MILCA' || partnerName === 'SIR JESSIE'));
+    const isSirJay = usedRateType === "PARTNER'S RATE" && (partnerName === 'JAY ROLDAN' || partnerName === 'SIR JAY PARTNER');
+    const isAutoreliable = usedRateType === "PARTNER'S RATE" && partnerName === 'AUTORELIABLE INSURANCE';
+    const isF1 = usedRateType === "PARTNER'S RATE" && partnerName === 'F1 INSURANCE SERVICES';
+    const isReelDrive = usedRateType === "PARTNER'S RATE" && partnerName === 'REEL DRIVE';
+    const isActiveBest = usedRateType === "PARTNER'S RATE" && partnerName === 'ACTIVE BEST';
+    const isPartnerAutoRate = isSirJessie || isSirJay || isAutoreliable || isF1 || isReelDrive || isActiveBest;
 
     if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && usedRateType !== 'OLD CAR QUOTATION' && !isPartnerAutoRate) {
       if (!usedRate) return;
@@ -405,15 +413,33 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setBackupPhone(c.backup_phone || '');
       setFbLink(c.fb_link || '');
       const rawRateType = c.used_rate_type || '';
-      if (rawRateType.includes('SIR JAY PARTNER')) {
+      if (rawRateType.includes('JAY ROLDAN') || rawRateType.includes('SIR JAY')) {
         setUsedRateType("PARTNER'S RATE");
-        setPartnerName('SIR JAY PARTNER');
-      } else if (rawRateType.includes('SIR JESSIE')) {
+        setPartnerName('JAY ROLDAN');
+      } else if (rawRateType.includes('JESSIE MILCA') || rawRateType.includes('SIR JESSIE')) {
         setUsedRateType("PARTNER'S RATE");
-        setPartnerName('SIR JESSIE');
+        setPartnerName('JESSIE MILCA');
+      } else if (rawRateType.includes('AUTORELIABLE')) {
+        setUsedRateType("PARTNER'S RATE");
+        setPartnerName('AUTORELIABLE INSURANCE');
+      } else if (rawRateType.includes('F1 INSURANCE') || rawRateType.includes('F1S')) {
+        setUsedRateType("PARTNER'S RATE");
+        setPartnerName('F1 INSURANCE SERVICES');
+      } else if (rawRateType.includes('REEL DRIVE')) {
+        setUsedRateType("PARTNER'S RATE");
+        setPartnerName('REEL DRIVE');
+      } else if (rawRateType.includes('ACTIVE BEST')) {
+        setUsedRateType("PARTNER'S RATE");
+        setPartnerName('ACTIVE BEST');
       } else if (rawRateType.startsWith("PARTNER'S RATE")) {
-        setUsedRateType("PARTNER'S RATE");
-        setPartnerName('SIR JESSIE');
+        const match = rawRateType.match(/PARTNER'S RATE \(([^)]+)\)/i);
+        if (match && match[1]) {
+          setUsedRateType("PARTNER'S RATE");
+          setPartnerName(match[1].trim());
+        } else {
+          setUsedRateType("PARTNER'S RATE");
+          setPartnerName('JESSIE MILCA');
+        }
       } else {
         setUsedRateType(rawRateType);
         setPartnerName('');
@@ -491,9 +517,13 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
 
   // Update Selling Rates based on vehicle type, usage, and rate type
   useEffect(() => {
-    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JESSIE');
-    const isSirJay = usedRateType === "PARTNER'S RATE" && partnerName === 'SIR JAY PARTNER';
-    const isPartnerAutoRate = isSirJessie || isSirJay;
+    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && (partnerName === 'JESSIE MILCA' || partnerName === 'SIR JESSIE'));
+    const isSirJay = usedRateType === "PARTNER'S RATE" && (partnerName === 'JAY ROLDAN' || partnerName === 'SIR JAY PARTNER');
+    const isAutoreliable = usedRateType === "PARTNER'S RATE" && partnerName === 'AUTORELIABLE INSURANCE';
+    const isF1 = usedRateType === "PARTNER'S RATE" && partnerName === 'F1 INSURANCE SERVICES';
+    const isReelDrive = usedRateType === "PARTNER'S RATE" && partnerName === 'REEL DRIVE';
+    const isActiveBest = usedRateType === "PARTNER'S RATE" && partnerName === 'ACTIVE BEST';
+    const isPartnerAutoRate = isSirJessie || isSirJay || isAutoreliable || isF1 || isReelDrive || isActiveBest;
 
     if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && usedRateType !== 'OLD CAR QUOTATION' && !isPartnerAutoRate) {
       return; // Custom rate computation applies for custom rates
@@ -514,7 +544,23 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     const isTNVS = cleanQuotationUsed === 'TNVS' || cleanUsage === 'TNVS USE';
     const isCommercial = isTruck || isYellowPlate || isLalamove || isForHire || isL300 || isTNVS;
 
-    if (isSirJay && isTruck) {
+    if (isAutoreliable) {
+      setSellingRateOD(isCommercial ? 1.05 : 1.00);
+      setSellingRateAON(0.00);
+      if (!towingFee) setTowingFee('300');
+    } else if (isF1) {
+      setSellingRateOD(isCommercial ? 1.10 : 1.05);
+      setSellingRateAON(0.00);
+      if (!towingFee) setTowingFee('300');
+    } else if (isReelDrive) {
+      setSellingRateOD(isCommercial ? 1.30 : 1.10);
+      setSellingRateAON(0.00);
+      if (!towingFee) setTowingFee('300');
+    } else if (isActiveBest) {
+      setSellingRateOD(isCommercial ? 1.25 : 1.05);
+      setSellingRateAON(0.00);
+      if (!towingFee) setTowingFee('300');
+    } else if (isSirJay && isTruck) {
       setSellingRateOD(1.80);
       setSellingRateAON(0.00);
       if (seater === 5) setSeater(3);
@@ -1214,7 +1260,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                   const val = e.target.value;
                   setUsedRateType(val);
                   if (val === "PARTNER'S RATE" && !partnerName) {
-                    setPartnerName('SIR JESSIE');
+                    setPartnerName('JESSIE MILCA');
                   }
                 }}
                 className={getInputClass(usedRateType)}
@@ -1236,8 +1282,12 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                   className={getInputClass(partnerName)}
                 >
                   <option value="">Select Partner</option>
-                  <option value="SIR JESSIE">SIR JESSIE</option>
-                  <option value="SIR JAY PARTNER">SIR JAY PARTNER</option>
+                  <option value="JESSIE MILCA">JESSIE MILCA</option>
+                  <option value="JAY ROLDAN">JAY ROLDAN</option>
+                  <option value="AUTORELIABLE INSURANCE">AUTORELIABLE INSURANCE</option>
+                  <option value="F1 INSURANCE SERVICES">F1 INSURANCE SERVICES</option>
+                  <option value="REEL DRIVE">REEL DRIVE</option>
+                  <option value="ACTIVE BEST">ACTIVE BEST</option>
                 </select>
               </div>
             ) : (

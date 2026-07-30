@@ -156,7 +156,7 @@ export default function SummaryPage() {
     return {
       'NEW ACCOUNT': salesAgents.length > 0 ? salesAgents : ['ELLA LANGRIO', 'JM CAMINGUE'],
       'TEAM RENEWAL': renewalAgents.length > 0 ? renewalAgents : ['NIC MATULAC'],
-      'PARTNERS': ['ARCHIE', 'ARIS', 'F1S', 'PAMPANGA', 'PRIME', 'REEL DRIVE'],
+      'PARTNERS': ['ARCHIE', 'ARIS', 'AUTORELIABLE INSURANCE', 'ACTIVE BEST', 'F1 INSURANCE SERVICES', 'F1S', 'PAMPANGA', 'PRIME', 'REEL DRIVE'],
       'TEAM SUPPORT': ['AIZA', 'ANGELICA', 'FROILAN', 'JELLAN', 'JESSROME', 'JHOY', 'KHEL', 'MICO', 'RONALYNE']
     };
   }, [dbAgents]);
