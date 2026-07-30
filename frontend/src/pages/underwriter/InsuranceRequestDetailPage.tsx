@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, CheckCircle2, XCircle, FileText, Loader2,
-  User, Car, Upload, History, Link2, Save, Paperclip, Download, AlertTriangle
+  User, Car, Upload, History, Link2, Save, Paperclip, Download, AlertTriangle, Eye
 } from 'lucide-react';
 
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -21,7 +21,11 @@ const roundToTwoDecimals = (num: number): number => {
 export default function InsuranceRequestDetailPage({ id, onClose }: { id: number; onClose: () => void }) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { permissions, token } = useAuth();
+  const { roles = [], permissions = [], token } = useAuth();
+
+  const isUnderwriterOrAdmin = roles.some((r: string) =>
+    ['Underwriter', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+  );
 
   // Review state
   const [reviewRemarks, setReviewRemarks] = useState('');
@@ -171,9 +175,9 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
     onError: (err: any) => showToast(err.response?.data?.message ?? 'Save failed.', 'error'),
   });
 
-  const canReview = permissions.includes('quotations.approve') || permissions.includes('quotations.reject');
-  const isReviewable = quotation && ['submitted', 'under_review'].includes(quotation.status);
-  const isEditable = canReview;
+  const canReview = isUnderwriterOrAdmin && (permissions.includes('quotations.approve') || permissions.includes('quotations.reject'));
+  const isReviewable = isUnderwriterOrAdmin && quotation && ['submitted', 'under_review'].includes(quotation.status);
+  const isEditable = isUnderwriterOrAdmin && canReview;
 
   if (isLoading || !quotation) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-[#4A0E17]" /></div>;
@@ -207,6 +211,11 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl font-extrabold text-slate-800 tracking-tight">{quotation.quotation_number}</h1>
               <StatusBadge status={quotation.status} size="sm" />
+              {!isUnderwriterOrAdmin && (
+                <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+                  <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
+                </span>
+              )}
             </div>
             <p className="text-xs font-semibold text-slate-400 mt-1">
               Submitted {quotation.submitted_at ? new Date(quotation.submitted_at).toLocaleDateString() : '—'}

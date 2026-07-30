@@ -20,7 +20,8 @@ import {
   Mail,
   Paperclip,
   Download,
-  FileText
+  FileText,
+  Eye
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -35,11 +36,17 @@ import { getReportSummary } from '../../services/reportApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
 import type { Invoice, Payment, PaymentMethod, PaymentFormData } from '../../types/AccountingTypes';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function CollectionPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { roles = [] } = useAuth();
   const [searchParams] = useSearchParams();
+
+  const canManageCollection = roles.some((r: string) =>
+    ['Collection', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+  );
   const querySearch = searchParams.get('search') || '';
 
   // Tab State: 'dashboard' | 'history'
@@ -263,6 +270,7 @@ export default function CollectionPage() {
   }, [collectionModalOpen, previewAttachment]);
 
   const handleOpenCollection = (invoice: Invoice) => {
+    if (!canManageCollection) return;
     setSelectedInvoice(invoice);
     setCollectAmount(String(invoice.balance));
     setCollectionModalOpen(true);
@@ -435,42 +443,46 @@ export default function CollectionPage() {
       label: 'Status',
       render: (r: Invoice) => <StatusBadge status={r.status} />,
     },
-    {
-      key: 'actions',
-      label: 'Action',
-      render: (r: Invoice) => (
-        <div className="flex flex-col gap-1.5 min-w-[120px]">
-          <button
-            onClick={() => handleOpenCollection(r)}
-            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
-          >
-            <CreditCard className="h-3 w-3" /> Record
-          </button>
-          {r.balance > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                sendReminderMut.mutate(r.id);
-              }}
-              disabled={!r.customer?.email || sendingReminderId === r.id}
-              className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${
-                !r.customer?.email
-                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-transparent'
-                  : 'bg-blue-700 hover:bg-blue-800'
-              }`}
-              title={!r.customer?.email ? 'No email registered for client' : 'Send payment reminder email to client'}
-            >
-              {sendingReminderId === r.id ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Mail className="h-3.5 w-3.5" />
-              )}
-              <span>Reminder</span>
-            </button>
-          )}
-        </div>
-      ),
-    },
+    ...(canManageCollection
+      ? [
+          {
+            key: 'actions',
+            label: 'Action',
+            render: (r: Invoice) => (
+              <div className="flex flex-col gap-1.5 min-w-[120px]">
+                <button
+                  onClick={() => handleOpenCollection(r)}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
+                >
+                  <CreditCard className="h-3 w-3" /> Record
+                </button>
+                {r.balance > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sendReminderMut.mutate(r.id);
+                    }}
+                    disabled={!r.customer?.email || sendingReminderId === r.id}
+                    className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${
+                      !r.customer?.email
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-transparent'
+                        : 'bg-blue-700 hover:bg-blue-800'
+                    }`}
+                    title={!r.customer?.email ? 'No email registered for client' : 'Send payment reminder email to client'}
+                  >
+                    {sendingReminderId === r.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Mail className="h-3.5 w-3.5" />
+                    )}
+                    <span>Reminder</span>
+                  </button>
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   // Payment Columns
@@ -545,7 +557,14 @@ export default function CollectionPage() {
       {/* Page Title */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Collection Module</h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Collection Module</h1>
+            {!canManageCollection && (
+              <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+                <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">Track company billings, manage accounts receivables, and record customer collections</p>
         </div>
         <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm">
@@ -819,7 +838,7 @@ export default function CollectionPage() {
       )}
 
       {/* Record Collection Modal */}
-      {collectionModalOpen && selectedInvoice && (() => {
+      {canManageCollection && collectionModalOpen && selectedInvoice && (() => {
         const customer = selectedInvoice.customer;
         const terms = Number(customer?.payment_terms || 1);
         const totalPremium = Number(selectedInvoice.total_amount);

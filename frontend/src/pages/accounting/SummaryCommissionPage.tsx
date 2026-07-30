@@ -917,9 +917,16 @@ export default function SummaryCommissionPage() {
       {/* Sleek Header Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 no-print">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-            Summary Commission
-          </h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+              Summary Commission
+            </h1>
+            {!isAccountingOrAdmin && (
+              <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+                <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500">
             Agent & Sub-Agent commission tracking & tariff breakdown
           </p>

@@ -19,7 +19,8 @@ import {
   Building2,
   Truck,
   Filter,
-  Gift
+  Gift,
+  Eye
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -36,10 +37,14 @@ import { useAuth } from '../../context/AuthContext';
 export default function ReviewCollectionPaymentPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { token } = useAuth();
+  const { token, roles = [] } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get('search') || '';
   const autoOpenModal = searchParams.get('autoOpen') === 'true';
+
+  const isAccountingOrAdmin = roles.some((r: string) =>
+    ['Accounting Officer', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+  );
 
   const [params, setParams] = useState<PaymentListParams>({
     page: 1,
@@ -397,83 +402,93 @@ export default function ReviewCollectionPaymentPage() {
         );
       },
     },
-    {
-      key: 'actions',
-      label: 'Actions',
-      className: 'text-right',
-      render: (p: Payment) => {
-        const status = (p.verification_status || '').toUpperCase();
-        const isVerified =
-          status !== '' &&
-          status !== 'PENDING_VERIFICATION' &&
-          status !== 'PENDING' &&
-          status !== 'PENDING FOR VERIFICATION' &&
-          status !== 'REJECTED';
-        const isRejected = status === 'REJECTED';
+    ...(isAccountingOrAdmin
+      ? [
+          {
+            key: 'action',
+            label: 'Action',
+            headerClassName: 'text-right',
+            render: (p: Payment) => {
+              const status = (p.verification_status || 'pending_verification').toUpperCase();
+              const isVerified =
+                status !== 'PENDING_VERIFICATION' &&
+                status !== 'PENDING' &&
+                status !== 'PENDING FOR VERIFICATION' &&
+                status !== 'REJECTED';
+              const isRejected = status === 'REJECTED';
 
-        const isCancelled =
-          (p.invoice as any)?.status === 'cancelled' ||
-          (p.invoice as any)?.status === 'voided' ||
-          (p.invoice as any)?.policy?.status?.toLowerCase() === 'cancelled' ||
-          (p.invoice as any)?.policy?.quotation?.status?.toLowerCase() === 'cancelled' ||
-          (p.invoice as any)?.customer?.policy_status?.toUpperCase() === 'CANCELLED';
+              const isCancelled =
+                (p.invoice as any)?.status === 'cancelled' ||
+                (p.invoice as any)?.status === 'voided' ||
+                (p.invoice as any)?.policy?.status?.toLowerCase() === 'cancelled' ||
+                (p.invoice as any)?.policy?.quotation?.status?.toLowerCase() === 'cancelled' ||
+                (p.invoice as any)?.customer?.policy_status?.toUpperCase() === 'CANCELLED';
 
-        if (isCancelled) {
-          return (
-            <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-              <span
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-rose-800 border border-rose-200 text-xs font-bold rounded-lg cursor-not-allowed shadow-2xs opacity-80"
-                title="Cannot verify payment for a cancelled policy or voided invoice"
-              >
-                <XCircle className="h-3.5 w-3.5 text-rose-600" /> Cannot Verify (Cancelled)
-              </span>
-            </div>
-          );
-        }
+              if (isCancelled) {
+                return (
+                  <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                    <span
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-rose-800 border border-rose-200 text-xs font-bold rounded-lg cursor-not-allowed shadow-2xs opacity-80"
+                      title="Cannot verify payment for a cancelled policy or voided invoice"
+                    >
+                      <XCircle className="h-3.5 w-3.5 text-rose-600" /> Cannot Verify (Cancelled)
+                    </span>
+                  </div>
+                );
+              }
 
-        if (isVerified) {
-          return (
-            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => openVerifyModal(p, 'verified')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#4A0E17]/10 hover:bg-[#4A0E17]/20 text-[#4A0E17] font-bold text-xs rounded-xl border border-[#4A0E17]/20 transition cursor-pointer shadow-2xs"
-                title="Update or change verification status"
-              >
-                <Check className="h-3.5 w-3.5" /> Edit Status
-              </button>
-            </div>
-          );
-        }
+              if (isVerified) {
+                return (
+                  <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => openVerifyModal(p, 'verified')}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#4A0E17]/10 hover:bg-[#4A0E17]/20 text-[#4A0E17] font-bold text-xs rounded-xl border border-[#4A0E17]/20 transition cursor-pointer shadow-2xs"
+                      title="Update or change verification status"
+                    >
+                      <Check className="h-3.5 w-3.5" /> Edit Status
+                    </button>
+                  </div>
+                );
+              }
 
-        return (
-          <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => openVerifyModal(p, 'verified')}
-              className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-2xs transition cursor-pointer"
-              title="Verify and approve payment"
-            >
-              <Check className="h-3.5 w-3.5" /> Approve
-            </button>
-            {!isRejected && (
-              <button
-                onClick={() => openVerifyModal(p, 'rejected')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition cursor-pointer"
-                title="Reject or flag payment"
-              >
-                <X className="h-3.5 w-3.5" /> Reject
-              </button>
-            )}
-          </div>
-        );
-      },
-    },
+              return (
+                <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => openVerifyModal(p, 'verified')}
+                    className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-2xs transition cursor-pointer"
+                    title="Verify and approve payment"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Approve
+                  </button>
+                  {!isRejected && (
+                    <button
+                      onClick={() => openVerifyModal(p, 'rejected')}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition cursor-pointer"
+                      title="Reject or flag payment"
+                    >
+                      <X className="h-3.5 w-3.5" /> Reject
+                    </button>
+                  )}
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Review Collection Payment</h1>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Review Collection Payment</h1>
+          {!isAccountingOrAdmin && (
+            <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+              <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
+            </span>
+          )}
+        </div>
         <p className="text-xs text-slate-500 mt-1">
           Review, verify, and approve collection payments submitted by Collection Officers
         </p>

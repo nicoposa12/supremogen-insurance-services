@@ -142,9 +142,9 @@ export default function App() {
                 <Route path="invoices/new" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoiceFormPage /></ProtectedRoute>} />
                 <Route path="invoices/:id" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoiceDetailPage /></ProtectedRoute>} />
                 <Route path="invoices/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Accounting Officer']}><InvoiceFormPage /></ProtectedRoute>} />
-                <Route path="policy-statements" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Collection']}><PolicyStatementsPage /></ProtectedRoute>} />
-                <Route path="review-collection-payment" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Collection']}><ReviewCollectionPaymentPage /></ProtectedRoute>} />
-                <Route path="summary-commission" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer', 'Collection']}><SummaryCommissionPage /></ProtectedRoute>} />
+                <Route path="policy-statements" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Claims Officer', 'Collection']}><PolicyStatementsPage /></ProtectedRoute>} />
+                <Route path="review-collection-payment" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Claims Officer', 'Collection']}><ReviewCollectionPaymentPage /></ProtectedRoute>} />
+                <Route path="summary-commission" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Claims Officer', 'Collection']}><SummaryCommissionPage /></ProtectedRoute>} />
 
                 {/* Payments */}
                 <Route path="payments" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><PaymentsPage /></ProtectedRoute>} />
@@ -157,8 +157,8 @@ export default function App() {
                 <Route path="claims/:id/edit" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><ClaimFormPage /></ProtectedRoute>} />
 
                 {/* Claim Notifications */}
-                <Route path="claim-notifications" element={<ProtectedRoute forbiddenRoles={['Underwriter', 'Collection']}><ClaimNotificationsPage /></ProtectedRoute>} />
-                <Route path="completed-requirements" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Collection']}><CompletedRequirementsPage /></ProtectedRoute>} />
+                <Route path="claim-notifications" element={<ProtectedRoute forbiddenRoles={['Collection']}><ClaimNotificationsPage /></ProtectedRoute>} />
+                <Route path="completed-requirements" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Collection']}><CompletedRequirementsPage /></ProtectedRoute>} />
 
                 {/* Renewals */}
                 <Route path="renewals" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><RenewalsPage /></ProtectedRoute>} />
@@ -173,8 +173,8 @@ export default function App() {
                 <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
                 {/* Collection */}
-                <Route path="collection" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><CollectionPage /></ProtectedRoute>} />
-                <Route path="collection/ledger" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Underwriter', 'Team Renewal', 'Claims Officer']}><CollectionLedgerPage /></ProtectedRoute>} />
+                <Route path="collection" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Claims Officer']}><CollectionPage /></ProtectedRoute>} />
+                <Route path="collection/ledger" element={<ProtectedRoute forbiddenRoles={['Sales Agent', 'Team Renewal', 'Claims Officer']}><CollectionLedgerPage /></ProtectedRoute>} />
               </Route>
 
               {/* Catch-all redirect to Home */}

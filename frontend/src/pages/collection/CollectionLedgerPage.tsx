@@ -24,7 +24,8 @@ import {
   Paperclip,
   Download,
   XCircle,
-  Gift
+  Gift,
+  Eye
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -40,11 +41,17 @@ import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
 import type { Invoice, Payment, PaymentMethod, PaymentFormData } from '../../types/AccountingTypes';
 import supremogenLogo from '../../assets/image/Picture1.png';
 import supremogenFooter from '../../assets/image/Picture2.png';
+import { useAuth } from '../../context/AuthContext';
 
 export default function CollectionLedgerPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { roles = [] } = useAuth();
   const [searchParams] = useSearchParams();
+
+  const canManageCollection = roles.some((r: string) =>
+    ['Collection', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+  );
   const querySearch = searchParams.get('search') || '';
 
   // Search & Pagination & Filter States
@@ -898,6 +905,7 @@ export default function CollectionLedgerPage() {
   };
 
   const handleOpenCollection = (invoice: Invoice, prefilledAmount?: number) => {
+    if (!canManageCollection) return;
     setSelectedInvoice(invoice);
     setCollectAmount(prefilledAmount ? String(prefilledAmount) : String(invoice.balance));
     setCollectionModalOpen(true);
@@ -1262,7 +1270,14 @@ export default function CollectionLedgerPage() {
             </Link>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collection Dashboard</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Collection Payment Ledger</h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Collection Payment Ledger</h1>
+            {!canManageCollection && (
+              <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+                <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">Full visual spreadsheet layout for tracking and managing installment collection schedules</p>
         </div>
       </div>
@@ -1679,7 +1694,13 @@ export default function CollectionLedgerPage() {
                         <span key={row.id} className="contents">
                           {/* Row 1: Header row / General Details */}
                           <tr
-                            onClick={() => handleOpenCollection(row)}
+                            onClick={() => {
+                              if (canManageCollection) {
+                                handleOpenCollection(row);
+                              } else {
+                                toggleExpand(row.id);
+                              }
+                            }}
                             className={`transition-colors text-xs cursor-pointer ${
                               isDstWarning
                                 ? 'bg-amber-50/30 hover:bg-amber-50/60 text-slate-800 border-l-4 border-l-amber-500 font-medium'
@@ -2102,7 +2123,7 @@ export default function CollectionLedgerPage() {
       </div>
 
       {/* Record Collection Modal */}
-      {collectionModalOpen && selectedInvoice && (() => {
+      {canManageCollection && collectionModalOpen && selectedInvoice && (() => {
         const customer = selectedInvoice.customer;
         const terms = Number(customer?.payment_terms || 1);
         const totalPremium = Number(selectedInvoice.total_amount);

@@ -36,6 +36,7 @@ import {
   Shield,
   AlertTriangle,
   CreditCard,
+  Eye,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../services/notificationApi';
@@ -64,7 +65,6 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Customer Records', path: '/dashboard/customers', icon: Users },
   { label: 'Policy Issuance Request', path: '/dashboard/quotations', icon: FileText },
-  { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
   { label: 'Accounting', path: '/dashboard/invoices', icon: Receipt },
   { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileSpreadsheet },
   { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CreditCard },
@@ -77,6 +77,7 @@ const navItems: NavItem[] = [
   { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
   { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
   { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
+  { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
 ];
 
 // Role-grouped nav (used by Administrator / Owner)
@@ -96,6 +97,13 @@ const adminNavGroups: NavGroup[] = [
     accent: '#8b5cf6', // violet
     children: [
       { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
+      { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
+      { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
+      { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileText },
+      { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CheckCircle2 },
+      { label: 'Summary Commission', path: '/dashboard/summary-commission', icon: BarChart3 },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+      { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
     ],
   },
   {
@@ -116,6 +124,9 @@ const adminNavGroups: NavGroup[] = [
       { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileSpreadsheet },
       { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CreditCard },
       { label: 'Summary Commission', path: '/dashboard/summary-commission', icon: FileSpreadsheet },
+      { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+      { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
     ],
   },
   {
@@ -134,6 +145,7 @@ const adminNavGroups: NavGroup[] = [
     children: [
       { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
       { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
+      { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
     ],
   },
 ];
@@ -192,16 +204,33 @@ function SidebarSubItem({ item, collapsed }: { item: NavItem; collapsed: boolean
 function SidebarNavGroup({
   group,
   collapsed,
-  isOpen,
+  isOpen: isOpenProp,
   onToggle,
 }: {
   group: NavGroup;
   collapsed: boolean;
-  isOpen: boolean;
+  isOpen?: boolean;
   onToggle: () => void;
 }) {
   const location = useLocation();
   const currentParams = new URLSearchParams(location.search);
+  const { roles = [] } = useAuth();
+
+  const isAdmin = roles.some((r: string) =>
+    ['Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+  );
+
+  const userHasGroupRole = roles.some((r: string) => {
+    if (group.roleLabel === 'Accounting Officer' && (r === 'Accounting Officer' || r === 'Accounting')) return true;
+    if (group.roleLabel === 'Underwriter' && r === 'Underwriter') return true;
+    if (group.roleLabel === 'Collection' && r === 'Collection') return true;
+    if (group.roleLabel === 'Claims Officer' && r === 'Claims Officer') return true;
+    if (group.roleLabel === 'Sales Agent' && r === 'Sales Agent') return true;
+    if (group.roleLabel === 'Team Renewals' && (r === 'Team Renewal' || r === 'Sales Agent')) return true;
+    return false;
+  });
+
+  const isViewOnly = !isAdmin && !userHasGroupRole;
 
   const hasActiveChild = group.children.some((child) => {
     const cleanPath = child.path.split('?')[0];
@@ -211,8 +240,10 @@ function SidebarNavGroup({
     return location.pathname.startsWith(cleanPath) && roleMatch;
   });
 
+  const isOpen = isOpenProp !== undefined ? isOpenProp : hasActiveChild;
+
   // Calculate max-height for animation (each item ~44px + padding)
-  const maxHeight = group.children.length * 52 + 16;
+  const maxHeight = group.children.length * 52 + 36;
 
   if (collapsed) {
     // When sidebar is collapsed, show only the group icon, children accessible via tooltip/expand
@@ -220,7 +251,7 @@ function SidebarNavGroup({
       <div className="relative group/grp">
         <div
           className="flex items-center justify-center p-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-zinc-800/40"
-          title={group.roleLabel}
+          title={`${group.roleLabel}${isViewOnly ? ' (View Only)' : ''}`}
           style={{ color: hasActiveChild ? group.accent : undefined }}
         >
           <group.icon className="h-5 w-5 shrink-0" />
@@ -286,70 +317,145 @@ function SidebarDivider({ label, collapsed }: { label: string; collapsed: boolea
   );
 }
 
-// ─── Sidebar Item (flat, for non-admin roles) ─
+// ─── Sidebar Nav for Non-Admin Roles ───────────
 
-function SidebarNavItem({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
-  const { roles } = useAuth();
+function NonAdminSidebarNav({
+  collapsed,
+  openGroups,
+  onToggleGroup,
+}: {
+  collapsed: boolean;
+  openGroups: Record<string, boolean>;
+  onToggleGroup: (roleLabel: string) => void;
+}) {
+  const { roles = [] } = useAuth();
 
-  // Administrators, Owners, General Managers, and Operational Managers can see all nav items — never filter them out
-  const isAdminUser = roles.includes('Administrator') || roles.includes('Owner') || roles.includes('General Manager') || roles.includes('Operational Manager');
-  if (isAdminUser) {
-    // Render all items without restriction
-    return (
-      <NavLink
-        to={item.path}
-        end={item.path === '/dashboard' || item.path === '/dashboard/collection'}
-        className={({ isActive }) =>
-          `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
-            ? 'bg-gradient-to-r from-[#8A1C2E] to-[#5C0612] text-white shadow-md shadow-[#8A1C2E]/20 active-nav-item'
-            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/40'
-          } ${collapsed ? 'justify-center' : ''}`
-        }
-      >
-        <item.icon className="h-5 w-5 shrink-0 text-zinc-400 group-hover:text-zinc-200 group-[.active-nav-item]:text-white transition-colors" />
-        {!collapsed && <span className="truncate">{item.label}</span>}
-      </NavLink>
-    );
-  }
-
-  const isAgent = roles.includes('Sales Agent') || roles.includes('Team Renewal');
   const isUnderwriter = roles.includes('Underwriter');
+  const isAccounting = roles.includes('Accounting Officer');
   const isCollection = roles.includes('Collection');
   const isClaimsOfficer = roles.includes('Claims Officer');
-  const isAccounting = roles.includes('Accounting Officer');
+  const isAgent = roles.includes('Sales Agent') || roles.includes('Team Renewal');
 
-  let isForbidden = false;
+  const accountingGroup: NavGroup = {
+    roleLabel: 'Accounting Officer',
+    icon: DollarSign,
+    accent: '#f59e0b',
+    children: [
+      { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileText },
+      { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CheckCircle2 },
+      { label: 'Summary Commission', path: '/dashboard/summary-commission', icon: BarChart3 },
+    ],
+  };
 
-  if (isAgent) {
-    isForbidden = !['Customer Records', 'Policy Issuance Request', 'Claim Notifications'].includes(item.label);
-  } else if (isUnderwriter) {
-    isForbidden = !['Dashboard', 'Insurance Requests', 'Customer Records', 'Summary', 'Reports'].includes(item.label);
-  } else if (isCollection) {
-    isForbidden = !['Collection Module', 'Collection Ledger'].includes(item.label);
-  } else if (isClaimsOfficer) {
-    isForbidden = !['Dashboard', 'Claim Notifications', 'Completed Requirements'].includes(item.label);
+  const collectionGroup: NavGroup = {
+    roleLabel: 'Collection',
+    icon: DollarSign,
+    accent: '#06b6d4',
+    children: [
+      { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
+      { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
+    ],
+  };
+
+  const claimsGroup: NavGroup = {
+    roleLabel: 'Claims Officer',
+    icon: Shield,
+    accent: '#ef4444',
+    children: [
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+      { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
+    ],
+  };
+
+  const underwriterGroup: NavGroup = {
+    roleLabel: 'Underwriter',
+    icon: Search,
+    accent: '#8b5cf6',
+    children: [
+      { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
+    ],
+  };
+
+  let nativeItems: NavItem[] = [];
+  let viewOnlyGroups: NavGroup[] = [];
+
+  if (isUnderwriter) {
+    nativeItems = [
+      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Insurance Requests', path: '/dashboard/insurance-requests', icon: ClipboardList },
+      { label: 'Customer Records', path: '/dashboard/customers', icon: Users },
+      { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
+      { label: 'Summary', path: '/dashboard/summary', icon: FileSpreadsheet },
+    ];
+    viewOnlyGroups = [accountingGroup, collectionGroup, claimsGroup];
   } else if (isAccounting) {
-    isForbidden = !['Dashboard', 'Policy Statements', 'Review Collection Payment', 'Summary Commission'].includes(item.label);
-  }
-
-  if (isForbidden) {
-    return null;
+    nativeItems = [
+      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Policy Statements', path: '/dashboard/policy-statements', icon: FileSpreadsheet },
+      { label: 'Review Collection Payment', path: '/dashboard/review-collection-payment', icon: CreditCard },
+      { label: 'Summary Commission', path: '/dashboard/summary-commission', icon: FileSpreadsheet },
+    ];
+    viewOnlyGroups = [underwriterGroup, collectionGroup, claimsGroup];
+  } else if (isCollection) {
+    nativeItems = [
+      { label: 'Collection Module', path: '/dashboard/collection', icon: DollarSign },
+      { label: 'Collection Ledger', path: '/dashboard/collection/ledger', icon: FileSpreadsheet },
+    ];
+    viewOnlyGroups = [underwriterGroup];
+  } else if (isClaimsOfficer) {
+    nativeItems = [
+      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+      { label: 'Completed Requirements', path: '/dashboard/completed-requirements', icon: CheckCircle2 },
+    ];
+    viewOnlyGroups = [];
+  } else if (isAgent) {
+    nativeItems = [
+      { label: 'Customer Records', path: '/dashboard/customers', icon: Users },
+      { label: 'Policy Issuance Request', path: '/dashboard/quotations', icon: FileText },
+      { label: 'Claim Notifications', path: '/dashboard/claim-notifications', icon: AlertTriangle },
+    ];
+    viewOnlyGroups = [];
+  } else {
+    nativeItems = [
+      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    ];
+    viewOnlyGroups = [];
   }
 
   return (
-    <NavLink
-      to={item.path}
-      end={item.path === '/dashboard' || item.path === '/dashboard/collection'}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
-          ? 'bg-gradient-to-r from-[#8A1C2E] to-[#5C0612] text-white shadow-md shadow-[#8A1C2E]/20 active-nav-item'
-          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/40'
-        } ${collapsed ? 'justify-center' : ''}`
-      }
-    >
-      <item.icon className="h-5 w-5 shrink-0 text-zinc-400 group-hover:text-zinc-200 group-[.active-nav-item]:text-white transition-colors" />
-      {!collapsed && <span className="truncate">{item.label}</span>}
-    </NavLink>
+    <div className="space-y-1">
+      {/* Native Flat Work Items */}
+      {nativeItems.map((item) => (
+        <SidebarSubItem key={item.path} item={item} collapsed={collapsed} />
+      ))}
+
+      {/* View Only Other Roles Work at the VERY LAST position */}
+      {viewOnlyGroups.length > 0 && (
+        <div className="pt-3 mt-3 border-t border-zinc-800/60 space-y-1">
+          {!collapsed && (
+            <div className="px-3 py-1 space-y-0.5">
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
+                Other Department Work
+              </div>
+              <div className="text-[9px] font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1">
+                <Eye className="h-2.5 w-2.5 text-amber-400 shrink-0" />
+                <span>(View Only)</span>
+              </div>
+            </div>
+          )}
+          {viewOnlyGroups.map((group) => (
+            <SidebarNavGroup
+              key={group.roleLabel}
+              group={group}
+              collapsed={collapsed}
+              isOpen={openGroups[group.roleLabel]}
+              onToggle={() => onToggleGroup(group.roleLabel)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -380,13 +486,15 @@ export default function DashboardLayout() {
     };
   }, []);
 
-  // Track which role groups are open (all expanded by default)
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(adminNavGroups.map((g) => [g.roleLabel, true]))
-  );
+  // Track which role groups are open (closed by default)
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (roleLabel: string) => {
-    setOpenGroups((prev) => ({ ...prev, [roleLabel]: !prev[roleLabel] }));
+    setOpenGroups((prev) => {
+      // Find current isOpen state or default to false
+      const isCurrentlyOpen = prev[roleLabel];
+      return { ...prev, [roleLabel]: !isCurrentlyOpen };
+    });
   };
 
   useEffect(() => {
@@ -652,9 +760,11 @@ export default function DashboardLayout() {
             </div>
           </>
         ) : (
-          navItems.map((item) => (
-            <SidebarNavItem key={item.path} item={item} collapsed={sidebarCollapsed} />
-          ))
+          <NonAdminSidebarNav
+            collapsed={sidebarCollapsed}
+            openGroups={openGroups}
+            onToggleGroup={toggleGroup}
+          />
         )}
       </nav>
 

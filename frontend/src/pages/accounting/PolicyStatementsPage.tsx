@@ -61,10 +61,17 @@ const getCbicTariffPremiums = (coverageAmt: number, isCV: boolean) => {
   return table[closest] || (isCV ? { ebi: 660, tppd: 1395 } : { ebi: 420, tppd: 1245 });
 };
 
+import { useAuth } from '../../context/AuthContext';
+
 export default function PolicyStatementsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { roles = [] } = useAuth();
   const [searchParams] = useSearchParams();
+
+  const isAccountingOrAdmin = roles.some((r: string) =>
+    ['Accounting Officer', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+  );
   const urlSearch = searchParams.get('search') || '';
   const [searchInput, setSearchInput] = useState(urlSearch);
   const [selectedProvider, setSelectedProvider] = useState<'ALL' | 'ALPHA' | 'CBIC'>('ALL');
@@ -168,7 +175,14 @@ export default function PolicyStatementsPage() {
       {/* Page Title */}
       <div className="flex items-center justify-between print:hidden no-print">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Policy Statements</h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl font-bold text-slate-800">Policy Statements</h1>
+            {!isAccountingOrAdmin && (
+              <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+                <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">Auto-generated tariff, commission, remittance, and company income statements</p>
         </div>
       </div>

@@ -185,8 +185,12 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { roles, user, token } = useAuth();
-  const isClaimsOfficer = roles.includes('Claims Officer');
-  const isAdmin = roles.includes('Administrator');
+  const isClaimsOfficer = roles.some((r: string) =>
+    ['Claims Officer', 'Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+  );
+  const isAdmin = roles.some((r: string) =>
+    ['Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
+  );
   const canSubmit = roles.includes('Sales Agent') || roles.includes('Team Renewal') || isAdmin;
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -3024,9 +3028,16 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">
-            {completedOnly ? 'Completed Requirements' : 'Claim Notifications'}
-          </h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl font-bold text-slate-800">
+              {completedOnly ? 'Completed Requirements' : 'Claim Notifications'}
+            </h1>
+            {!isClaimsOfficer && !canSubmit && (
+              <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+                <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">
             {completedOnly
               ? 'View and audit all completed claim notifications & requirement files'
