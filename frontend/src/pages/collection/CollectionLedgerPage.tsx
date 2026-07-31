@@ -90,6 +90,52 @@ export default function CollectionLedgerPage() {
   // Expanded rows state
   const [expandedInvoiceIds, setExpandedInvoiceIds] = useState<Record<number, boolean>>({});
 
+  // Dual-scroll sync state & refs
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const bottomScrollRef = useRef<HTMLDivElement>(null);
+  const [tableScrollWidth, setTableScrollWidth] = useState<number>(0);
+  const isSyncingScroll = useRef<boolean>(false);
+
+  useEffect(() => {
+    const updateScrollWidth = () => {
+      if (bottomScrollRef.current) {
+        setTableScrollWidth(bottomScrollRef.current.scrollWidth);
+      }
+    };
+    updateScrollWidth();
+    const observer = new ResizeObserver(updateScrollWidth);
+    if (bottomScrollRef.current) {
+      observer.observe(bottomScrollRef.current);
+    }
+    window.addEventListener('resize', updateScrollWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateScrollWidth);
+    };
+  }, []);
+
+  const handleTopScroll = () => {
+    if (isSyncingScroll.current) return;
+    isSyncingScroll.current = true;
+    if (topScrollRef.current && bottomScrollRef.current) {
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+    requestAnimationFrame(() => {
+      isSyncingScroll.current = false;
+    });
+  };
+
+  const handleBottomScroll = () => {
+    if (isSyncingScroll.current) return;
+    isSyncingScroll.current = true;
+    if (topScrollRef.current && bottomScrollRef.current) {
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+    requestAnimationFrame(() => {
+      isSyncingScroll.current = false;
+    });
+  };
+
   const toggleExpand = (invoiceId: number) => {
     setExpandedInvoiceIds(prev => ({
       ...prev,
@@ -1260,101 +1306,101 @@ export default function CollectionLedgerPage() {
   }
 
   return (
-    <div className="space-y-6 text-slate-700">
+    <div className="space-y-3.5 text-slate-700">
       {/* Page Title & Navigation */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-0.5">
             <Link to="/dashboard/collection" className="text-slate-400 hover:text-slate-600 transition">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5" />
             </Link>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collection Dashboard</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Collection Dashboard</span>
           </div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Collection Payment Ledger</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">Collection Payment Ledger</h1>
             {!canManageCollection && (
-              <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+              <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/80 text-[10px] font-bold rounded-lg inline-flex items-center gap-1">
                 <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-500">Full visual spreadsheet layout for tracking and managing installment collection schedules</p>
+          <p className="text-xs text-slate-500">Full visual spreadsheet layout for tracking and managing installment collection schedules</p>
         </div>
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute right-0 top-0 h-24 w-24 bg-blue-50/30 rounded-full translate-x-6 -translate-y-6 group-hover:scale-110 transition-transform duration-500" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute right-0 top-0 h-20 w-20 bg-blue-50/30 rounded-full translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500" />
           <div className="flex justify-between items-start">
-            <div className="space-y-2.5">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Billings</span>
-              <p className="text-2xl font-black text-slate-800">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Billings</span>
+              <p className="text-xl font-black text-slate-800">
                 ₱{collectionMetrics.totalInvoiced.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-blue-50 text-blue-600">
-              <Receipt className="h-5 w-5" />
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+              <Receipt className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-1.5 text-xs text-slate-400">
-            <Info className="h-3.5 w-3.5" />
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
+            <Info className="h-3 w-3" />
             <span>Accumulated amount billed</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute right-0 top-0 h-24 w-24 bg-emerald-50/30 rounded-full translate-x-6 -translate-y-6 group-hover:scale-110 transition-transform duration-500" />
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute right-0 top-0 h-20 w-20 bg-emerald-50/30 rounded-full translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500" />
           <div className="flex justify-between items-start">
-            <div className="space-y-2.5">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Collected</span>
-              <p className="text-2xl font-black text-emerald-800">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Collected</span>
+              <p className="text-xl font-black text-emerald-800">
                 ₱{collectionMetrics.totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
-              <CheckCircle2 className="h-5 w-5" />
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-1.5 text-xs text-slate-400">
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
+            <TrendingUp className="h-3 w-3 text-emerald-500" />
             <span className="text-emerald-600 font-semibold">Collections active</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute right-0 top-0 h-24 w-24 bg-red-50/30 rounded-full translate-x-6 -translate-y-6 group-hover:scale-110 transition-transform duration-500" />
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute right-0 top-0 h-20 w-20 bg-red-50/30 rounded-full translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500" />
           <div className="flex justify-between items-start">
-            <div className="space-y-2.5">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Outstanding</span>
-              <p className="text-2xl font-black text-red-800">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Outstanding</span>
+              <p className="text-xl font-black text-red-800">
                 ₱{collectionMetrics.outstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-rose-50 text-rose-600">
-              <Clock className="h-5 w-5" />
+            <div className="p-2 rounded-xl bg-rose-50 text-rose-600">
+              <Clock className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-1.5 text-xs text-slate-400">
-            <Clock className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
+            <Clock className="h-3 w-3 text-rose-500 animate-pulse" />
             <span className="text-rose-600 font-semibold">Pending collections</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute right-0 top-0 h-24 w-24 bg-cyan-50/30 rounded-full translate-x-6 -translate-y-6 group-hover:scale-110 transition-transform duration-500" />
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute right-0 top-0 h-20 w-20 bg-cyan-50/30 rounded-full translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500" />
           <div className="flex justify-between items-start">
-            <div className="space-y-2.5">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Collection Rate</span>
-              <p className="text-2xl font-black text-cyan-800">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collection Rate</span>
+              <p className="text-xl font-black text-cyan-800">
                 {collectionMetrics.collectionRate}%
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-cyan-50 text-cyan-600">
-              <TrendingUp className="h-5 w-5" />
+            <div className="p-2 rounded-xl bg-cyan-50 text-cyan-600">
+              <TrendingUp className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-2">
             <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div
                 className="bg-cyan-500 h-1.5 rounded-full transition-all duration-500"
@@ -1366,27 +1412,27 @@ export default function CollectionLedgerPage() {
       </div>
 
       {/* Main Ledger Section */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-5 space-y-4 shadow-sm animate-fade-in">
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 space-y-3 shadow-sm animate-fade-in">
         {/* Search & Filter Controls */}
-        <div className="space-y-3.5">
+        <div className="space-y-2.5">
           {/* Top Row: Search Input + Quick Alarm Chips */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
             <div className="relative flex-1 min-w-[280px]">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search by assured name, plate, policy, agent, invoice #..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition shadow-inner"
+                className="w-full pl-9 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/10 focus:border-[#4A0E17] transition shadow-inner"
               />
               {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
                 <button
                   onClick={handleClearSearchAndFilters}
                   title="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3 w-3" />
                 </button>
               )}
             </div>
@@ -1399,16 +1445,16 @@ export default function CollectionLedgerPage() {
                     setInvoiceStatus(invoiceStatus === 'first_payment_alarm' ? 'every' : 'first_payment_alarm');
                     setPage(1);
                   }}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border ${
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer border ${
                     invoiceStatus === 'first_payment_alarm'
                       ? 'bg-rose-700 text-white border-rose-700 shadow-sm ring-2 ring-rose-700/20'
                       : 'bg-rose-50/80 text-rose-700 border-rose-200/80 hover:bg-rose-100'
                   }`}
                   title="Filter records with no 1st payment by the 20th of the following month"
                 >
-                  <span className={`h-2 w-2 rounded-full ${invoiceStatus === 'first_payment_alarm' ? 'bg-white' : 'bg-rose-600'} animate-pulse`} />
+                  <span className={`h-1.5 w-1.5 rounded-full ${invoiceStatus === 'first_payment_alarm' ? 'bg-white' : 'bg-rose-600'} animate-pulse`} />
                   <span>1st Payment Alarm</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  <span className={`text-[9px] px-1 py-0.2 rounded-full font-black ${
                     invoiceStatus === 'first_payment_alarm' ? 'bg-white text-rose-800' : 'bg-rose-200/80 text-rose-900'
                   }`}>
                     {firstPaymentAlarmCount}
@@ -1422,16 +1468,16 @@ export default function CollectionLedgerPage() {
                     setInvoiceStatus(invoiceStatus === 'dst_warning' ? 'every' : 'dst_warning');
                     setPage(1);
                   }}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border ${
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer border ${
                     invoiceStatus === 'dst_warning'
                       ? 'bg-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-600/20'
                       : 'bg-amber-50/80 text-amber-800 border-amber-200/80 hover:bg-amber-100'
                   }`}
                   title="Filter records with 80+ days unpaid since inception"
                 >
-                  <span className={`h-2 w-2 rounded-full ${invoiceStatus === 'dst_warning' ? 'bg-white' : 'bg-amber-600'} animate-pulse`} />
+                  <span className={`h-1.5 w-1.5 rounded-full ${invoiceStatus === 'dst_warning' ? 'bg-white' : 'bg-amber-600'} animate-pulse`} />
                   <span>DST Warning</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  <span className={`text-[9px] px-1 py-0.2 rounded-full font-black ${
                     invoiceStatus === 'dst_warning' ? 'bg-white text-amber-900' : 'bg-amber-200/80 text-amber-900'
                   }`}>
                     {dstWarningCount}
@@ -1444,9 +1490,9 @@ export default function CollectionLedgerPage() {
           {/* Bottom Row: Aligned Filter Dropdowns */}
           <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
             {/* Status */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
-              <Filter className="h-3.5 w-3.5 text-slate-400" />
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Status:</span>
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 hover:border-slate-300 transition">
+              <Filter className="h-3 w-3 text-slate-400" />
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Status:</span>
               <select
                 value={invoiceStatus}
                 onChange={(e) => { setInvoiceStatus(e.target.value); setPage(1); }}
@@ -1466,8 +1512,8 @@ export default function CollectionLedgerPage() {
             </div>
 
             {/* Type */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Type:</span>
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 hover:border-slate-300 transition">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Type:</span>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
@@ -1480,8 +1526,8 @@ export default function CollectionLedgerPage() {
             </div>
 
             {/* Terms */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Terms:</span>
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 hover:border-slate-300 transition">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Terms:</span>
               <select
                 value={termFilter}
                 onChange={(e) => setTermFilter(e.target.value)}
@@ -1498,8 +1544,8 @@ export default function CollectionLedgerPage() {
             </div>
 
             {/* Month */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Month:</span>
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 hover:border-slate-300 transition">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Month:</span>
               <select
                 value={dueMonthFilter}
                 onChange={(e) => { setDueMonthFilter(e.target.value); setPage(1); }}
@@ -1522,8 +1568,8 @@ export default function CollectionLedgerPage() {
             </div>
 
             {/* Year */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-slate-300 transition">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Year:</span>
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 hover:border-slate-300 transition">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Year:</span>
               <select
                 value={dueYearFilter}
                 onChange={(e) => { setDueYearFilter(e.target.value); setPage(1); }}
@@ -1541,7 +1587,7 @@ export default function CollectionLedgerPage() {
             {(searchInput || agentFilter || typeFilter || nameFilter || plateFilter || policyFilter || termFilter || dueMonthFilter || dueDayFilter || dueYearFilter) && (
               <button
                 onClick={handleClearSearchAndFilters}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                className="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
               >
                 Reset
               </button>
@@ -1557,42 +1603,56 @@ export default function CollectionLedgerPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
-              <table className="min-w-full divide-y divide-slate-200 text-left text-xs font-medium text-slate-600">
-                <thead className="bg-slate-50/90 text-slate-600 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200">
+            {/* Top Horizontal Scrollbar */}
+            <div
+              ref={topScrollRef}
+              onScroll={handleTopScroll}
+              className="overflow-x-auto overflow-y-hidden border border-b-0 border-slate-200 rounded-t-xl bg-slate-100/90 py-0.5 text-slate-400 shadow-xs"
+              style={{ width: '100%' }}
+            >
+              <div style={{ width: `${tableScrollWidth || 1600}px`, height: '2px' }} />
+            </div>
+
+            <div
+              ref={bottomScrollRef}
+              onScroll={handleBottomScroll}
+              className="overflow-x-auto rounded-b-xl border border-slate-200 shadow-sm"
+            >
+              <table className="min-w-[1550px] w-full text-left text-[10px] font-medium text-slate-600 border-collapse">
+                <thead className="bg-slate-50/90 text-slate-600 uppercase tracking-wider text-[9px] font-bold border-b border-slate-200">
                   <tr>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Agent</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Date Request</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Type</th>
-                    <th className="px-4 py-3 border-r border-slate-200 whitespace-nowrap">Assured Name</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Request No.</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Policy Number</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Plate Number</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Inception Date</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Total Premium</th>
-                    <th className="px-2.5 py-3 border-r border-slate-200 text-center whitespace-nowrap">Terms</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Installment</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">1st</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">2nd</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">3rd</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">4th</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">5th</th>
-                    <th className="px-3 py-3 border-r border-slate-200 text-center whitespace-nowrap">6th</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">Remaining Balance</th>
-                    <th className="px-3.5 py-3 border-r border-slate-200 text-[#4A0E17] font-bold bg-[#4A0E17]/10 whitespace-nowrap">Due {currentMonthName} {currentYear}</th>
-                    <th className="px-4 py-3 text-center whitespace-nowrap">Action</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Agent</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Req Date</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Type</th>
+                    <th className="px-2 py-1.5 border-r border-slate-200 min-w-[120px]">Assured Name</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Req #</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Policy #</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Plate #</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Inception</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Total Prem.</th>
+                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">Terms</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Inst. Amt</th>
+                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">1st</th>
+                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">2nd</th>
+                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">3rd</th>
+                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">4th</th>
+                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">5th</th>
+                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">6th</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Balance</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-200 text-[#4A0E17] font-bold bg-[#4A0E17]/10 whitespace-nowrap">Due</th>
+                    <th className="px-1.5 py-1.5 text-center whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {filteredInvoices.length === 0 ? (
                     <tr className="bg-white">
-                      <td colSpan={20} className="px-4 py-16 text-center">
-                        <div className="flex flex-col items-center justify-center gap-3">
-                          <div className="p-4 rounded-full bg-slate-50 text-slate-400">
-                            <Receipt className="h-8 w-8 text-slate-455" />
+                      <td colSpan={20} className="px-4 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="p-3 rounded-full bg-slate-50 text-slate-400">
+                            <Receipt className="h-6 w-6 text-slate-455" />
                           </div>
-                          <span className="text-sm font-bold text-slate-800">No record found</span>
-                          <span className="text-xs text-slate-400 font-normal">Adjust your filters or record collections to display schedules.</span>
+                          <span className="text-xs font-bold text-slate-800">No record found</span>
+                          <span className="text-[11px] text-slate-400 font-normal">Adjust your filters or record collections to display schedules.</span>
                         </div>
                       </td>
                     </tr>
@@ -1701,93 +1761,92 @@ export default function CollectionLedgerPage() {
                                 toggleExpand(row.id);
                               }
                             }}
-                            className={`transition-colors text-xs cursor-pointer ${
+                            className={`transition-colors text-[10px] cursor-pointer ${
                               isDstWarning
-                                ? 'bg-amber-50/30 hover:bg-amber-50/60 text-slate-800 border-l-4 border-l-amber-500 font-medium'
+                                ? 'bg-amber-50/30 hover:bg-amber-50/60 text-slate-800 border-l-2 border-l-amber-500 font-medium'
                                 : isCancelledPolicy
-                                  ? 'bg-rose-50/40 hover:bg-rose-50 text-slate-800 border-l-4 border-l-rose-600'
+                                  ? 'bg-rose-50/40 hover:bg-rose-50 text-slate-800 border-l-2 border-l-rose-600'
                                   : isFirstPaymentAlarm
-                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-4 border-l-rose-500 font-medium'
+                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-2 border-l-rose-500 font-medium'
                                     : isHighlighted
-                                      ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-4 border-l-rose-500 font-medium'
+                                      ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-2 border-l-rose-500 font-medium'
                                       : 'bg-white hover:bg-slate-50 text-slate-800'
                               }`}
                           >
-                            <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium">
-                              <div className="flex items-center gap-1.5">
+                            <td className="px-1.5 py-1 border-r border-slate-200 text-slate-700 font-medium">
+                              <div className="flex items-center gap-0.5">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     toggleExpand(row.id);
                                   }}
-                                  className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                                  className="p-0.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer shrink-0"
                                 >
                                   {isExpanded ? (
-                                    <ChevronDown className="h-3.5 w-3.5 text-[#4A0E17]" />
+                                    <ChevronDown className="h-3 w-3 text-[#4A0E17]" />
                                   ) : (
-                                    <ChevronRight className="h-3.5 w-3.5" />
+                                    <ChevronRight className="h-3 w-3" />
                                   )}
                                 </button>
-                                <span>{customer?.agent || '—'}</span>
+                                <span className="truncate max-w-[80px]">{customer?.agent || '—'}</span>
                               </div>
                             </td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-500 font-medium whitespace-nowrap">
-                              {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            <td className="px-1.5 py-1 border-r border-slate-200 text-[9.5px] text-slate-500 font-medium whitespace-nowrap">
+                              {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '—'}
                             </td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700 border border-blue-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'}`}>
-                                {customer?.request_type || '—'}
+                            <td className="px-1.5 py-1 border-r border-slate-200 whitespace-nowrap">
+                              <span className={`px-1 py-0.2 rounded text-[8.5px] font-bold uppercase tracking-tight ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700 border border-blue-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'}`}>
+                                {customer?.request_type === 'NEW ACCOUNT' ? 'NEW' : 'RENEWAL'}
                               </span>
                             </td>
-                            <td className="px-4 py-3 border-r border-slate-200 font-bold uppercase tracking-tight">
-                              <div className="text-slate-900 font-bold">{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
+                            <td className="px-2 py-1 border-r border-slate-200 font-bold uppercase tracking-tight">
+                              <div className="text-slate-900 font-bold text-[10.5px] truncate max-w-[130px]">{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
                               {isCancelledPolicy && (
-                                <div className="mt-1">
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 tracking-wide whitespace-nowrap uppercase shadow-2xs">
-                                    <XCircle className="h-3 w-3 text-rose-600" /> CANCELLED POLICY
+                                <div className="mt-0.5">
+                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 tracking-wide whitespace-nowrap uppercase">
+                                    <XCircle className="h-2 w-2 text-rose-600" /> CANCELLED
                                   </span>
                                 </div>
                               )}
                               {isFirstPaymentAlarm && !isCancelledPolicy && (
-                                <div className="mt-1">
+                                <div className="mt-0.5">
                                   <span
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 tracking-wide whitespace-nowrap"
-                                    title="Request was made in previous month and no 1st payment has been recorded as of the 20th of this month."
+                                    className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80 tracking-wide whitespace-nowrap"
+                                    title="No 1st payment recorded as of 20th."
                                   >
-                                    <span className="h-1.5 w-1.5 rounded-full bg-rose-600 animate-pulse flex-shrink-0" />
-                                    Unpaid 1st Payment (Overdue 20th)
+                                    <span className="h-1 w-1 rounded-full bg-rose-600 animate-pulse flex-shrink-0" />
+                                    Unpaid 1st
                                   </span>
                                 </div>
                               )}
                               {isDstWarning && !isFirstPaymentAlarm && !isCancelledPolicy && (
-                                <div className="mt-1">
+                                <div className="mt-0.5">
                                   <span
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 tracking-wide whitespace-nowrap"
-                                    title={`DST WARNING: ${dstWarningDays} days passed since inception date with unpaid balance.`}
+                                    className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 tracking-wide whitespace-nowrap"
+                                    title={`DST WARNING: ${dstWarningDays} days passed.`}
                                   >
-                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse flex-shrink-0" />
-                                    DST Warning ({dstWarningDays}d Unpaid)
+                                    <span className="h-1 w-1 rounded-full bg-amber-600 animate-pulse flex-shrink-0" />
+                                    DST ({dstWarningDays}d)
                                   </span>
                                 </div>
                               )}
-                              {customer && (
-                                <div className="text-[10px] text-slate-400 font-normal normal-case mt-0.5 space-y-0.5">
-                                  <p>{customer.mobile || customer.phone || 'No contact'}</p>
-                                  <p className="truncate max-w-[180px]">{customer.email || 'No email'}</p>
+                              {customer && (customer.mobile || customer.phone || customer.email) && (
+                                <div className="text-[8.5px] text-slate-400 font-normal normal-case mt-0.5 truncate max-w-[130px]">
+                                  {customer.mobile || customer.phone || ''} {customer.email ? `• ${customer.email}` : ''}
                                 </div>
                               )}
                             </td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] font-mono text-blue-700 font-bold whitespace-nowrap">
+                            <td className="px-1.5 py-1 border-r border-slate-200 text-[10px] font-mono text-blue-700 font-bold whitespace-nowrap">
                               {(row as any).policy?.quotation?.quotation_number || (row as any).policy?.quotation?.ir_number || (row as any).quotation_number || customer?.customer_code || '—'}
                             </td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-700 font-semibold uppercase whitespace-nowrap">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-600 font-medium uppercase whitespace-nowrap">{customer?.plate_no || '—'}</td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 text-[11px] text-slate-500 font-medium whitespace-nowrap">
-                              {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            <td className="px-1.5 py-1 border-r border-slate-200 text-[10px] text-slate-700 font-semibold uppercase whitespace-nowrap truncate max-w-[85px]">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
+                            <td className="px-1.5 py-1 border-r border-slate-200 text-[10px] text-slate-600 font-medium uppercase whitespace-nowrap truncate max-w-[65px]">{customer?.plate_no || '—'}</td>
+                            <td className="px-1.5 py-1 border-r border-slate-200 text-[9.5px] text-slate-500 font-medium whitespace-nowrap">
+                              {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '—'}
                             </td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 font-bold text-slate-800 whitespace-nowrap">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="px-2.5 py-3 border-r border-slate-200 text-center font-semibold text-slate-600">{terms}</td>
-                            <td className="px-3.5 py-3 border-r border-slate-200 text-slate-700 font-medium whitespace-nowrap">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-1.5 py-1 border-r border-slate-200 font-bold text-slate-800 whitespace-nowrap">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-1 py-1 border-r border-slate-200 text-center font-semibold text-slate-600">{terms}</td>
+                            <td className="px-1.5 py-1 border-r border-slate-200 text-slate-700 font-medium whitespace-nowrap">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
                             {[1, 2, 3, 4, 5, 6].map((idx) => {
                               const monthInfo = installmentMonths[idx - 1];
@@ -1811,7 +1870,7 @@ export default function CollectionLedgerPage() {
                               const suffix = idx === 1 ? 'ST' : idx === 2 ? 'ND' : idx === 3 ? 'RD' : 'TH';
 
                               return (
-                                <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center transition-all ${!isActive
+                                <td key={idx} className={`px-1 py-1 border-r border-slate-200 text-center transition-all ${!isActive
                                   ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650'
                                   : isPaid
                                     ? 'bg-emerald-50/50 dark:bg-emerald-950/20'
@@ -1822,9 +1881,9 @@ export default function CollectionLedgerPage() {
                                         : 'dark:bg-slate-900/10'
                                   }`}>
                                   {isActive ? (
-                                    <div className="flex flex-col items-center justify-center gap-0.5">
-                                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-none">{idx}{suffix} ({monthInfo?.monthName})</span>
-                                      <span className={`text-[10px] font-mono font-bold mt-0.5 leading-none ${isPaid
+                                    <div className="flex flex-col items-center justify-center gap-0">
+                                      <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-none">{idx}{suffix} ({monthInfo?.monthName})</span>
+                                      <span className={`text-[9px] font-mono font-bold leading-tight ${isPaid
                                         ? 'text-emerald-700 dark:text-emerald-400'
                                         : isPartial
                                           ? 'text-amber-700 dark:text-amber-400 font-bold'
@@ -1834,7 +1893,7 @@ export default function CollectionLedgerPage() {
                                         }`}>
                                         ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </span>
-                                      <span className={`text-[8px] font-extrabold uppercase mt-1 px-1 py-0.5 rounded leading-none inline-flex items-center gap-1 border border-transparent ${isPaid
+                                      <span className={`text-[7px] font-extrabold uppercase mt-0.5 px-0.5 py-0.2 rounded leading-none inline-flex items-center gap-0.5 border border-transparent ${isPaid
                                         ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30'
                                         : isPartial
                                           ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/30 animate-pulse'
@@ -1856,34 +1915,34 @@ export default function CollectionLedgerPage() {
                                 </td>
                               );
                             })}
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">
+                            <td className="px-1.5 py-1 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">
                               {(Number((row as any).amount_paid) - Number((row as any).total_amount)) >= 1.00 ? (
                                 <div className="flex flex-col gap-0.5">
-                                  <span className="text-slate-400 font-normal line-through text-[10px]">₱0.00</span>
-                                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-300 rounded text-[9px] font-extrabold uppercase whitespace-nowrap">
-                                    +₱{(Number((row as any).amount_paid) - Number((row as any).total_amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })} OVERPAID
+                                  <span className="text-slate-400 font-normal line-through text-[9px]">₱0.00</span>
+                                  <span className="px-1 py-0.2 bg-purple-100 text-purple-900 border border-purple-300 rounded text-[8px] font-extrabold uppercase whitespace-nowrap">
+                                    +₱{(Number((row as any).amount_paid) - Number((row as any).total_amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })} OVER
                                   </span>
                                 </div>
                               ) : (
                                 `₱${Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               )}
                             </td>
-                            <td className="px-3 py-3 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
+                            <td className="px-1.5 py-1 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
                               {dueAmount > 0 ? (
-                                <span className="px-2 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-350 rounded-lg text-[11px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
+                                <span className="px-1 py-0.2 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-350 rounded text-[9.5px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
                                   ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               ) : (
                                 <span className="text-slate-400 dark:text-slate-500">—</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-center" rowSpan={isExpanded ? 6 : 1} onClick={(e) => e.stopPropagation()}>
-                              <div className="flex flex-col items-center gap-2">
+                            <td className="px-1.5 py-1 text-center" rowSpan={isExpanded ? 6 : 1} onClick={(e) => e.stopPropagation()}>
+                              <div className="flex flex-col items-center gap-0.5">
                                 <button
                                   onClick={() => printReceiptHtml(row)}
-                                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.03] cursor-pointer animate-fade-in"
+                                  className="w-full inline-flex items-center justify-center gap-1 px-1.5 py-0.5 bg-emerald-700 hover:bg-emerald-800 text-white text-[9.5px] font-bold uppercase tracking-wider rounded transition-all hover:scale-[1.02] cursor-pointer"
                                 >
-                                  <FileText className="h-3 w-3" /> Receipt
+                                  <FileText className="h-2.5 w-2.5" /> Receipt
                                 </button>
                                 {(() => {
                                   const rowAny = row as any;
@@ -1907,15 +1966,15 @@ export default function CollectionLedgerPage() {
                                   return (
                                     <button
                                       onClick={() => setFreebieModalTarget(row)}
-                                      className={`w-full whitespace-nowrap inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                                      className={`w-full whitespace-nowrap inline-flex items-center justify-center gap-0.5 px-1 py-0.2 text-[9px] font-bold rounded border transition-all active:scale-95 cursor-pointer shadow-2xs ${
                                         freebieAttCount > 0
                                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100/80'
                                           : 'bg-amber-50/80 text-amber-800 border-amber-200/80 hover:bg-amber-100/80'
                                       }`}
                                       title={freebieAttCount > 0 ? `${freebieAttCount} Freebie Proof Attachment(s) Uploaded` : 'Upload / View Freebie Delivery Proof'}
                                     >
-                                      <Gift className={`h-3.5 w-3.5 shrink-0 ${freebieAttCount > 0 ? 'text-emerald-600' : 'text-amber-600'}`} />
-                                      <span>{freebieAttCount > 0 ? `Freebie (${freebieAttCount})` : 'Freebie Proof'}</span>
+                                      <Gift className={`h-2.5 w-2.5 shrink-0 ${freebieAttCount > 0 ? 'text-emerald-600' : 'text-amber-600'}`} />
+                                      <span>{freebieAttCount > 0 ? `Freebie (${freebieAttCount})` : 'Freebie'}</span>
                                     </button>
                                   );
                                 })()}
@@ -1927,22 +1986,22 @@ export default function CollectionLedgerPage() {
                             <>
                               {/* Row 2: Schedule of Payment */}
                               <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
-                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">Automatic</td>
-                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">Schedule of Payment</td>
-                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">Automatic</td>
-                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Installment Due Dates</td>
+                                <td colSpan={3} className="px-2.5 py-1 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[9.5px] uppercase tracking-wide">Automatic</td>
+                                <td colSpan={2} className="px-3 py-1 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15 text-xs">Schedule of Payment</td>
+                                <td className="px-2.5 py-1 border-r border-slate-100 font-mono text-[9.5px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">Automatic</td>
+                                <td colSpan={4} className="px-2.5 py-1 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center text-xs">Installment Due Dates</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const monthInfo = installmentMonths[idx - 1];
                                   const isActive = idx <= terms;
                                   return (
-                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
+                                    <td key={idx} className={`px-1.5 py-1 border-r border-slate-200 text-center font-mono text-[9.5px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
                                       {isActive ? monthInfo?.formattedDate : '—'}
                                     </td>
                                   );
                                 })}
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-2.5 py-1 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-2.5 py-1 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
                               </tr>
 
                               {/* Row 3: Amount of Payment */}
