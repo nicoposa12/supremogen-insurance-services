@@ -35,6 +35,7 @@ import { useToast } from '../../components/ui/Toast';
 import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
 import { getInvoices, sendInvoiceReminder } from '../../services/invoiceApi';
 import { recordPayment, updatePayment } from '../../services/paymentApi';
+import { updateCustomer } from '../../services/customerApi';
 import { downloadAttachment, getAttachmentPreview } from '../../services/attachmentApi';
 import { getReportSummary } from '../../services/reportApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
@@ -83,6 +84,10 @@ export default function CollectionLedgerPage() {
   // Record Collection Modal State
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  // Schedule editing state
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  const [customScheduleDates, setCustomScheduleDates] = useState<Record<number, string>>({});
 
   // Receipt Page View State
   const [viewingReceiptInvoice, setViewingReceiptInvoice] = useState<Invoice | null>(null);
@@ -954,6 +959,17 @@ export default function CollectionLedgerPage() {
     if (!canManageCollection) return;
     setSelectedInvoice(invoice);
     setCollectAmount(prefilledAmount ? String(prefilledAmount) : String(invoice.balance));
+    setIsEditingSchedule(false);
+    try {
+      const saved = localStorage.getItem(`custom_schedule_${invoice.id}`);
+      if (saved) {
+        setCustomScheduleDates(JSON.parse(saved));
+      } else {
+        setCustomScheduleDates({});
+      }
+    } catch (e) {
+      setCustomScheduleDates({});
+    }
     setCollectionModalOpen(true);
   };
 
@@ -1672,17 +1688,46 @@ export default function CollectionLedgerPage() {
                       // Generate schedule dates list
                       const inceptionDateStr = customer?.inception_date;
                       let installmentMonths: { monthName: string; year: number; index: number; formattedDate: string }[] = [];
-                      if (inceptionDateStr) {
-                        const date = new Date(inceptionDateStr);
-                        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                        for (let i = 0; i < 6; i++) {
-                          const d = new Date(date.getFullYear(), date.getMonth() + i, date.getDate());
-                          installmentMonths.push({
-                            index: i + 1,
-                            monthName: monthNames[d.getMonth()],
-                            year: d.getFullYear(),
-                            formattedDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                          });
+                      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+                      for (let i = 0; i < 6; i++) {
+                        const idx = i + 1;
+                        let customYmd = null;
+                        try {
+                          const saved = localStorage.getItem(`custom_schedule_${row.id}`);
+                          if (saved) {
+                            const parsed = JSON.parse(saved);
+                            if (parsed && parsed[idx]) customYmd = parsed[idx];
+                          }
+                        } catch (e) {}
+
+                        if (customYmd) {
+                          const parts = customYmd.split('-');
+                          if (parts.length === 3) {
+                            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                            if (!isNaN(d.getTime())) {
+                              installmentMonths.push({
+                                index: idx,
+                                monthName: monthNames[d.getMonth()],
+                                year: d.getFullYear(),
+                                formattedDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                              });
+                              continue;
+                            }
+                          }
+                        }
+
+                        if (inceptionDateStr) {
+                          const date = new Date(inceptionDateStr);
+                          if (!isNaN(date.getTime())) {
+                            const d = new Date(date.getFullYear(), date.getMonth() + i, date.getDate());
+                            installmentMonths.push({
+                              index: idx,
+                              monthName: monthNames[d.getMonth()],
+                              year: d.getFullYear(),
+                              formattedDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            });
+                          }
                         }
                       }
 
@@ -2204,12 +2249,29 @@ export default function CollectionLedgerPage() {
           (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
         );
 
-        const getExpectedDateStr = (idx: number) => {
-          if (!inceptionDateStr) return '—';
+        const getExpectedYmd = (idx: number) => {
+          if (customScheduleDates[idx]) return customScheduleDates[idx];
+          if (!inceptionDateStr) return '';
           const date = new Date(inceptionDateStr);
-          if (isNaN(date.getTime())) return '—';
+          if (isNaN(date.getTime())) return '';
           const d = new Date(date.getFullYear(), date.getMonth() + idx - 1, date.getDate());
-          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
+        };
+
+        const getExpectedDateStr = (idx: number) => {
+          const ymd = getExpectedYmd(idx);
+          if (!ymd) return '—';
+          const parts = ymd.split('-');
+          if (parts.length === 3) {
+            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            if (!isNaN(d.getTime())) {
+              return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+          }
+          return ymd;
         };
 
         const isCancelledPolicy = (selectedInvoice.status as string) === 'voided' || selectedInvoice.status === 'cancelled' || selectedInvoice.policy?.status === 'cancelled' || (selectedInvoice as any).policy?.quotation?.status === 'cancelled';
@@ -2275,13 +2337,82 @@ export default function CollectionLedgerPage() {
                     <tbody className="divide-y divide-slate-200 bg-white">
                       {/* Row 1: Schedule of Payment (Expected Dates) */}
                       <tr>
-                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 bg-emerald-50/50 text-left">Schedule of Payment</td>
+                        <td className="px-3 py-2 border-r border-slate-200 font-bold text-emerald-800 bg-emerald-50/50 text-left">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>Schedule of Payment</span>
+                            {!isEditingSchedule ? (
+                              <button
+                                type="button"
+                                onClick={() => setIsEditingSchedule(true)}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 cursor-pointer transition shadow-2xs"
+                                title="Click to customize schedule dates"
+                              >
+                                <Pencil className="h-2.5 w-2.5" /> Edit
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      localStorage.setItem(`custom_schedule_${selectedInvoice.id}`, JSON.stringify(customScheduleDates));
+                                      if (selectedInvoice.customer?.id && customScheduleDates[1]) {
+                                        await updateCustomer(selectedInvoice.customer.id, {
+                                          inception_date: customScheduleDates[1]
+                                        } as any);
+                                      }
+                                      showToast('Payment schedule updated successfully', 'success');
+                                      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                                    } catch (e) {
+                                      showToast('Failed to save schedule update', 'error');
+                                    }
+                                    setIsEditingSchedule(false);
+                                  }}
+                                  className="px-1.5 py-0.5 text-[9px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded cursor-pointer transition shadow-2xs"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsEditingSchedule(false);
+                                    try {
+                                      const saved = localStorage.getItem(`custom_schedule_${selectedInvoice.id}`);
+                                      if (saved) setCustomScheduleDates(JSON.parse(saved));
+                                      else setCustomScheduleDates({});
+                                    } catch (e) {}
+                                  }}
+                                  className="px-1.5 py-0.5 text-[9px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer transition shadow-2xs"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
                         {[1, 2, 3, 4, 5, 6].map((idx) => {
                           const isActive = idx <= terms;
                           return (
                             <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono ${!isActive ? 'bg-slate-50 text-slate-350' : 'text-slate-800 font-semibold'
                               }`}>
-                              {isActive ? getExpectedDateStr(idx) : '—'}
+                              {isActive ? (
+                                isEditingSchedule ? (
+                                  <input
+                                    type="date"
+                                    value={getExpectedYmd(idx)}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setCustomScheduleDates((prev) => ({
+                                        ...prev,
+                                        [idx]: val
+                                      }));
+                                    }}
+                                    className="text-[10px] px-1 py-0.5 border border-blue-400 rounded bg-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                                  />
+                                ) : (
+                                  getExpectedDateStr(idx)
+                                )
+                              ) : '—'}
                             </td>
                           );
                         })}
