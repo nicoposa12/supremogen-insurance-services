@@ -216,7 +216,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   // Calculator inputs (Basic Premium Popup)
   const [sellingRateOD, setSellingRateOD] = useState<number>(1.90);
   const [sellingRateAON, setSellingRateAON] = useState<number>(0.10);
-  const [towingFee, setTowingFee] = useState<string>('');
+  const [towingFee, setTowingFee] = useState<string>('500');
   const [agentMarkup, setAgentMarkup] = useState<string>('');
   const [subAgentMarkup, setSubAgentMarkup] = useState<string>('');
   const [freebieAmount, setFreebieAmount] = useState<string>('');
@@ -301,7 +301,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         const calc = details.calculator || {};
         setSellingRateOD(Number(calc.selling_rate_od) || 1.90);
         setSellingRateAON(Number(calc.selling_rate_aon) || 0.10);
-        setTowingFee(Number(calc.towing_fee) ? Number(calc.towing_fee).toLocaleString('en-US') : '');
+        const cleanQuotationUsedForTowing = (q.customer?.quotation_used || details.quotation_used || '').trim().toUpperCase();
+        setTowingFee(calc.towing_fee !== undefined && calc.towing_fee !== null && calc.towing_fee !== '' ? Number(calc.towing_fee).toLocaleString('en-US') : (cleanQuotationUsedForTowing === 'MOTOR' ? '200' : '500'));
         setAgentMarkup(Number(calc.agent_markup) ? Number(calc.agent_markup).toLocaleString('en-US') : '');
         setSubAgentMarkup(Number(calc.sub_agent_markup) ? Number(calc.sub_agent_markup).toLocaleString('en-US') : '');
         setFreebieAmount(Number(calc.freebie_amount) ? Number(calc.freebie_amount).toLocaleString('en-US') : '');
@@ -547,19 +548,19 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     if (isAutoreliable) {
       setSellingRateOD(isCommercial ? 1.05 : 1.00);
       setSellingRateAON(0.00);
-      if (!towingFee) setTowingFee('300');
+      if (!towingFee) setTowingFee(isMotor ? '200' : '500');
     } else if (isF1) {
       setSellingRateOD(isCommercial ? 1.10 : 1.05);
       setSellingRateAON(0.00);
-      if (!towingFee) setTowingFee('300');
+      if (!towingFee) setTowingFee(isMotor ? '200' : '500');
     } else if (isReelDrive) {
       setSellingRateOD(isCommercial ? 1.30 : 1.10);
       setSellingRateAON(0.00);
-      if (!towingFee) setTowingFee('300');
+      if (!towingFee) setTowingFee(isMotor ? '200' : '500');
     } else if (isActiveBest) {
       setSellingRateOD(isCommercial ? 1.25 : 1.05);
       setSellingRateAON(0.00);
-      if (!towingFee) setTowingFee('300');
+      if (!towingFee) setTowingFee(isMotor ? '200' : '500');
     } else if (isSirJay && isTruck) {
       setSellingRateOD(1.80);
       setSellingRateAON(0.00);
@@ -619,6 +620,17 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setSellingRateAON(0.10);
     }
   }, [quotationUsed, usage, usedRateType, partnerName]);
+
+  // Auto-set towing fee default based on vehicle type (200 fix amount for MOTOR / Motorcycle Private, 500 for others)
+  useEffect(() => {
+    const cleanQuotationUsed = (quotationUsed || '').trim().toUpperCase();
+    const isMotor = cleanQuotationUsed === 'MOTOR';
+    if (isMotor && (towingFee === '500' || !towingFee)) {
+      setTowingFee('200');
+    } else if (!isMotor && cleanQuotationUsed !== '' && (towingFee === '200' || !towingFee)) {
+      setTowingFee('500');
+    }
+  }, [quotationUsed, towingFee]);
 
   // Auto-calculate OD and AON premiums based on coverage and rates
   useEffect(() => {
@@ -1908,7 +1920,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                     )}
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Towing Fee / RAP (₱)</label>
-                      <input type="text" value={towingFee} onChange={(e) => setTowingFee(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      <input type="text" value={towingFee} onChange={(e) => setTowingFee(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder={isMotor ? "200.00" : "500.00"} />
                     </div>
                     <div className="flex justify-between items-center py-1 border-t border-slate-200">
                       <span className="font-bold text-slate-700">Gross Premium</span>
