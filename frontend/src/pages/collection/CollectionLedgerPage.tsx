@@ -1618,32 +1618,32 @@ export default function CollectionLedgerPage() {
               onScroll={handleBottomScroll}
               className="overflow-x-auto rounded-b-xl border border-slate-200 shadow-sm"
             >
-              <table className="min-w-[1550px] w-full text-left text-[10px] font-medium text-slate-600 border-collapse">
-                <thead className="bg-slate-50/90 text-slate-600 uppercase tracking-wider text-[9px] font-bold border-b border-slate-200">
+              <table className="min-w-[1550px] w-full text-left text-[10px] font-medium text-slate-600 border-collapse border border-slate-300">
+                <thead className="bg-slate-100 text-slate-700 uppercase tracking-wider text-[9px] font-bold border-b-2 border-slate-300">
                   <tr>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Agent</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Req Date</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Type</th>
-                    <th className="px-2 py-1.5 border-r border-slate-200 min-w-[120px]">Assured Name</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Req #</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Policy #</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Plate #</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Inception</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Total Prem.</th>
-                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">Terms</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Inst. Amt</th>
-                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">1st</th>
-                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">2nd</th>
-                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">3rd</th>
-                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">4th</th>
-                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">5th</th>
-                    <th className="px-1 py-1.5 border-r border-slate-200 text-center whitespace-nowrap">6th</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 whitespace-nowrap">Balance</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-200 text-[#4A0E17] font-bold bg-[#4A0E17]/10 whitespace-nowrap">Due</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Agent</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Req Date</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Type</th>
+                    <th className="px-2 py-1.5 border-r border-slate-300 min-w-[120px]">Assured Name</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Req #</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Policy #</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Plate #</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Inception</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Total Prem.</th>
+                    <th className="px-1 py-1.5 border-r border-slate-300 text-center whitespace-nowrap">Terms</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Inst. Amt</th>
+                    <th className="px-1 py-1.5 border-r border-slate-300 text-center whitespace-nowrap">1st</th>
+                    <th className="px-1 py-1.5 border-r border-slate-300 text-center whitespace-nowrap">2nd</th>
+                    <th className="px-1 py-1.5 border-r border-slate-300 text-center whitespace-nowrap">3rd</th>
+                    <th className="px-1 py-1.5 border-r border-slate-300 text-center whitespace-nowrap">4th</th>
+                    <th className="px-1 py-1.5 border-r border-slate-300 text-center whitespace-nowrap">5th</th>
+                    <th className="px-1 py-1.5 border-r border-slate-300 text-center whitespace-nowrap">6th</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 whitespace-nowrap">Balance</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300 text-[#4A0E17] font-bold bg-[#4A0E17]/10 whitespace-nowrap">Due</th>
                     <th className="px-1.5 py-1.5 text-center whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
+                <tbody className="divide-y divide-slate-300 bg-white">
                   {filteredInvoices.length === 0 ? (
                     <tr className="bg-white">
                       <td colSpan={20} className="px-4 py-12 text-center">
@@ -1761,29 +1761,35 @@ export default function CollectionLedgerPage() {
                                 toggleExpand(row.id);
                               }
                             }}
-                            className={`transition-colors text-[10px] cursor-pointer ${
-                              isDstWarning
-                                ? 'bg-amber-50/30 hover:bg-amber-50/60 text-slate-800 border-l-2 border-l-amber-500 font-medium'
-                                : isCancelledPolicy
-                                  ? 'bg-rose-50/40 hover:bg-rose-50 text-slate-800 border-l-2 border-l-rose-600'
-                                  : isFirstPaymentAlarm
-                                    ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-2 border-l-rose-500 font-medium'
-                                    : isHighlighted
+                            className={`transition-all text-[10px] cursor-pointer border-b border-slate-300 ${
+                              isExpanded
+                                ? 'bg-amber-100/90 dark:bg-amber-950/60 text-slate-900 border-l-4 border-l-[#4A0E17] font-bold shadow-xs'
+                                : isDstWarning
+                                  ? 'bg-amber-50/30 hover:bg-amber-50/60 text-slate-800 border-l-2 border-l-amber-500 font-medium'
+                                  : isCancelledPolicy
+                                    ? 'bg-rose-50/40 hover:bg-rose-50 text-slate-800 border-l-2 border-l-rose-600'
+                                    : isFirstPaymentAlarm
                                       ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-2 border-l-rose-500 font-medium'
-                                      : 'bg-white hover:bg-slate-50 text-slate-800'
+                                      : isHighlighted
+                                        ? 'bg-white hover:bg-slate-50 text-slate-800 border-l-2 border-l-rose-500 font-medium'
+                                        : 'bg-white hover:bg-slate-50 text-slate-800'
                               }`}
                           >
-                            <td className="px-1.5 py-1 border-r border-slate-200 text-slate-700 font-medium">
+                            <td className="px-1.5 py-1 border-r border-slate-300 text-slate-700 font-medium">
                               <div className="flex items-center gap-0.5">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     toggleExpand(row.id);
                                   }}
-                                  className="p-0.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer shrink-0"
+                                  className={`p-0.5 rounded transition cursor-pointer shrink-0 ${
+                                    isExpanded
+                                      ? 'bg-[#4A0E17] text-white shadow-2xs'
+                                      : 'hover:bg-slate-200 text-slate-400 hover:text-slate-700'
+                                  }`}
                                 >
                                   {isExpanded ? (
-                                    <ChevronDown className="h-3 w-3 text-[#4A0E17]" />
+                                    <ChevronDown className="h-3 w-3 text-white" />
                                   ) : (
                                     <ChevronRight className="h-3 w-3" />
                                   )}
@@ -1791,16 +1797,21 @@ export default function CollectionLedgerPage() {
                                 <span className="truncate max-w-[80px]">{customer?.agent || '—'}</span>
                               </div>
                             </td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 text-[9.5px] text-slate-500 font-medium whitespace-nowrap">
+                            <td className="px-1.5 py-1 border-r border-slate-300 text-[9.5px] text-slate-500 font-medium whitespace-nowrap">
                               {customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '—'}
                             </td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 whitespace-nowrap">
+                            <td className="px-1.5 py-1 border-r border-slate-300 whitespace-nowrap">
                               <span className={`px-1 py-0.2 rounded text-[8.5px] font-bold uppercase tracking-tight ${customer?.request_type === 'NEW ACCOUNT' ? 'bg-blue-50 text-blue-700 border border-blue-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'}`}>
                                 {customer?.request_type === 'NEW ACCOUNT' ? 'NEW' : 'RENEWAL'}
                               </span>
                             </td>
-                            <td className="px-2 py-1 border-r border-slate-200 font-bold uppercase tracking-tight">
-                              <div className="text-slate-900 font-bold text-[10.5px] truncate max-w-[130px]">{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</div>
+                            <td className="px-2 py-1 border-r border-slate-300 font-bold uppercase tracking-tight">
+                              <div className="text-slate-900 font-bold text-[10.5px] truncate max-w-[130px] flex items-center gap-1">
+                                <span>{customer ? `${customer.first_name} ${customer.last_name}` : '—'}</span>
+                                {isExpanded && (
+                                  <span className="px-1 py-0.1 rounded text-[7.5px] font-black bg-[#4A0E17] text-white uppercase tracking-wider">OPEN</span>
+                                )}
+                              </div>
                               {isCancelledPolicy && (
                                 <div className="mt-0.5">
                                   <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 tracking-wide whitespace-nowrap uppercase">
@@ -1836,17 +1847,17 @@ export default function CollectionLedgerPage() {
                                 </div>
                               )}
                             </td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 text-[10px] font-mono text-blue-700 font-bold whitespace-nowrap">
+                            <td className="px-1.5 py-1 border-r border-slate-300 text-[10px] font-mono text-blue-700 font-bold whitespace-nowrap">
                               {(row as any).policy?.quotation?.quotation_number || (row as any).policy?.quotation?.ir_number || (row as any).quotation_number || customer?.customer_code || '—'}
                             </td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 text-[10px] text-slate-700 font-semibold uppercase whitespace-nowrap truncate max-w-[85px]">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 text-[10px] text-slate-600 font-medium uppercase whitespace-nowrap truncate max-w-[65px]">{customer?.plate_no || '—'}</td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 text-[9.5px] text-slate-500 font-medium whitespace-nowrap">
+                            <td className="px-1.5 py-1 border-r border-slate-300 text-[10px] text-slate-700 font-semibold uppercase whitespace-nowrap truncate max-w-[85px]">{customer?.policy_no || row.policy?.policy_number || '—'}</td>
+                            <td className="px-1.5 py-1 border-r border-slate-300 text-[10px] text-slate-600 font-medium uppercase whitespace-nowrap truncate max-w-[65px]">{customer?.plate_no || '—'}</td>
+                            <td className="px-1.5 py-1 border-r border-slate-300 text-[9.5px] text-slate-500 font-medium whitespace-nowrap">
                               {customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '—'}
                             </td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 font-bold text-slate-800 whitespace-nowrap">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="px-1 py-1 border-r border-slate-200 text-center font-semibold text-slate-600">{terms}</td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 text-slate-700 font-medium whitespace-nowrap">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-1.5 py-1 border-r border-slate-300 font-bold text-slate-800 whitespace-nowrap">₱{totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-1 py-1 border-r border-slate-300 text-center font-semibold text-slate-600">{terms}</td>
+                            <td className="px-1.5 py-1 border-r border-slate-300 text-slate-700 font-medium whitespace-nowrap">₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
                             {[1, 2, 3, 4, 5, 6].map((idx) => {
                               const monthInfo = installmentMonths[idx - 1];
@@ -1870,7 +1881,7 @@ export default function CollectionLedgerPage() {
                               const suffix = idx === 1 ? 'ST' : idx === 2 ? 'ND' : idx === 3 ? 'RD' : 'TH';
 
                               return (
-                                <td key={idx} className={`px-1 py-1 border-r border-slate-200 text-center transition-all ${!isActive
+                                <td key={idx} className={`px-1 py-1 border-r border-slate-300 text-center transition-all ${!isActive
                                   ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650'
                                   : isPaid
                                     ? 'bg-emerald-50/50 dark:bg-emerald-950/20'
@@ -1915,7 +1926,7 @@ export default function CollectionLedgerPage() {
                                 </td>
                               );
                             })}
-                            <td className="px-1.5 py-1 border-r border-slate-200 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">
+                            <td className="px-1.5 py-1 border-r border-slate-300 font-mono font-black text-[#4A0E17] dark:text-[#f28b99]">
                               {(Number((row as any).amount_paid) - Number((row as any).total_amount)) >= 1.00 ? (
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-slate-400 font-normal line-through text-[9px]">₱0.00</span>
@@ -1927,7 +1938,7 @@ export default function CollectionLedgerPage() {
                                 `₱${Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               )}
                             </td>
-                            <td className="px-1.5 py-1 border-r border-slate-200 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
+                            <td className="px-1.5 py-1 border-r border-slate-300 font-mono font-black text-rose-800 dark:text-rose-450 bg-rose-50/40 dark:bg-rose-950/20">
                               {dueAmount > 0 ? (
                                 <span className="px-1 py-0.2 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-350 rounded text-[9.5px] font-extrabold animate-pulse border border-rose-200 dark:border-rose-900/30">
                                   ₱{dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1936,7 +1947,7 @@ export default function CollectionLedgerPage() {
                                 <span className="text-slate-400 dark:text-slate-500">—</span>
                               )}
                             </td>
-                            <td className="px-1.5 py-1 text-center" rowSpan={isExpanded ? 6 : 1} onClick={(e) => e.stopPropagation()}>
+                            <td className="px-1.5 py-1 text-center border-slate-300" rowSpan={isExpanded ? 6 : 1} onClick={(e) => e.stopPropagation()}>
                               <div className="flex flex-col items-center gap-0.5">
                                 <button
                                   onClick={() => printReceiptHtml(row)}
@@ -1985,78 +1996,78 @@ export default function CollectionLedgerPage() {
                           {isExpanded && (
                             <>
                               {/* Row 2: Schedule of Payment */}
-                              <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
-                                <td colSpan={3} className="px-2.5 py-1 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[9.5px] uppercase tracking-wide">Automatic</td>
-                                <td colSpan={2} className="px-3 py-1 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15 text-xs">Schedule of Payment</td>
-                                <td className="px-2.5 py-1 border-r border-slate-100 font-mono text-[9.5px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">Automatic</td>
-                                <td colSpan={4} className="px-2.5 py-1 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center text-xs">Installment Due Dates</td>
+                              <tr className="bg-emerald-50/30 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-300 border-b border-slate-300 border-l-4 border-l-[#4A0E17]">
+                                <td colSpan={3} className="px-2.5 py-1 border-r border-slate-300 text-right font-bold bg-emerald-50/40 dark:bg-emerald-950/30 text-[9.5px] uppercase tracking-wide">Automatic</td>
+                                <td colSpan={2} className="px-3 py-1 border-r border-slate-300 font-bold bg-emerald-50/40 dark:bg-emerald-950/35 text-xs">Schedule of Payment</td>
+                                <td className="px-2.5 py-1 border-r border-slate-300 font-mono text-[9.5px] bg-emerald-50/40 dark:bg-emerald-950/30 text-center font-bold">Automatic</td>
+                                <td colSpan={4} className="px-2.5 py-1 border-r border-slate-300 bg-emerald-50/40 dark:bg-emerald-950/30 font-bold text-center text-xs">Installment Due Dates</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const monthInfo = installmentMonths[idx - 1];
                                   const isActive = idx <= terms;
                                   return (
-                                    <td key={idx} className={`px-1.5 py-1 border-r border-slate-200 text-center font-mono text-[9.5px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
+                                    <td key={idx} className={`px-1.5 py-1 border-r border-slate-300 text-center font-mono text-[9.5px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-655' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/50 dark:bg-emerald-950/40'}`}>
                                       {isActive ? monthInfo?.formattedDate : '—'}
                                     </td>
                                   );
                                 })}
-                                <td className="px-2.5 py-1 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                                <td className="px-2.5 py-1 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-2.5 py-1 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-2.5 py-1 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30"></td>
                               </tr>
 
                               {/* Row 3: Amount of Payment */}
-                              <tr className="bg-emerald-50/10 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-400">
-                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-emerald-50/20 dark:bg-emerald-950/10 text-[10px] uppercase tracking-wide">Automatic</td>
-                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-emerald-50/20 dark:bg-emerald-950/15">Amount of Payment</td>
-                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-emerald-50/20 dark:bg-emerald-950/10 text-center font-bold">Automatic</td>
-                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/20 dark:bg-emerald-950/10 font-bold text-center">Target Amount Per Installment</td>
+                              <tr className="bg-emerald-50/30 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-300 border-b border-slate-300 border-l-4 border-l-[#4A0E17]">
+                                <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-emerald-50/40 dark:bg-emerald-950/30 text-[10px] uppercase tracking-wide">Automatic</td>
+                                <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-emerald-50/40 dark:bg-emerald-950/35">Amount of Payment</td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-emerald-50/40 dark:bg-emerald-950/30 text-center font-bold">Automatic</td>
+                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-emerald-50/40 dark:bg-emerald-950/30 font-bold text-center">Target Amount Per Installment</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
                                   return (
-                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/30 dark:bg-emerald-950/20'}`}>
+                                    <td key={idx} className={`px-2 py-1.5 border-r border-slate-300 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-650' : 'text-emerald-950 dark:text-emerald-350 bg-emerald-50/50 dark:bg-emerald-950/40'}`}>
                                       {isActive ? `₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
                                     </td>
                                   );
                                 })}
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30"></td>
                               </tr>
 
                               {/* Row 4: Actual Payment Date */}
-                              <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
-                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
-                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">Actual Payment Date</td>
-                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
-                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300">Recorded Dates Collected</td>
+                              <tr className="bg-pink-50/30 dark:bg-pink-950/20 text-pink-900 dark:text-pink-300 border-b border-slate-300 border-l-4 border-l-[#4A0E17]">
+                                <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-pink-50/40 dark:bg-pink-950/30 text-[10px]"></td>
+                                <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-pink-50/40 dark:bg-pink-950/35">Actual Payment Date</td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-pink-50/40 dark:bg-pink-950/30 text-center"></td>
+                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300">Recorded Dates Collected</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
                                   const payment = isActive ? payments[idx - 1] : null;
                                   return (
-                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650' : payment ? 'text-pink-955 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
+                                    <td key={idx} className={`px-2 py-1.5 border-r border-slate-300 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650' : payment ? 'text-pink-955 dark:text-pink-350 bg-pink-50/50 dark:bg-pink-950/35 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>
                                       {payment ? new Date(payment.payment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                                     </td>
                                   );
                                 })}
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
                                   {row.balance <= 0 ? 'PAID IN FULL' : 'PARTIAL'}
                                 </td>
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30"></td>
                               </tr>
 
                               {/* Row 5: Actual Amount Payment */}
-                              <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
-                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
-                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">Actual Amount Payment</td>
-                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
-                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Amount Paid & Method</td>
+                              <tr className="bg-pink-50/30 dark:bg-pink-950/20 text-pink-900 dark:text-pink-300 border-b border-slate-300 border-l-4 border-l-[#4A0E17]">
+                                <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-pink-50/40 dark:bg-pink-950/30 text-[10px]"></td>
+                                <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-pink-50/40 dark:bg-pink-950/35">Actual Amount Payment</td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-pink-50/40 dark:bg-pink-950/30 text-center"></td>
+                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Amount Paid & Method</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
                                   const payment = isActive ? payments[idx - 1] : null;
                                   return (
-                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25' : 'text-slate-400 dark:text-slate-500'}`}>
+                                    <td key={idx} className={`px-2 py-1.5 border-r border-slate-300 text-center font-mono text-[10px] font-bold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/50 dark:bg-pink-950/35' : 'text-slate-400 dark:text-slate-500'}`}>
                                       {payment ? (
                                         <div className="flex flex-col items-center">
                                           <span>₱{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -2068,32 +2079,32 @@ export default function CollectionLedgerPage() {
                                     </td>
                                   );
                                 })}
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-emerald-800 dark:text-emerald-400 font-mono">
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-emerald-800 dark:text-emerald-400 font-mono">
                                   ₱{amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </td>
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30"></td>
                               </tr>
 
                               {/* Row 5.5: Actual Reference / Check / Tracker */}
-                              <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400">
-                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
-                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">Actual Reference / Check / Tracker</td>
-                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
-                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Ref / Check / Tracking No.</td>
+                              <tr className="bg-pink-50/30 dark:bg-pink-950/20 text-pink-900 dark:text-pink-300 border-b border-slate-300 border-l-4 border-l-[#4A0E17]">
+                                <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-pink-50/40 dark:bg-pink-950/30 text-[10px]"></td>
+                                <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-pink-50/40 dark:bg-pink-950/35">Actual Reference / Check / Tracker</td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-pink-50/40 dark:bg-pink-950/30 text-center"></td>
+                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Ref / Check / Tracking No.</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
                                   const payment = isActive ? payments[idx - 1] : null;
                                   if (!isActive) {
                                     return (
-                                      <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650">
+                                      <td key={idx} className="px-2 py-1.5 border-r border-slate-300 text-center font-mono text-[10px] bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650">
                                         —
                                       </td>
                                     );
                                   }
                                   if (!payment) {
                                     return (
-                                      <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                                      <td key={idx} className="px-2 py-1.5 border-r border-slate-300 text-center font-mono text-[10px] text-slate-400 dark:text-slate-500">
                                         —
                                       </td>
                                     );
@@ -2102,7 +2113,7 @@ export default function CollectionLedgerPage() {
                                   const isCheck = payment.payment_method === 'post_dated_checks';
                                   const labelType = isTracker ? 'Track No' : (isCheck ? 'Check No' : 'Ref');
                                   return (
-                                    <td key={idx} className="px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-pink-50/40 dark:bg-pink-950/25">
+                                    <td key={idx} className="px-2 py-1.5 border-r border-slate-300 text-center font-mono text-[10px] font-semibold text-slate-700 dark:text-slate-200 bg-pink-50/50 dark:bg-pink-950/35">
                                       {payment.reference_number ? (
                                         <div className="flex flex-col items-center">
                                           <span className="text-[8px] text-slate-400 dark:text-slate-500 uppercase font-bold">{labelType}</span>
@@ -2114,24 +2125,24 @@ export default function CollectionLedgerPage() {
                                     </td>
                                   );
                                 })}
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
                                 </td>
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30"></td>
                               </tr>
 
                               {/* Row 6: Actual Payment Proof */}
-                              <tr className="bg-pink-50/10 dark:bg-pink-950/5 text-pink-850 dark:text-pink-400 border-b-2 border-slate-200 dark:border-slate-800">
-                                <td colSpan={3} className="px-3 py-2 border-r border-slate-100 text-right font-bold bg-pink-50/20 dark:bg-pink-950/10 text-[10px]"></td>
-                                <td colSpan={2} className="px-4 py-2 border-r border-slate-200 font-bold bg-pink-50/20 dark:bg-pink-950/15">Actual Payment Proof</td>
-                                <td className="px-3 py-2 border-r border-slate-100 font-mono text-[10px] bg-pink-50/20 dark:bg-pink-950/10 text-center"></td>
-                                <td colSpan={4} className="px-3 py-2 border-r border-slate-200 bg-pink-50/20 dark:bg-pink-950/10 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Proof of Payment</td>
+                              <tr className="bg-pink-50/30 dark:bg-pink-950/20 text-pink-900 dark:text-pink-300 border-b-2 border-slate-400 border-l-4 border-l-[#4A0E17]">
+                                <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-pink-50/40 dark:bg-pink-950/30 text-[10px]"></td>
+                                <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-pink-50/40 dark:bg-pink-950/35">Actual Payment Proof</td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-pink-50/40 dark:bg-pink-950/30 text-center"></td>
+                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Proof of Payment</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
                                   const payment = isActive ? payments[idx - 1] : null;
                                   const proofFile = payment?.attachments?.[0];
                                   return (
-                                    <td key={idx} className={`px-2 py-2 border-r border-slate-200 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25' : 'text-slate-400 dark:text-slate-500'}`}>
+                                    <td key={idx} className={`px-2 py-1.5 border-r border-slate-300 text-center font-mono text-[10px] font-semibold ${!isActive ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-300 dark:text-slate-655' : payment ? 'text-pink-950 dark:text-pink-350 bg-pink-50/40 dark:bg-pink-950/25' : 'text-slate-400 dark:text-slate-500'}`}>
                                       {proofFile ? (
                                         <button
                                           type="button"
@@ -2148,9 +2159,8 @@ export default function CollectionLedgerPage() {
                                     </td>
                                   );
                                 })}
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono">
-                                </td>
-                                <td className="px-3 py-2 border-r border-slate-200 bg-slate-50/50 dark:bg-slate-900/30"></td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30 font-bold text-slate-650 dark:text-slate-350 font-mono"></td>
+                                <td className="px-3 py-1.5 border-r border-slate-300 bg-slate-50/50 dark:bg-slate-900/30"></td>
                               </tr>
                             </>
                           )}
