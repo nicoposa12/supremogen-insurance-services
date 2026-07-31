@@ -59,6 +59,7 @@ export default function CollectionLedgerPage() {
   const [searchVal, setSearchVal] = useState(querySearch);
   const [searchInput, setSearchInput] = useState(querySearch);
   const [invoiceStatus, setInvoiceStatus] = useState('every');
+  const [sentUnpaidTermFilter, setSentUnpaidTermFilter] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
@@ -160,6 +161,7 @@ export default function CollectionLedgerPage() {
     setDueMonthFilter('');
     setDueYearFilter('');
     setDueDayFilter('');
+    setSentUnpaidTermFilter('');
     setPage(1);
   };
 
@@ -655,7 +657,7 @@ export default function CollectionLedgerPage() {
       page: page,
       per_page: perPage,
       search: searchVal,
-      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm')
+      status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm' || invoiceStatus === 'sent')
         ? 'sent,partial,overdue'
         : (invoiceStatus === 'every'
             ? 'sent,partial,overdue,paid,overpaid,cancelled,voided'
@@ -709,6 +711,33 @@ export default function CollectionLedgerPage() {
     const rawList = invoicesRes?.data?.data ?? [];
     return rawList.filter((row: Invoice) => {
       const customer = row.customer;
+
+      // Sent (Unpaid) Filter & Term Filter
+      if (invoiceStatus === 'sent') {
+        if (Number(row.balance) <= 0) return false;
+
+        if (sentUnpaidTermFilter) {
+          const targetTerm = Number(sentUnpaidTermFilter);
+          const terms = Number(customer?.payment_terms || 1);
+          if (targetTerm < 1 || targetTerm > 6 || terms < targetTerm) {
+            return false;
+          }
+
+          const totalPremium = Number(row.total_amount);
+          const installmentAmount = totalPremium / terms;
+          const payments = [...(row.payments || [])].sort(
+            (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
+          );
+
+          const isInvoicePaid = Number(row.balance) <= 0;
+          const paymentForTerm = payments[targetTerm - 1];
+          const isTermPaid = isInvoicePaid || (paymentForTerm && Number(paymentForTerm.amount) >= (installmentAmount - 0.05));
+
+          if (isTermPaid) {
+            return false;
+          }
+        }
+      }
 
       // 1st Payment Alarm filter (No 1st payment by 20th of following month)
       if (invoiceStatus === 'first_payment_alarm') {
@@ -836,7 +865,7 @@ export default function CollectionLedgerPage() {
 
       return true;
     });
-  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter, termFilter, dueMonthFilter, dueYearFilter, dueDayFilter]);
+  }, [invoicesRes, agentFilter, typeFilter, nameFilter, plateFilter, policyFilter, termFilter, dueMonthFilter, dueYearFilter, dueDayFilter, invoiceStatus, sentUnpaidTermFilter]);
 
   const autoExpandedLedgerRef = useRef<string | null>(null);
 
@@ -1526,6 +1555,26 @@ export default function CollectionLedgerPage() {
                 <option value="voided">Cancelled / Voided</option>
               </select>
             </div>
+
+            {/* Sent Unpaid Term Filter (Shown when Sent (Unpaid) is selected) */}
+            {invoiceStatus === 'sent' && (
+              <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 hover:border-amber-300 transition animate-fadeIn">
+                <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wider">Unpaid Term:</span>
+                <select
+                  value={sentUnpaidTermFilter}
+                  onChange={(e) => { setSentUnpaidTermFilter(e.target.value); setPage(1); }}
+                  className="bg-transparent text-xs font-semibold text-amber-900 focus:outline-none cursor-pointer"
+                >
+                  <option value="">All Terms Unpaid</option>
+                  <option value="1">1st Term Unpaid</option>
+                  <option value="2">2nd Term Unpaid</option>
+                  <option value="3">3rd Term Unpaid</option>
+                  <option value="4">4th Term Unpaid</option>
+                  <option value="5">5th Term Unpaid</option>
+                  <option value="6">6th Term Unpaid</option>
+                </select>
+              </div>
+            )}
 
             {/* Type */}
             <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 hover:border-slate-300 transition">

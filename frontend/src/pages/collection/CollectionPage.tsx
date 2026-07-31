@@ -57,6 +57,7 @@ export default function CollectionPage() {
   const [invoiceSearch, setInvoiceSearch] = useState(querySearch);
   const [invoiceSearchInput, setInvoiceSearchInput] = useState(querySearch);
   const [invoiceStatus, setInvoiceStatus] = useState('every');
+  const [sentUnpaidTermFilter, setSentUnpaidTermFilter] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
   const [invoicePerPage, setInvoicePerPage] = useState(10);
 
@@ -140,7 +141,7 @@ export default function CollectionPage() {
       search: invoiceSearch,
       status: (invoiceSearch && invoiceSearch.trim() !== '') 
         ? 'sent,partial,overdue,paid,overpaid,cancelled,voided' 
-        : (invoiceStatus === 'all'
+        : (invoiceStatus === 'all' || invoiceStatus === 'sent'
             ? 'sent,partial,overdue'
             : (invoiceStatus === 'every'
                 ? 'sent,partial,overdue,paid,overpaid,cancelled,voided'
@@ -150,6 +151,38 @@ export default function CollectionPage() {
     }),
     placeholderData: (prev) => prev,
   });
+
+  const displayInvoices = useMemo(() => {
+    const rawList = invoicesRes?.data?.data ?? [];
+    if (invoiceStatus !== 'sent') return rawList;
+
+    return rawList.filter((row: Invoice) => {
+      if (Number(row.balance) <= 0) return false;
+
+      if (sentUnpaidTermFilter) {
+        const targetTerm = Number(sentUnpaidTermFilter);
+        const customer = row.customer;
+        const terms = Number(customer?.payment_terms || 1);
+        if (targetTerm < 1 || targetTerm > 6 || terms < targetTerm) {
+          return false;
+        }
+
+        const totalPremium = Number(row.total_amount);
+        const installmentAmount = totalPremium / terms;
+        const payments = [...(row.payments || [])].sort(
+          (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
+        );
+
+        const isInvoicePaid = Number(row.balance) <= 0;
+        const paymentForTerm = payments[targetTerm - 1];
+        const isTermPaid = isInvoicePaid || (paymentForTerm && Number(paymentForTerm.amount) >= (installmentAmount - 0.05));
+
+        if (isTermPaid) return false;
+      }
+
+      return true;
+    });
+  }, [invoicesRes, invoiceStatus, sentUnpaidTermFilter]);
 
   const { data: paymentsRes, isLoading: paymentsLoading } = useQuery({
     queryKey: ['payments-collections', paymentPage, paymentSearch, paymentStatus, paymentPerPage],
@@ -734,6 +767,26 @@ export default function CollectionPage() {
                   <option value="overpaid">Overpayment</option>
                   <option value="paid">Paid</option>
                 </select>
+
+                {/* Sent Unpaid Term Filter (Shown when Sent (Unpaid) is selected) */}
+                {invoiceStatus === 'sent' && (
+                  <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 transition animate-fadeIn">
+                    <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Unpaid Term:</span>
+                    <select
+                      value={sentUnpaidTermFilter}
+                      onChange={(e) => { setSentUnpaidTermFilter(e.target.value); setInvoicePage(1); }}
+                      className="bg-transparent text-xs font-semibold text-amber-900 focus:outline-none cursor-pointer"
+                    >
+                      <option value="">All Terms Unpaid</option>
+                      <option value="1">1st Term Unpaid</option>
+                      <option value="2">2nd Term Unpaid</option>
+                      <option value="3">3rd Term Unpaid</option>
+                      <option value="4">4th Term Unpaid</option>
+                      <option value="5">5th Term Unpaid</option>
+                      <option value="6">6th Term Unpaid</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -742,7 +795,7 @@ export default function CollectionPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-[#4A0E17]" />
                 <span className="text-sm text-slate-400">Loading pending invoices...</span>
               </div>
-            ) : (invoicesRes?.data?.data ?? []).length === 0 ? (
+            ) : displayInvoices.length === 0 ? (
               <EmptyState 
                 icon={<Receipt className="h-10 w-10 text-slate-400" />}
                 title="No pending collections" 
@@ -752,7 +805,7 @@ export default function CollectionPage() {
               <>
                 <DataTable 
                   columns={invoiceColumns} 
-                  data={invoicesRes?.data?.data ?? []} 
+                  data={displayInvoices} 
                   loading={invoicesLoading}
                 />
                 {invoicesRes?.data && (
