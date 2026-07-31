@@ -40,8 +40,8 @@ class QuotationController extends Controller
         if ($request->user()->isSalesOrRenewal()) {
             $query->where('prepared_by', $request->user()->id);
         } elseif ($request->user()->hasRole('Underwriter')) {
-            // Underwriters see submitted / under_review / approved / rejected / cancellation_requested / cancelled
-            $query->whereIn('status', ['submitted', 'under_review', 'approved', 'rejected', 'cancellation_requested', 'cancelled']);
+            // Underwriters see submitted / resubmitted / under_review / approved / rejected / cancellation_requested / cancelled
+            $query->whereIn('status', ['submitted', 'resubmitted', 'under_review', 'approved', 'rejected', 'cancellation_requested', 'cancelled']);
         }
 
         if ($request->filled('creator_role')) {
@@ -179,10 +179,10 @@ class QuotationController extends Controller
             ], 403);
         }
 
-        if ($quotation->status !== 'draft') {
+        if (!in_array($quotation->status, ['draft', 'rejected', 'resubmitted'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only draft quotations can be edited.',
+                'message' => 'Only draft or rejected quotations can be edited.',
             ], 422);
         }
 
@@ -281,10 +281,10 @@ class QuotationController extends Controller
             ], 403);
         }
 
-        if ($quotation->status !== 'draft') {
+        if (!in_array($quotation->status, ['draft', 'rejected', 'resubmitted'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only draft quotations can be submitted.',
+                'message' => 'Only draft or rejected quotations can be submitted for review.',
             ], 422);
         }
 
@@ -295,8 +295,10 @@ class QuotationController extends Controller
             ], 422);
         }
 
+        $newStatus = in_array($quotation->status, ['rejected', 'resubmitted']) ? 'resubmitted' : 'submitted';
+
         $quotation->update([
-            'status' => 'submitted',
+            'status' => $newStatus,
             'submitted_at' => now(),
             'ir_number' => $quotation->ir_number ?? Quotation::generateIRNumber(),
         ]);
@@ -304,11 +306,12 @@ class QuotationController extends Controller
         // Notify all Underwriters
         try {
             $underwriters = \App\Models\User::role('Underwriter')->get();
+            $actionWord = $newStatus === 'resubmitted' ? 'resubmitted' : 'submitted';
             foreach ($underwriters as $underwriter) {
                 \App\Models\Notification::create([
                     'user_id' => $underwriter->id,
-                    'title' => 'Quotation Submitted for Review',
-                    'message' => "Quotation {$quotation->quotation_number} has been submitted by " . request()->user()->name . " and requires your review.",
+                    'title' => $newStatus === 'resubmitted' ? 'Quotation Resubmitted for Review' : 'Quotation Submitted for Review',
+                    'message' => "Quotation {$quotation->quotation_number} has been {$actionWord} by " . request()->user()->name . " and requires your review.",
                     'type' => 'info',
                     'read_at' => null,
                 ]);
@@ -319,7 +322,7 @@ class QuotationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Quotation submitted for review.',
+            'message' => $newStatus === 'resubmitted' ? 'Quotation resubmitted for review.' : 'Quotation submitted for review.',
             'data' => $quotation->fresh(['customer', 'items.insuranceProduct']),
         ]);
     }
@@ -335,10 +338,10 @@ class QuotationController extends Controller
             return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
         }
 
-        if (!in_array($quotation->status, ['submitted', 'under_review'])) {
+        if (!in_array($quotation->status, ['submitted', 'under_review', 'resubmitted'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only submitted quotations can be reviewed.',
+                'message' => 'Only submitted or resubmitted quotations can be reviewed.',
             ], 422);
         }
 

@@ -20,6 +20,9 @@ export default function InlinePolicyNoCell({ quotation, onUpdated }: InlinePolic
     ['Underwriter', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
 
+  const isAssignableStatus = !['rejected', 'cancelled', 'draft', 'expired'].includes(quotation.status);
+  const canEditPolicy = canEdit && isAssignableStatus;
+
   const policyNo = quotation.policy_number || quotation.customer?.policy_no || quotation.policy?.policy_number || '';
 
   const [isEditing, setIsEditing] = useState(false);
@@ -95,7 +98,7 @@ export default function InlinePolicyNoCell({ quotation, onUpdated }: InlinePolic
         <span className="font-mono text-xs font-semibold text-slate-800 uppercase tracking-tight">
           {policyNo}
         </span>
-        {canEdit && (
+        {canEditPolicy && (
           <button
             type="button"
             onClick={(e) => {
@@ -115,7 +118,7 @@ export default function InlinePolicyNoCell({ quotation, onUpdated }: InlinePolic
 
   return (
     <div className="flex items-center gap-1">
-      {canEdit ? (
+      {canEditPolicy ? (
         <button
           type="button"
           onClick={(e) => {
@@ -130,7 +133,7 @@ export default function InlinePolicyNoCell({ quotation, onUpdated }: InlinePolic
           <span>Assign Policy No.</span>
         </button>
       ) : (
-        <span className="text-xs text-slate-400 font-medium italic">No assigned policy number yet</span>
+        <span className="text-xs text-slate-400 font-medium">—</span>
       )}
     </div>
   );

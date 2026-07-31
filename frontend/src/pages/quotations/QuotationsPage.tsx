@@ -127,7 +127,7 @@ export default function QuotationsPage() {
     }));
   };
 
-  const statusFilters = ['all', 'draft', 'submitted', 'under_review', 'approved', 'rejected', 'cancellation_requested', 'cancelled', 'expired'];
+  const statusFilters = ['all', 'draft', 'submitted', 'resubmitted', 'under_review', 'approved', 'rejected', 'cancellation_requested', 'cancelled', 'expired'];
 
   const columns = [
     {

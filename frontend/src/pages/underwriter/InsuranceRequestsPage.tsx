@@ -73,7 +73,7 @@ export default function InsuranceRequestsPage() {
     }));
   };
 
-  const statusFilters = ['all', 'submitted', 'under_review', 'cancellation_requested', 'approved', 'rejected', 'cancelled'];
+  const statusFilters = ['all', 'submitted', 'resubmitted', 'under_review', 'cancellation_requested', 'approved', 'rejected', 'cancelled'];
 
   const columns = [
     {

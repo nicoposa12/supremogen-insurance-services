@@ -182,8 +182,8 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   });
 
   const canReview = isUnderwriterOrAdmin && (permissions.includes('quotations.approve') || permissions.includes('quotations.reject'));
-  const isReviewable = isUnderwriterOrAdmin && quotation && ['submitted', 'under_review'].includes(quotation.status);
-  const isEditable = isUnderwriterOrAdmin && canReview;
+  const isReviewable = isUnderwriterOrAdmin && quotation && ['submitted', 'under_review', 'resubmitted'].includes(quotation.status);
+  const isEditable = isUnderwriterOrAdmin && canReview && isReviewable;
 
   if (isLoading || !quotation) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-[#4A0E17]" /></div>;

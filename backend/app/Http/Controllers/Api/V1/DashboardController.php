@@ -254,7 +254,7 @@ class DashboardController extends Controller
             $revenueTrend = $monthlyPremiumTrend;
 
             // 4. Quotations, Invoices, Payments, Claims, Renewals
-            $pendingQuotations = (int) (clone $quotationQuery)->whereIn('status', ['submitted', 'under_review'])->count();
+            $pendingQuotations = (int) (clone $quotationQuery)->whereIn('status', ['submitted', 'resubmitted', 'under_review'])->count();
             $totalReceivable = (float) (clone $invoiceQuery)->whereNotIn('status', ['cancelled', 'paid'])->sum('balance');
             $overdueInvoices = (int) (clone $invoiceQuery)->where('status', 'overdue')->count();
             $totalCollected = (float) (clone $paymentQuery)->where('status', 'completed')->sum('amount');

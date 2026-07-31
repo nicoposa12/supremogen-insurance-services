@@ -57,10 +57,10 @@ export default function QuotationDetailPage({
 
   const submitMut = useMutation({
     mutationFn: () => submitQuotation(Number(id)),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      showToast('Quotation submitted for review.');
+      showToast(res?.message ?? 'Quotation submitted for review.');
     },
     onError: (err: any) => showToast(err.response?.data?.message ?? 'Failed to submit.', 'error'),
   });
@@ -78,10 +78,10 @@ export default function QuotationDetailPage({
   });
 
   const canReview = permissions.includes('quotations.approve') || permissions.includes('quotations.reject');
-  const isReviewable = quotation && ['submitted', 'under_review'].includes(quotation.status);
+  const isReviewable = quotation && ['submitted', 'under_review', 'resubmitted'].includes(quotation.status);
   const canIssuePolicy = quotation?.status === 'approved' && permissions.includes('policies.create');
-  const canEdit = (roles.includes('Sales Agent') || roles.includes('Team Renewal')) && quotation?.status === 'draft';
-  const canRequestCancellation = quotation && (roles.includes('Sales Agent') || roles.includes('Team Renewal') || isAdmin) && ['approved', 'submitted', 'under_review'].includes(quotation.status);
+  const canEdit = (roles.includes('Sales Agent') || roles.includes('Team Renewal')) && ['draft', 'rejected'].includes(quotation?.status);
+  const canRequestCancellation = quotation && (roles.includes('Sales Agent') || roles.includes('Team Renewal') || isAdmin) && ['approved', 'submitted', 'under_review', 'resubmitted'].includes(quotation.status);
 
   if (isLoading || !quotation) {
     return (
@@ -148,11 +148,11 @@ export default function QuotationDetailPage({
               <>
                 <button onClick={() => onEdit ? onEdit() : navigate(`/dashboard/quotations/${id}/edit`)}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-xs font-bold text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer shadow-sm">
-                  <Pencil className="h-3.5 w-3.5 text-slate-500" /> Edit Draft
+                  <Pencil className="h-3.5 w-3.5 text-slate-500" /> {quotation.status === 'rejected' ? 'Re-edit Details' : 'Edit Draft'}
                 </button>
                 <button onClick={() => submitMut.mutate()} disabled={submitMut.isPending}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#4A0E17] text-white text-xs font-bold rounded-xl hover:bg-[#3D0B12] disabled:opacity-50 shadow-md shadow-[#4A0E17]/20 transition-all cursor-pointer">
-                  <Send className="h-3.5 w-3.5" /> Submit for Review
+                  <Send className="h-3.5 w-3.5" /> {quotation.status === 'rejected' ? 'Resubmit for Review' : 'Submit for Review'}
                 </button>
               </>
             )}
@@ -760,7 +760,7 @@ export default function QuotationDetailPage({
             onClick={() => onEdit ? onEdit() : navigate(`/dashboard/quotations/${id}/edit`)}
             className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
           >
-            Edit Details
+            {quotation.status === 'rejected' ? 'Re-edit Details' : 'Edit Details'}
           </button>
         )}
         {canRequestCancellation && (
