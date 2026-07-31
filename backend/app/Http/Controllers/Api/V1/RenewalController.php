@@ -71,7 +71,7 @@ class RenewalController extends Controller
         $validator = Validator::make($request->all(), [
             'new_effective_date' => 'required|date',
             'new_expiry_date' => 'required|date|after:new_effective_date',
-            'premium_adjustment' => 'nullable|numeric',
+            'premium_adjustment' => 'nullable|numeric|min:-99999999.99|max:99999999.99',
             'notes' => 'nullable|string|max:2000',
         ]);
 

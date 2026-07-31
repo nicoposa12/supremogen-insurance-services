@@ -49,11 +49,11 @@ class ClaimController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'policy_id' => 'required|exists:policies,id',
-            'customer_id' => 'required|exists:customers,id',
+            'policy_id' => 'required|integer|exists:policies,id',
+            'customer_id' => 'required|integer|exists:customers,id',
             'incident_date' => 'required|date|before_or_equal:today',
             'incident_description' => 'required|string|max:5000',
-            'claim_amount' => 'required|numeric|min:0.01',
+            'claim_amount' => 'required|numeric|min:0.01|max:99999999.99',
         ]);
 
         if ($validator->fails()) {
@@ -129,7 +129,7 @@ class ClaimController extends Controller
         $validator = Validator::make($request->all(), [
             'incident_date' => 'required|date|before_or_equal:today',
             'incident_description' => 'required|string|max:5000',
-            'claim_amount' => 'required|numeric|min:0.01',
+            'claim_amount' => 'required|numeric|min:0.01|max:99999999.99',
         ]);
 
         if ($validator->fails()) {
@@ -228,7 +228,7 @@ class ClaimController extends Controller
 
         $validator = Validator::make($request->all(), [
             'action' => 'required|in:approve,deny',
-            'approved_amount' => 'required_if:action,approve|nullable|numeric|min:0',
+            'approved_amount' => 'required_if:action,approve|nullable|numeric|min:0|max:99999999.99',
             'adjuster_remarks' => 'nullable|string|max:5000',
         ]);
 
@@ -287,7 +287,7 @@ class ClaimController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'settlement_amount' => 'required|numeric|min:0',
+            'settlement_amount' => 'required|numeric|min:0|max:99999999.99',
             'settlement_date' => 'required|date',
             'adjuster_remarks' => 'nullable|string|max:5000',
         ]);

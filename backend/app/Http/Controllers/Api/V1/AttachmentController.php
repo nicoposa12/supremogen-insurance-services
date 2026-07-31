@@ -167,7 +167,7 @@ class AttachmentController extends Controller
         $validator = Validator::make($request->all(), [
             'attachable_type' => 'required|string|in:customer,quotation,policy,invoice,claim,payment,claim_notification',
             'attachable_id' => 'required|integer',
-            'file' => 'required|file|max:10240', // 10MB max
+            'file' => 'required|file|mimes:jpeg,jpg,png,gif,pdf,doc,docx,xls,xlsx,csv,zip,rar|max:10240', // 10MB max, safe file types only
             'document_type' => 'nullable|string|max:100',
         ]);
 

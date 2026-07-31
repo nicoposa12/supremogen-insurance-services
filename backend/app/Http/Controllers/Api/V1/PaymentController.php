@@ -100,13 +100,13 @@ class PaymentController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'invoice_id' => 'required|exists:invoices,id',
-            'amount' => 'required|numeric|min:0.01',
+            'invoice_id' => 'required|integer|exists:invoices,id',
+            'amount' => 'required|numeric|min:0.01|max:99999999.99',
             'payment_method' => 'required|in:jt,jrs,lbc,cod,walk_in,bank_transfer_pbcom,bank_transfer_security_bank,post_dated_checks,split_payment',
             'payment_date' => 'required|date',
             'reference_number' => 'required_if:payment_method,jt,jrs,lbc|nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
-            'proof' => 'nullable|file|max:10240',
+            'proof' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -260,12 +260,12 @@ class PaymentController extends Controller
         if (!$payment) return response()->json(['success' => false, 'message' => 'Payment not found.'], 404);
 
         $validator = Validator::make($request->all(), [
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.01|max:99999999.99',
             'payment_method' => 'required|in:jt,jrs,lbc,cod,walk_in,bank_transfer_pbcom,bank_transfer_security_bank,post_dated_checks,split_payment',
             'payment_date' => 'required|date',
             'reference_number' => 'required_if:payment_method,jt,jrs,lbc|nullable|string|max:100',
             'notes' => 'nullable|string|max:2000',
-            'proof' => 'nullable|file|max:10240',
+            'proof' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -362,7 +362,7 @@ class PaymentController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string',
+            'status' => 'required|string|max:255',
             'notes'  => 'nullable|string|max:2000',
             'special_attachment' => 'nullable|file|mimes:jpeg,jpg,png,pdf,doc,docx,zip|max:10240',
         ]);

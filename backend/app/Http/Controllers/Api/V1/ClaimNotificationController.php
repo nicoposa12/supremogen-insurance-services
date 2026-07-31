@@ -499,10 +499,10 @@ class ClaimNotificationController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'to'   => 'required|array|min:1',
-            'to.*' => 'required|email',
-            'cc'   => 'nullable|array',
-            'cc.*' => 'nullable|email',
+            'to'   => 'required|array|min:1|max:10',
+            'to.*' => 'required|email|max:255',
+            'cc'   => 'nullable|array|max:10',
+            'cc.*' => 'nullable|email|max:255',
         ]);
 
         if ($validator->fails()) {

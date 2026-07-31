@@ -32,7 +32,7 @@ class InquiryController extends Controller
             ], 422);
         }
 
-        $inquiry = Inquiry::create($request->all());
+        $inquiry = Inquiry::create($validator->validated());
 
         Log::info("New inquiry submitted: ID {$inquiry->id} from {$inquiry->email}");
 

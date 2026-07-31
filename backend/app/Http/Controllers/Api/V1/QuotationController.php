@@ -73,15 +73,15 @@ class QuotationController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => 'required|integer|exists:customers,id',
             'valid_until' => 'nullable|date|after:today',
             'notes' => 'nullable|string|max:2000',
-            'items' => 'required|array|min:1',
-            'items.*.insurance_product_id' => 'required|exists:insurance_products,id',
+            'items' => 'required|array|min:1|max:20',
+            'items.*.insurance_product_id' => 'required|integer|exists:insurance_products,id',
             'items.*.description' => 'nullable|string|max:255',
-            'items.*.sum_insured' => 'required|numeric|min:0',
-            'items.*.premium_rate' => 'required|numeric|min:0',
-            'items.*.premium_amount' => 'required|numeric|min:0',
+            'items.*.sum_insured' => 'required|numeric|min:0|max:99999999.99',
+            'items.*.premium_rate' => 'required|numeric|min:0|max:100',
+            'items.*.premium_amount' => 'required|numeric|min:0|max:99999999.99',
             'items.*.coverage_details' => 'nullable|array',
         ]);
 
@@ -187,15 +187,15 @@ class QuotationController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => 'required|integer|exists:customers,id',
             'valid_until' => 'nullable|date|after:today',
             'notes' => 'nullable|string|max:2000',
-            'items' => 'required|array|min:1',
-            'items.*.insurance_product_id' => 'required|exists:insurance_products,id',
+            'items' => 'required|array|min:1|max:20',
+            'items.*.insurance_product_id' => 'required|integer|exists:insurance_products,id',
             'items.*.description' => 'nullable|string|max:255',
-            'items.*.sum_insured' => 'required|numeric|min:0',
-            'items.*.premium_rate' => 'required|numeric|min:0',
-            'items.*.premium_amount' => 'required|numeric|min:0',
+            'items.*.sum_insured' => 'required|numeric|min:0|max:99999999.99',
+            'items.*.premium_rate' => 'required|numeric|min:0|max:100',
+            'items.*.premium_amount' => 'required|numeric|min:0|max:99999999.99',
             'items.*.coverage_details' => 'nullable|array',
         ]);
 

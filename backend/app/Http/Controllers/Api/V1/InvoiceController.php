@@ -248,16 +248,16 @@ class InvoiceController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,id',
-            'policy_id' => 'nullable|exists:policies,id',
+            'customer_id' => 'required|integer|exists:customers,id',
+            'policy_id' => 'nullable|integer|exists:policies,id',
             'due_date' => 'required|date',
-            'tax_amount' => 'nullable|numeric|min:0',
+            'tax_amount' => 'nullable|numeric|min:0|max:99999999.99',
             'notes' => 'nullable|string|max:2000',
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:20',
             'items.*.description' => 'required|string|max:255',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.amount' => 'required|numeric|min:0',
+            'items.*.quantity' => 'required|integer|min:1|max:9999',
+            'items.*.unit_price' => 'required|numeric|min:0|max:99999999.99',
+            'items.*.amount' => 'required|numeric|min:0|max:99999999.99',
         ]);
 
         if ($validator->fails()) {
@@ -358,16 +358,16 @@ class InvoiceController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,id',
-            'policy_id' => 'nullable|exists:policies,id',
+            'customer_id' => 'required|integer|exists:customers,id',
+            'policy_id' => 'nullable|integer|exists:policies,id',
             'due_date' => 'required|date',
-            'tax_amount' => 'nullable|numeric|min:0',
+            'tax_amount' => 'nullable|numeric|min:0|max:99999999.99',
             'notes' => 'nullable|string|max:2000',
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:20',
             'items.*.description' => 'required|string|max:255',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.amount' => 'required|numeric|min:0',
+            'items.*.quantity' => 'required|integer|min:1|max:9999',
+            'items.*.unit_price' => 'required|numeric|min:0|max:99999999.99',
+            'items.*.amount' => 'required|numeric|min:0|max:99999999.99',
         ]);
 
         if ($validator->fails()) {

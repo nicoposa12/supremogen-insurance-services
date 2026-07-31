@@ -61,20 +61,20 @@ class PolicyController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'policy_number' => 'nullable|string|max:100|unique:policies,policy_number',
-            'quotation_id' => 'nullable|exists:quotations,id',
-            'customer_id' => 'required|exists:customers,id',
-            'insurance_product_id' => 'required|exists:insurance_products,id',
+            'quotation_id' => 'nullable|integer|exists:quotations,id',
+            'customer_id' => 'required|integer|exists:customers,id',
+            'insurance_product_id' => 'required|integer|exists:insurance_products,id',
             'effective_date' => 'required|date',
             'expiry_date' => 'required|date|after:effective_date',
-            'total_premium' => 'required|numeric|min:0',
-            'sum_insured' => 'required|numeric|min:0',
+            'total_premium' => 'required|numeric|min:0|max:99999999.99',
+            'sum_insured' => 'required|numeric|min:0|max:99999999.99',
             'terms_and_conditions' => 'nullable|string|max:5000',
-            'coverages' => 'nullable|array',
+            'coverages' => 'nullable|array|max:20',
             'coverages.*.coverage_name' => 'required|string|max:200',
             'coverages.*.coverage_description' => 'nullable|string|max:1000',
-            'coverages.*.sum_insured' => 'required|numeric|min:0',
-            'coverages.*.premium_amount' => 'required|numeric|min:0',
-            'coverages.*.deductible' => 'nullable|numeric|min:0',
+            'coverages.*.sum_insured' => 'required|numeric|min:0|max:99999999.99',
+            'coverages.*.premium_amount' => 'required|numeric|min:0|max:99999999.99',
+            'coverages.*.deductible' => 'nullable|numeric|min:0|max:99999999.99',
         ]);
 
         if ($validator->fails()) {
