@@ -26,8 +26,6 @@ Route::prefix('v1')->group(function () {
     // Public routes
     Route::post('/inquiries', [InquiryController::class, 'store'])->middleware('throttle:api');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:forgot-password');
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
     // Storage proxy for cloud-stored files (profile photos, etc.)
     Route::get('/storage/{path}', [StorageController::class, 'serve'])->where('path', '.*');
     // Stream notifications (authenticated via query param token or bearer token)

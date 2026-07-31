@@ -20,8 +20,6 @@ const InquiryPage = lazy(() => import('./pages/website/InquiryPage'));
 
 // Auth
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
-const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
-const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
 
 // Dashboard (Phase 2)
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
@@ -108,8 +106,6 @@ export default function App() {
 
               {/* Agent & Staff Portal - Login */}
               <Route path="agentportal" element={<LoginPage />} />
-              <Route path="forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="reset-password" element={<ResetPasswordPage />} />
 
               {/* Authenticated Dashboard Routes */}
               <Route

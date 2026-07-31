@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
@@ -118,14 +118,9 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                  Password
-                </label>
-                <Link to="/forgot-password" className="text-xs text-[#4A0E17] hover:underline font-semibold">
-                  Forgot Password?
-                </Link>
-              </div>
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                Password
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-slate-400" />
