@@ -80,7 +80,7 @@ export default function QuotationDetailPage({
   const canReview = permissions.includes('quotations.approve') || permissions.includes('quotations.reject');
   const isReviewable = quotation && ['submitted', 'under_review', 'resubmitted'].includes(quotation.status);
   const canIssuePolicy = quotation?.status === 'approved' && permissions.includes('policies.create');
-  const canEdit = (roles.includes('Sales Agent') || roles.includes('Team Renewal')) && ['draft', 'rejected'].includes(quotation?.status);
+  const canEdit = (roles.includes('Sales Agent') || roles.includes('Team Renewal')) && ['draft', 'rejected'].includes(quotation?.status || '');
   const canRequestCancellation = quotation && (roles.includes('Sales Agent') || roles.includes('Team Renewal') || isAdmin) && ['approved', 'submitted', 'under_review', 'resubmitted'].includes(quotation.status);
 
   if (isLoading || !quotation) {

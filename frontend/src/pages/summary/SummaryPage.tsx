@@ -542,11 +542,11 @@ export default function SummaryPage() {
         <![endif]-->
         <style>
           table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-          td, th { border: 1px solid #333333; padding: 6px; font-family: sans-serif; font-size: 11px; }
-          th { font-weight: bold; background-color: #c2dfb3; }
-          .bg-\\\[\\#c2dfb3\\\] { background-color: #c2dfb3 !important; }
-          .bg-\\\[\\#f5c7a9\\\] { background-color: #f5c7a9 !important; }
-          .bg-\\\[\\#f4b800\\\] { background-color: #f4b800 !important; }
+          td, th { border: 1px solid #cbd5e1; padding: 6px; font-family: sans-serif; font-size: 11px; }
+          th { font-weight: bold; background-color: #1e293b; color: #ffffff; }
+          .bg-slate-800 { background-color: #1e293b !important; color: #ffffff !important; }
+          .bg-slate-100 { background-color: #f1f5f9 !important; color: #0f172a !important; }
+          .bg-\[\#4A0E17\] { background-color: #4a0e17 !important; color: #ffffff !important; }
           .font-bold { font-weight: bold; }
           .font-mono { font-family: monospace; }
           .text-center { text-align: center; }
@@ -856,27 +856,27 @@ export default function SummaryPage() {
           <div className="space-y-6 bg-white">
             {/* NEW ACCOUNTS TABLE */}
             {showNew && <div>
-              <div className="text-center font-extrabold text-sm border-b border-slate-800 pb-2 mb-3 tracking-wider text-slate-900">
+              <div className="text-center font-bold text-xs border-b border-slate-200 pb-2 mb-3 tracking-wider text-slate-700 uppercase">
                 {dateStr} | NEW ACCOUNTS
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-xs text-slate-800 font-medium">
                   <thead>
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-extrabold">
-                      <th className="border border-slate-800 px-3 py-2 text-left uppercase tracking-wider w-1/4">Agent's Name</th>
-                      <th className="border border-slate-800 px-3 py-2 text-left uppercase tracking-wider w-5/12">Assured Name</th>
-                      <th className="border border-slate-800 px-3 py-2 text-center uppercase tracking-wider w-1/6">Payment Terms</th>
-                      <th className="border border-slate-800 px-3 py-2 text-right uppercase tracking-wider w-1/6">Total Premium</th>
+                    <tr className="border border-slate-300 bg-slate-800 text-white font-bold">
+                      <th className="border border-slate-300 px-3 py-2.5 text-left uppercase tracking-wider w-1/4">Agent's Name</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-left uppercase tracking-wider w-5/12">Assured Name</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-center uppercase tracking-wider w-1/6">Payment Terms</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-right uppercase tracking-wider w-1/6">Total Premium</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td colSpan={3} className="border border-slate-800 px-3 py-2 uppercase tracking-wide">NEW ACCOUNT</td>
-                      <td className="border border-slate-800 px-3 py-2 text-right font-mono text-[13px] font-semibold">{formatNum(totalNew)}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td colSpan={3} className="border border-slate-300 px-3 py-2 uppercase tracking-wide">NEW ACCOUNT</td>
+                      <td className="border border-slate-300 px-3 py-2 text-right font-mono text-[13px] font-semibold">{formatNum(totalNew)}</td>
                     </tr>
                     {newAccounts.length === 0 ? (
-                      <tr className="border border-slate-800">
-                        <td colSpan={4} className="px-3 py-6 text-center text-slate-400 font-semibold bg-slate-50/50">
+                      <tr className="border border-slate-300">
+                        <td colSpan={4} className="px-3 py-5 text-center text-slate-400 font-medium bg-slate-50/50">
                           No new accounts recorded
                         </td>
                       </tr>
@@ -885,24 +885,24 @@ export default function SummaryPage() {
                         const agentName = (row.created_by && typeof row.created_by === 'object' ? (row.created_by as any).name : '—').toUpperCase();
                         const assuredName = [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ').toUpperCase();
                         return (
-                          <tr key={row.id} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                            <td className="border border-slate-800 px-3 py-2">{agentName}</td>
-                            <td className="border border-slate-800 px-3 py-2">{assuredName}</td>
-                            <td className="border border-slate-800 px-3 py-2 text-center">{row.payment_terms || '—'}</td>
-                            <td className="border border-slate-800 px-3 py-2 text-right font-mono">{formatNum(parseFloat(row.policy_premium as string || '0'))}</td>
+                          <tr key={row.id} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                            <td className="border border-slate-300 px-3 py-2">{agentName}</td>
+                            <td className="border border-slate-300 px-3 py-2">{assuredName}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center">{row.payment_terms || '—'}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right font-mono">{formatNum(parseFloat(row.policy_premium as string || '0'))}</td>
                           </tr>
                         );
                       })
                     )}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td colSpan={3} className="border border-slate-800 px-3 py-2 uppercase tracking-wide">PARTNERS</td>
-                      <td className="border border-slate-800 px-3 py-2 text-right font-mono text-[13px] font-semibold">0.00</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td colSpan={3} className="border border-slate-300 px-3 py-2 uppercase tracking-wide">PARTNERS</td>
+                      <td className="border border-slate-300 px-3 py-2 text-right font-mono text-[13px] font-semibold">0.00</td>
                     </tr>
-                    <tr className="border border-slate-800 h-6">
-                      <td className="border border-slate-800 px-3 py-2 bg-white">&nbsp;</td>
-                      <td className="border border-slate-800 px-3 py-2 bg-white">&nbsp;</td>
-                      <td className="border border-slate-800 px-3 py-2 bg-white">&nbsp;</td>
-                      <td className="border border-slate-800 px-3 py-2 bg-white">&nbsp;</td>
+                    <tr className="border border-slate-300 h-6">
+                      <td className="border border-slate-300 px-3 py-2 bg-white">&nbsp;</td>
+                      <td className="border border-slate-300 px-3 py-2 bg-white">&nbsp;</td>
+                      <td className="border border-slate-300 px-3 py-2 bg-white">&nbsp;</td>
+                      <td className="border border-slate-300 px-3 py-2 bg-white">&nbsp;</td>
                     </tr>
                   </tbody>
                 </table>
@@ -911,26 +911,23 @@ export default function SummaryPage() {
 
             {/* RENEWAL ACCOUNTS TABLE */}
             {showRenewal && <div>
-              <div className="text-center font-extrabold text-sm border-b border-slate-800 pb-2 mb-3 tracking-wider text-slate-900">
+              <div className="text-center font-bold text-xs border-b border-slate-200 pb-2 mb-3 tracking-wider text-slate-700 uppercase">
                 {dateStr} | RENEWAL ACCOUNTS
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-xs text-slate-800 font-medium">
                   <thead>
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-extrabold">
-                      <th className="border border-slate-800 px-3 py-2 text-left uppercase tracking-wider w-1/4">Agent's Name</th>
-                      <th className="border border-slate-800 px-3 py-2 text-left uppercase tracking-wider w-5/12">Assured Name</th>
-                      <th className="border border-slate-800 px-3 py-2 text-center uppercase tracking-wider w-1/6">Payment Terms</th>
-                      <th className="border border-slate-800 px-3 py-2 text-right uppercase tracking-wider w-1/6">Total Premium</th>
+                    <tr className="border border-slate-300 bg-slate-800 text-white font-bold">
+                      <th className="border border-slate-300 px-3 py-2.5 text-left uppercase tracking-wider w-1/4">Agent's Name</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-left uppercase tracking-wider w-5/12">Assured Name</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-center uppercase tracking-wider w-1/6">Payment Terms</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-right uppercase tracking-wider w-1/6">Total Premium</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border border-slate-800 h-3">
-                      <td colSpan={4} className="border border-slate-800 bg-[#c2dfb3] p-0"></td>
-                    </tr>
                     {renewalAccounts.length === 0 ? (
-                      <tr className="border border-slate-800">
-                        <td colSpan={4} className="px-3 py-6 text-center text-slate-400 font-semibold bg-slate-50/50">
+                      <tr className="border border-slate-300">
+                        <td colSpan={4} className="px-3 py-5 text-center text-slate-400 font-medium bg-slate-50/50">
                           No renewal accounts recorded
                         </td>
                       </tr>
@@ -939,18 +936,18 @@ export default function SummaryPage() {
                         const agentName = (row.created_by && typeof row.created_by === 'object' ? (row.created_by as any).name : '—').toUpperCase();
                         const assuredName = [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ').toUpperCase();
                         return (
-                          <tr key={row.id} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                            <td className="border border-slate-800 px-3 py-2">{agentName}</td>
-                            <td className="border border-slate-800 px-3 py-2">{assuredName}</td>
-                            <td className="border border-slate-800 px-3 py-2 text-center">{row.payment_terms || '—'}</td>
-                            <td className="border border-slate-800 px-3 py-2 text-right font-mono">{formatNum(parseFloat(row.policy_premium as string || '0'))}</td>
+                          <tr key={row.id} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                            <td className="border border-slate-300 px-3 py-2">{agentName}</td>
+                            <td className="border border-slate-300 px-3 py-2">{assuredName}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center">{row.payment_terms || '—'}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right font-mono">{formatNum(parseFloat(row.policy_premium as string || '0'))}</td>
                           </tr>
                         );
                       })
                     )}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td colSpan={3} className="border border-slate-800 px-3 py-2 uppercase tracking-wide">TOTAL PREMIUM:</td>
-                      <td className="border border-slate-800 px-3 py-2 text-right font-mono text-[13px] font-semibold">{formatNum(totalRenewal)}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td colSpan={3} className="border border-slate-300 px-3 py-2 uppercase tracking-wide">TOTAL PREMIUM:</td>
+                      <td className="border border-slate-300 px-3 py-2 text-right font-mono text-[13px] font-semibold">{formatNum(totalRenewal)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -958,9 +955,9 @@ export default function SummaryPage() {
             </div>}
 
             {/* GRAND TOTAL */}
-            <div className="flex border border-slate-800 text-sm font-black bg-[#f4b800] text-slate-900 uppercase">
-              <div className="flex-1 px-4 py-3 tracking-wider">TOTAL PREMIUM</div>
-              <div className="px-4 py-3 text-right font-mono text-base border-l border-slate-800 tracking-widest font-semibold" style={{ textDecoration: 'underline double' }}>
+            <div className="flex border border-[#4A0E17] text-sm font-bold bg-[#4A0E17] text-white uppercase rounded-xl overflow-hidden shadow-sm">
+              <div className="flex-1 px-5 py-3 tracking-wider flex items-center">GRAND TOTAL PREMIUM</div>
+              <div className="px-5 py-3 text-right font-mono text-base border-l border-white/20 tracking-wider font-bold bg-[#3A0B12] flex items-center">
                 {formatNum(grandTotal)}
               </div>
             </div>
@@ -968,79 +965,79 @@ export default function SummaryPage() {
         ) : activeTab === 'bookings' ? (
           /* BOOKINGS SUMMARY VIEW */
           <div className="space-y-6 bg-white">
-            <div className="text-center font-extrabold text-sm border-b border-slate-800 pb-2 mb-3 tracking-wider text-slate-900 font-sans uppercase">
+            <div className="text-center font-bold text-xs border-b border-slate-200 pb-2 mb-3 tracking-wider text-slate-700 font-sans uppercase">
               {formattedPeriodLabel} BOOKING SUMMARY
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
               {/* Left Column: Bookings by Team & Agent */}
               <div className="md:col-span-7 overflow-x-auto">
-                <table className="w-full border-collapse text-xs border border-slate-800 text-slate-800 font-medium">
+                <table className="w-full border-collapse text-xs border border-slate-300 text-slate-800 font-medium">
                   <thead>
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-extrabold">
-                      <th className="border border-slate-800 px-3 py-2 text-left uppercase tracking-wider font-sans">&nbsp;</th>
-                      <th className="border border-slate-800 px-3 py-2 text-center uppercase tracking-wider font-sans w-1/3">NO. OF BOOKINGS</th>
+                    <tr className="border border-slate-300 bg-slate-800 text-white font-bold">
+                      <th className="border border-slate-300 px-3 py-2.5 text-left uppercase tracking-wider font-sans">&nbsp;</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-center uppercase tracking-wider font-sans w-1/3">NO. OF BOOKINGS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* NEW ACCOUNT */}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">NEW ACCOUNT</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono text-[13px] font-semibold">{teamCounts['NEW ACCOUNT']}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">NEW ACCOUNT</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono text-[13px] font-semibold">{teamCounts['NEW ACCOUNT']}</td>
                     </tr>
                     {dynamicTeams['NEW ACCOUNT'].map((agent: string) => (
-                      <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
+                      <tr key={agent} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
                       </tr>
                     ))}
 
                     {/* TEAM RENEWAL */}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">TEAM RENEWAL</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono text-[13px] font-semibold">{teamCounts['TEAM RENEWAL']}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">TEAM RENEWAL</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono text-[13px] font-semibold">{teamCounts['TEAM RENEWAL']}</td>
                     </tr>
                     {dynamicTeams['TEAM RENEWAL'].map((agent: string) => (
-                      <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
+                      <tr key={agent} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
                       </tr>
                     ))}
 
                     {/* PARTNERS */}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">PARTNERS</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono text-[13px] font-semibold">{teamCounts['PARTNERS']}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">PARTNERS</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono text-[13px] font-semibold">{teamCounts['PARTNERS']}</td>
                     </tr>
                     {dynamicTeams['PARTNERS'].map(agent => (
-                      <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
+                      <tr key={agent} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
                       </tr>
                     ))}
 
                     {/* TEAM SUPPORT */}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">TEAM SUPPORT</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono text-[13px] font-semibold">{teamCounts['TEAM SUPPORT']}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">TEAM SUPPORT</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono text-[13px] font-semibold">{teamCounts['TEAM SUPPORT']}</td>
                     </tr>
                     {dynamicTeams['TEAM SUPPORT'].map(agent => (
-                      <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
+                      <tr key={agent} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{agentCounts[agent]}</td>
                       </tr>
                     ))}
 
                     {/* Footer rows */}
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-bold">
-                      <td className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">
                         TOTAL NO. OF ISSUANCE AS OF TODAY FOR MOTORCAR
                       </td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono font-bold text-[13px]">{motorcarCount}</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono font-bold text-[13px]">{motorcarCount}</td>
                     </tr>
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-bold">
-                      <td className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">TOTAL NO. OF ISSUANCE AS OF TODAY FOR OTHERLINE</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono font-bold text-[13px]">{otherlineCount}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">TOTAL NO. OF ISSUANCE AS OF TODAY FOR OTHERLINE</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono font-bold text-[13px]">{otherlineCount}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1048,35 +1045,35 @@ export default function SummaryPage() {
 
               {/* Right Column: Providers Table & Total Premium Box */}
               <div className="md:col-span-5 space-y-6">
-                <table className="w-full border-collapse text-xs border border-slate-800 text-slate-800 font-medium">
+                <table className="w-full border-collapse text-xs border border-slate-300 text-slate-800 font-medium">
                   <thead>
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-extrabold">
-                      <th className="border border-slate-800 px-3 py-2 text-left uppercase tracking-wider font-sans">PROVIDERS</th>
-                      <th className="border border-slate-800 px-3 py-2 text-center uppercase tracking-wider font-sans w-1/3">TOTAL</th>
+                    <tr className="border border-slate-300 bg-slate-800 text-white font-bold">
+                      <th className="border border-slate-300 px-3 py-2.5 text-left uppercase tracking-wider font-sans">PROVIDERS</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-center uppercase tracking-wider font-sans w-1/3">TOTAL</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                      <td className="border border-slate-800 px-3 py-2 font-sans font-bold">ALPHA GREENHILLS</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono">{providerCounts['ALPHA']}</td>
+                    <tr className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                      <td className="border border-slate-300 px-3 py-2 font-sans font-bold">ALPHA GREENHILLS</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono">{providerCounts['ALPHA']}</td>
                     </tr>
-                    <tr className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                      <td className="border border-slate-800 px-3 py-2 font-sans font-bold">CBIC</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono">{providerCounts['CBIC']}</td>
+                    <tr className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                      <td className="border border-slate-300 px-3 py-2 font-sans font-bold">CBIC</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono">{providerCounts['CBIC']}</td>
                     </tr>
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-extrabold">
-                      <td className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans text-xs">TOTAL NO. OF ACCOUNT PER PROVIDER</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono font-bold text-[13px]">{totalProviderCount}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans text-xs">TOTAL NO. OF ACCOUNT PER PROVIDER</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono font-bold text-[13px]">{totalProviderCount}</td>
                     </tr>
                   </tbody>
                 </table>
 
                 {/* Total Premium Box */}
-                <div className="border-2 border-slate-900 flex text-sm font-black bg-[#c2dfb3] text-slate-900 uppercase font-sans">
-                  <div className="flex-1 px-4 py-3 tracking-wider text-center border-r border-slate-900 flex items-center justify-center font-extrabold">
+                <div className="border border-[#4A0E17] flex text-sm font-bold bg-[#4A0E17] text-white uppercase font-sans rounded-xl overflow-hidden shadow-sm">
+                  <div className="flex-1 px-4 py-3 tracking-wider text-center border-r border-white/20 flex items-center justify-center font-bold">
                     TOTAL PREMIUM FOR {formattedPeriodLabel.toUpperCase()}
                   </div>
-                  <div className="px-6 py-3 text-right font-mono text-lg font-black text-slate-950 flex items-center justify-end" style={{ textDecoration: 'underline double' }}>
+                  <div className="px-6 py-3 text-right font-mono text-lg font-bold text-white bg-[#3A0B12] flex items-center justify-end">
                     {formatNum(totalBookingPremium)}
                   </div>
                 </div>
@@ -1086,87 +1083,87 @@ export default function SummaryPage() {
         ) : (
           /* NUMBER OF SALES VIEW */
           <div className="space-y-6 bg-white">
-            <div className="text-center font-extrabold text-sm border-b border-slate-800 pb-2 mb-3 tracking-wider text-slate-900 font-sans uppercase">
+            <div className="text-center font-bold text-xs border-b border-slate-200 pb-2 mb-3 tracking-wider text-slate-700 font-sans uppercase">
               NUMBER OF SALES FOR THE {formattedPeriodLabel.toUpperCase()}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
               {/* Left Column: Sales Table */}
               <div className="md:col-span-7 overflow-x-auto">
-                <table className="w-full border-collapse text-xs border border-slate-800 text-slate-800 font-medium">
+                <table className="w-full border-collapse text-xs border border-slate-300 text-slate-800 font-medium">
                   <thead>
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-extrabold">
-                      <th className="border border-slate-800 px-3 py-2 text-left uppercase tracking-wider font-sans">AGENT'S NAME</th>
-                      <th className="border border-slate-800 px-3 py-2 text-center uppercase tracking-wider font-sans w-[22%]">NO. OF BOOKING</th>
-                      <th className="border border-slate-800 px-3 py-2 text-center uppercase tracking-wider font-sans w-[22%]">NO. OF CANCEL ACC.</th>
-                      <th className="border border-slate-800 px-3 py-2 text-center uppercase tracking-wider font-sans w-[18%]">TOTAL</th>
+                    <tr className="border border-slate-300 bg-slate-800 text-white font-bold">
+                      <th className="border border-slate-300 px-3 py-2.5 text-left uppercase tracking-wider font-sans">AGENT'S NAME</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-center uppercase tracking-wider font-sans w-[22%]">NO. OF BOOKING</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-center uppercase tracking-wider font-sans w-[22%]">NO. OF CANCEL ACC.</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-center uppercase tracking-wider font-sans w-[18%]">TOTAL</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* TEAM SALES */}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td colSpan={3} className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">TEAM SALES</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono text-[13px] font-semibold" style={{ textDecoration: 'underline' }}>{salesTeamStats['NEW ACCOUNT'].total}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td colSpan={3} className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">TEAM SALES</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono text-[13px] font-semibold">{salesTeamStats['NEW ACCOUNT'].total}</td>
                     </tr>
                     {dynamicTeams['NEW ACCOUNT'].map((agent: string) => (
-                      <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
+                      <tr key={agent} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
                       </tr>
                     ))}
 
                     {/* TEAM RENEWAL */}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td colSpan={3} className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">TEAM RENEWAL</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono text-[13px] font-semibold" style={{ textDecoration: 'underline' }}>{salesTeamStats['TEAM RENEWAL'].total}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td colSpan={3} className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">TEAM RENEWAL</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono text-[13px] font-semibold">{salesTeamStats['TEAM RENEWAL'].total}</td>
                     </tr>
                     {dynamicTeams['TEAM RENEWAL'].map((agent: string) => (
-                      <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
+                      <tr key={agent} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
                       </tr>
                     ))}
 
                     {/* PARTNERS */}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td colSpan={3} className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">PARTNERS</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono text-[13px] font-semibold" style={{ textDecoration: 'underline' }}>{salesTeamStats['PARTNERS'].total}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td colSpan={3} className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">PARTNERS</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono text-[13px] font-semibold">{salesTeamStats['PARTNERS'].total}</td>
                     </tr>
                     {dynamicTeams['PARTNERS'].map(agent => (
-                      <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
+                      <tr key={agent} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
                       </tr>
                     ))}
 
                     {/* TEAM SUPPORT */}
-                    <tr className="border border-slate-800 bg-[#f5c7a9] text-slate-900 font-black">
-                      <td colSpan={3} className="border border-slate-800 px-3 py-2 uppercase tracking-wide font-sans">TEAM SUPPORT</td>
-                      <td className="border border-slate-800 px-3 py-2 text-center font-mono text-[13px] font-semibold" style={{ textDecoration: 'underline' }}>{salesTeamStats['TEAM SUPPORT'].total}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td colSpan={3} className="border border-slate-300 px-3 py-2 uppercase tracking-wide font-sans">TEAM SUPPORT</td>
+                      <td className="border border-slate-300 px-3 py-2 text-center font-mono text-[13px] font-semibold">{salesTeamStats['TEAM SUPPORT'].total}</td>
                     </tr>
                     {dynamicTeams['TEAM SUPPORT'].map(agent => (
-                      <tr key={agent} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
-                        <td className="border border-slate-800 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
+                      <tr key={agent} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-1.5 font-sans pl-6">{(agentNamesMap[agent] || agent)?.toUpperCase()}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].bookings}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono">{salesAgentStats[agent].cancelled || ''}</td>
+                        <td className="border border-slate-300 px-3 py-1.5 text-center font-mono font-semibold">{salesAgentStats[agent].total}</td>
                       </tr>
                     ))}
 
                     {/* Footer Row */}
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-bold text-[11px]">
-                      <td className="border border-slate-800 px-3 py-2.5 uppercase tracking-wide font-sans">
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold text-[11px]">
+                      <td className="border border-slate-300 px-3 py-2.5 uppercase tracking-wide font-sans">
                         TOTAL NUMBER OF ISSUANCE AS OF TODAY
                       </td>
-                      <td className="border border-slate-800 px-3 py-2.5 text-center font-mono font-bold text-[13px]" style={{ textDecoration: 'underline' }}>{salesGrandTotals.bookings}</td>
-                      <td className="border border-slate-800 px-3 py-2.5 text-center font-mono font-bold text-[13px]" style={{ textDecoration: 'underline' }}>{salesGrandTotals.cancelled}</td>
-                      <td className="border border-slate-800 px-3 py-2.5 text-center font-mono font-bold text-[13px]" style={{ textDecoration: 'underline double' }}>{salesGrandTotals.total}</td>
+                      <td className="border border-slate-300 px-3 py-2.5 text-center font-mono font-bold text-[13px]">{salesGrandTotals.bookings}</td>
+                      <td className="border border-slate-300 px-3 py-2.5 text-center font-mono font-bold text-[13px]">{salesGrandTotals.cancelled}</td>
+                      <td className="border border-slate-300 px-3 py-2.5 text-center font-mono font-bold text-[13px]">{salesGrandTotals.total}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1174,36 +1171,36 @@ export default function SummaryPage() {
 
               {/* Right Column: Providers & Account/Premium summary */}
               <div className="md:col-span-5 space-y-6">
-                <table className="w-full border-collapse text-xs border border-slate-800 text-slate-800 font-medium">
+                <table className="w-full border-collapse text-xs border border-slate-300 text-slate-800 font-medium">
                   <thead>
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-extrabold">
-                      <th className="border border-slate-800 px-3 py-2 text-left uppercase tracking-wider font-sans">PROVIDERS</th>
-                      <th className="border border-slate-800 px-3 py-2 text-center uppercase tracking-wider font-sans w-1/3">TOTAL</th>
+                    <tr className="border border-slate-300 bg-slate-800 text-white font-bold">
+                      <th className="border border-slate-300 px-3 py-2.5 text-left uppercase tracking-wider font-sans">PROVIDERS</th>
+                      <th className="border border-slate-300 px-3 py-2.5 text-center uppercase tracking-wider font-sans w-1/3">TOTAL</th>
                     </tr>
                   </thead>
                   <tbody>
                     {Object.keys(salesProviderCounts).map(providerName => (
-                      <tr key={providerName} className="border border-slate-800 hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-800 px-3 py-2 font-sans font-bold">{providerName}</td>
-                        <td className="border border-slate-800 px-3 py-2 text-center font-mono">{salesProviderCounts[providerName]}</td>
+                      <tr key={providerName} className="border border-slate-300 hover:bg-slate-50 transition-colors">
+                        <td className="border border-slate-300 px-3 py-2 font-sans font-bold">{providerName}</td>
+                        <td className="border border-slate-300 px-3 py-2 text-center font-mono">{salesProviderCounts[providerName]}</td>
                       </tr>
                     ))}
-                    <tr className="border border-slate-800 bg-[#c2dfb3] text-slate-900 font-extrabold">
-                      <td className="border border-slate-800 px-3 py-2.5 uppercase tracking-wide font-sans text-xs">TOTAL NO. OF ACCOUNT PER PROVIDER</td>
-                      <td className="border border-slate-800 px-3 py-2.5 text-center font-mono font-bold text-[13px]" style={{ textDecoration: 'underline' }}>{salesTotalProviderCount}</td>
+                    <tr className="border border-slate-300 bg-slate-100 text-slate-900 font-bold">
+                      <td className="border border-slate-300 px-3 py-2.5 uppercase tracking-wide font-sans text-xs">TOTAL NO. OF ACCOUNT PER PROVIDER</td>
+                      <td className="border border-slate-300 px-3 py-2.5 text-center font-mono font-bold text-[13px]">{salesTotalProviderCount}</td>
                     </tr>
                   </tbody>
                 </table>
 
                 {/* Total Account & Premium Box */}
-                <div className="border border-slate-800 grid grid-cols-12 text-xs bg-[#c2dfb3] text-slate-900 font-extrabold font-sans">
-                  <div className="col-span-6 border-r border-slate-800 px-3 py-3 text-center flex items-center justify-center font-extrabold">
+                <div className="border border-[#4A0E17] grid grid-cols-12 text-xs bg-[#4A0E17] text-white font-bold font-sans rounded-xl overflow-hidden shadow-sm">
+                  <div className="col-span-6 border-r border-white/20 px-3 py-3 text-center flex items-center justify-center font-bold">
                     TOTAL ACCOUNT & PREMIUM
                   </div>
-                  <div className="col-span-2 border-r border-slate-800 px-2 py-3 text-center font-mono text-[13px] flex items-center justify-center font-bold">
+                  <div className="col-span-2 border-r border-white/20 px-2 py-3 text-center font-mono text-[13px] flex items-center justify-center font-bold bg-[#3A0B12]">
                     {salesGrandTotals.total}
                   </div>
-                  <div className="col-span-4 px-3 py-3 text-right font-mono text-[13px] flex items-center justify-end font-bold" style={{ textDecoration: 'underline double' }}>
+                  <div className="col-span-4 px-3 py-3 text-right font-mono text-[13px] flex items-center justify-end font-bold bg-[#3A0B12]">
                     {formatNum(salesTotalPremium)}
                   </div>
                 </div>

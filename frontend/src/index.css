@@ -489,49 +489,24 @@ textarea:disabled {
 }
 
 /* ─── Financial Summary Report Overrides for Dark Mode ─── */
-.dark .bg-\[\#c2dfb3\],
-.dark tr.bg-\[\#c2dfb3\],
-.dark th.bg-\[\#c2dfb3\],
-.dark td.bg-\[\#c2dfb3\] {
-  background-color: rgba(6, 78, 59, 0.45) !important; /* Deep forest green */
-  color: #34d399 !important; /* Vibrant mint green */
-  border-color: #1e294b !important;
+.dark #print-area table th.bg-slate-800 {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
 }
 
-.dark tr.bg-\[\#c2dfb3\] td,
-.dark tr.bg-\[\#c2dfb3\] th,
-.dark .bg-\[\#c2dfb3\] * {
-  color: #34d399 !important;
+.dark #print-area table tr.bg-slate-100 {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
 }
 
-.dark .bg-\[\#f5c7a9\],
-.dark tr.bg-\[\#f5c7a9\],
-.dark th.bg-\[\#f5c7a9\],
-.dark td.bg-\[\#f5c7a9\] {
-  background-color: rgba(69, 26, 3, 0.45) !important; /* Deep warm bronze */
-  color: #fb923c !important; /* Vibrant peach */
-  border-color: #1e294b !important;
+.dark #print-area table tr.bg-slate-100 td {
+  color: #f1f5f9 !important;
 }
 
-.dark tr.bg-\[\#f5c7a9\] td,
-.dark tr.bg-\[\#f5c7a9\] th,
-.dark .bg-\[\#f5c7a9\] * {
-  color: #fb923c !important;
-}
-
-.dark .bg-\[\#f4b800\],
-.dark tr.bg-\[\#f4b800\],
-.dark th.bg-\[\#f4b800\],
-.dark td.bg-\[\#f4b800\] {
-  background-color: rgba(66, 32, 6, 0.5) !important; /* Deep gold */
-  color: #facc15 !important; /* Vibrant yellow */
-  border-color: #1e294b !important;
-}
-
-.dark tr.bg-\[\#f4b800\] td,
-.dark tr.bg-\[\#f4b800\] th,
-.dark .bg-\[\#f4b800\] * {
-  color: #facc15 !important;
+.dark #print-area table td {
+  border-color: #334155 !important;
 }
 
 .dark #print-area {
