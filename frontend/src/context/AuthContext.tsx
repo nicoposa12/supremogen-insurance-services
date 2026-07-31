@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import axios from 'axios';
 
 interface User {
@@ -175,6 +175,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('supremogen_permissions', JSON.stringify(userPermissions));
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
   };
+
+  // ─── Idle Auto-Logout (1 hour) ──────────────────────────────────────────────
+  const IDLE_TIMEOUT = 60 * 60 * 1000;   // 1 hour in ms
+  const WARNING_BEFORE = 5 * 60 * 1000;  // Show warning 5 minutes before logout
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasWarned = useRef(false);
+
+  const resetIdleTimer = useCallback(() => {
+    if (!token) return; // Only track when authenticated
+
+    // Clear existing timers
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    if (warningTimer.current) clearTimeout(warningTimer.current);
+    hasWarned.current = false;
+
+    // Set warning timer (fires 5 min before logout)
+    warningTimer.current = setTimeout(() => {
+      hasWarned.current = true;
+      window.dispatchEvent(new CustomEvent('global-toast', {
+        detail: {
+          message: 'You will be logged out in 5 minutes due to inactivity.',
+          variant: 'warning',
+        },
+      }));
+    }, IDLE_TIMEOUT - WARNING_BEFORE);
+
+    // Set logout timer
+    idleTimer.current = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('global-toast', {
+        detail: {
+          message: 'You have been logged out due to inactivity.',
+          variant: 'error',
+        },
+      }));
+      logout();
+    }, IDLE_TIMEOUT);
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    const handleActivity = () => resetIdleTimer();
+
+    // Throttle to avoid excessive timer resets (max once per 30s)
+    let lastReset = Date.now();
+    const throttledHandler = () => {
+      if (Date.now() - lastReset > 30_000) {
+        lastReset = Date.now();
+        handleActivity();
+      }
+    };
+
+    events.forEach((event) => window.addEventListener(event, throttledHandler, { passive: true }));
+    resetIdleTimer(); // Start the timer immediately
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, throttledHandler));
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      if (warningTimer.current) clearTimeout(warningTimer.current);
+    };
+  }, [token, resetIdleTimer]);
+  // ─── End Idle Auto-Logout ──────────────────────────────────────────────────
 
   return (
     <AuthContext.Provider
