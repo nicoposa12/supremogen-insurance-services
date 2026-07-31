@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('policies', function (Blueprint $table) {
             $table->id();
-            $table->string('policy_number', 30)->unique();
+            $table->string('policy_number', 50)->nullable()->unique();
             $table->foreignId('quotation_id')->nullable()->constrained('quotations')->nullOnDelete();
             $table->foreignId('customer_id')->constrained('customers')->cascadeOnDelete();
             $table->foreignId('insurance_product_id')->constrained('insurance_products')->cascadeOnDelete();

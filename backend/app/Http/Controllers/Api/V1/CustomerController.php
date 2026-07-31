@@ -189,10 +189,67 @@ class CustomerController extends Controller
             ], 422);
         }
 
+        $oldPolicyNo = $customer->policy_no;
         $customer->update($validator->validated());
 
         if ($request->filled('policy_no')) {
-            $customer->policies()->update(['policy_number' => $request->input('policy_no')]);
+            $newPolicyNo = trim($request->input('policy_no'));
+            $customer->policies()->update(['policy_number' => $newPolicyNo]);
+
+            if (!empty($newPolicyNo) && $newPolicyNo !== $oldPolicyNo) {
+                try {
+                    $customerName = trim($customer->first_name . ' ' . $customer->last_name) ?: 'Customer';
+                    $underwriterName = $request->user()?->name ?? 'Underwriter';
+
+                    $targetUserIds = collect();
+                    if ($customer->created_by) {
+                        $creator = \App\Models\User::find($customer->created_by);
+                        if ($creator && $creator->isSalesOrRenewal()) {
+                            $targetUserIds->push($creator->id);
+                        }
+                    }
+                    if ($customer->agent) {
+                        $matchedAgent = \App\Models\User::where('name', $customer->agent)->first();
+                        if ($matchedAgent && $matchedAgent->isSalesOrRenewal()) {
+                            $targetUserIds->push($matchedAgent->id);
+                        }
+                    }
+                    $latestQuotation = \App\Models\Quotation::where('customer_id', $customer->id)->latest()->first();
+                    if ($latestQuotation && $latestQuotation->prepared_by) {
+                        $targetUserIds->push($latestQuotation->prepared_by);
+                    }
+
+                    if ($targetUserIds->isEmpty()) {
+                        $agentsAndRenewals = \App\Models\User::role(['Sales Agent', 'Team Renewal'])->get();
+                        foreach ($agentsAndRenewals as $agentUser) {
+                            $targetUserIds->push($agentUser->id);
+                        }
+                    }
+
+                    $title = 'Policy Number Assigned';
+                    $message = "Policy No. {$newPolicyNo} has been assigned for customer {$customerName} by underwriter {$underwriterName}.";
+
+                    foreach ($targetUserIds->unique() as $userId) {
+                        $alreadyNotified = \App\Models\Notification::where('user_id', $userId)
+                            ->where('title', $title)
+                            ->where('message', $message)
+                            ->where('created_at', '>=', now()->subSeconds(10))
+                            ->exists();
+
+                        if (!$alreadyNotified) {
+                            \App\Models\Notification::create([
+                                'user_id' => $userId,
+                                'title'   => $title,
+                                'message' => $message,
+                                'type'    => 'success',
+                                'read_at' => null,
+                            ]);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to notify agent of customer policy_no update: ' . $e->getMessage());
+                }
+            }
         }
 
         return response()->json([

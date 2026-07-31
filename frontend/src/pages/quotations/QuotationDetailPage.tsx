@@ -12,6 +12,7 @@ import { getQuotation, submitQuotation, reviewQuotation } from '../../services/q
 import { useAuth } from '../../context/AuthContext';
 import { getAttachments } from '../../services/attachmentApi';
 import AttachmentPanel from '../../components/ui/AttachmentPanel';
+import { RequestCancellationModal } from '../../components/quotations/RequestCancellationModal';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 
 const roundToTwoDecimals = (num: number): number => {
@@ -38,6 +39,7 @@ export default function QuotationDetailPage({
   const [activeTab, setActiveTab] = useState<'info' | 'payment' | 'claims' | 'documents'>('info');
   const [reviewRemarks, setReviewRemarks] = useState('');
   const [showReviewPanel, setShowReviewPanel] = useState(false);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['quotation', id],
@@ -79,6 +81,7 @@ export default function QuotationDetailPage({
   const isReviewable = quotation && ['submitted', 'under_review'].includes(quotation.status);
   const canIssuePolicy = quotation?.status === 'approved' && permissions.includes('policies.create');
   const canEdit = (roles.includes('Sales Agent') || roles.includes('Team Renewal')) && quotation?.status === 'draft';
+  const canRequestCancellation = quotation && (roles.includes('Sales Agent') || roles.includes('Team Renewal') || isAdmin) && ['approved', 'submitted', 'under_review'].includes(quotation.status);
 
   if (isLoading || !quotation) {
     return (
@@ -157,6 +160,12 @@ export default function QuotationDetailPage({
               <button onClick={() => navigate(`/dashboard/policies/issue/${quotation.id}`)}
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
                 <ShieldCheck className="h-3.5 w-3.5" /> Issue Policy
+              </button>
+            )}
+            {canRequestCancellation && (
+              <button onClick={() => setShowCancellationModal(true)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 hover:border-rose-300 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm">
+                <AlertTriangle className="h-3.5 w-3.5 text-rose-600" /> Request Cancellation
               </button>
             )}
           </div>
@@ -754,6 +763,14 @@ export default function QuotationDetailPage({
             Edit Details
           </button>
         )}
+        {canRequestCancellation && (
+          <button
+            onClick={() => setShowCancellationModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition cursor-pointer"
+          >
+            <AlertTriangle className="h-3.5 w-3.5 text-rose-600" /> Request Cancellation
+          </button>
+        )}
         {onClose && (
           <button
             onClick={onClose}
@@ -763,6 +780,18 @@ export default function QuotationDetailPage({
           </button>
         )}
       </div>
+
+      {showCancellationModal && (
+        <RequestCancellationModal
+          quotation={quotation}
+          isOpen={showCancellationModal}
+          onClose={() => setShowCancellationModal(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+            queryClient.invalidateQueries({ queryKey: ['quotations'] });
+          }}
+        />
+      )}
     </>
   );
 

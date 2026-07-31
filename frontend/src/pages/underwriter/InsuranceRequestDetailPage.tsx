@@ -7,7 +7,7 @@ import {
 
 import StatusBadge from '../../components/ui/StatusBadge';
 import { useToast } from '../../components/ui/Toast';
-import { getQuotation, reviewQuotation, reviewQuotationCancellation } from '../../services/quotationApi';
+import { getQuotation, reviewQuotation, reviewQuotationCancellation, updateQuotationMetadata } from '../../services/quotationApi';
 import { updateCustomer } from '../../services/customerApi';
 import { getAttachments, uploadAttachment } from '../../services/attachmentApi';
 import { getClaims } from '../../services/claimApi';
@@ -167,6 +167,12 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
         engine_no: engineNo,
         mortgage: mortgagee,
       } as any);
+
+      if (id && policyNo) {
+        await updateQuotationMetadata(Number(id), {
+          policyNumber: policyNo,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotation', id] });

@@ -30,7 +30,7 @@ class InvoiceController extends Controller
                     $productId = $quotation->items->first()?->insurance_product_id;
                     
                     $policy = \App\Models\Policy::create([
-                        'policy_number' => \App\Models\Policy::generateNumber(),
+                        'policy_number' => $customer?->policy_no ?: null,
                         'quotation_id' => $quotation->id,
                         'customer_id' => $quotation->customer_id,
                         'insurance_product_id' => $productId,

@@ -15,7 +15,7 @@ import { getQuotations, deleteQuotation } from '../../services/quotationApi';
 import type { Quotation, QuotationListParams } from '../../types/SalesTypes';
 import QuotationFormPage from './QuotationFormPage';
 import QuotationDetailPage from './QuotationDetailPage';
-import { RequestCancellationModal } from '../../components/quotations/RequestCancellationModal';
+import InlinePolicyNoCell from '../../components/quotations/InlinePolicyNoCell';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 
 export default function QuotationsPage() {
@@ -35,7 +35,6 @@ export default function QuotationsPage() {
   });
   const [searchInput, setSearchInput] = useState(querySearch);
   const [deleteTarget, setDeleteTarget] = useState<Quotation | null>(null);
-  const [cancellationTarget, setCancellationTarget] = useState<Quotation | null>(null);
 
   useEffect(() => {
     if (querySearch) {
@@ -180,14 +179,7 @@ export default function QuotationsPage() {
     },
     {
       key: 'policy_no', label: 'Policy No.',
-      render: (r: Quotation) => {
-        const policyNo = r.policy_number || r.customer?.policy_no || r.policy?.policy_number;
-        return (
-          <span className="font-mono text-xs font-semibold text-slate-700 uppercase">
-            {policyNo || '—'}
-          </span>
-        );
-      },
+      render: (r: Quotation) => <InlinePolicyNoCell quotation={r} />,
     },
     {
       key: 'bank_attachment', label: 'Bank',
@@ -223,31 +215,6 @@ export default function QuotationsPage() {
           </span>
         );
       },
-    },
-    {
-      key: 'actions', label: 'Actions', className: 'text-right',
-      render: (r: Quotation) => (
-        <div className="flex items-center justify-end gap-1">
-          {canEdit && r.status === 'draft' && (
-            <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Delete">
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-          {canEdit && ['approved', 'submitted', 'under_review'].includes(r.status) && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setCancellationTarget(r);
-              }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-              title="Request Cancellation"
-            >
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-            </button>
-          )}
-        </div>
-      ),
     },
   ];
 
@@ -504,17 +471,6 @@ export default function QuotationsPage() {
         confirmLabel="Delete" variant="danger" loading={deleteMutation.isPending}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)} />
-
-      {cancellationTarget && (
-        <RequestCancellationModal
-          quotation={cancellationTarget}
-          isOpen={!!cancellationTarget}
-          onClose={() => setCancellationTarget(null)}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['quotations'] });
-          }}
-        />
-      )}
     </div>
   );
 }

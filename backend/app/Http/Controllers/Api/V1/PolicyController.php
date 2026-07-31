@@ -121,30 +121,63 @@ class PolicyController extends Controller
             return $policy;
         });
 
-        // Notify the agent who prepared the quotation or who owns the customer
+        // Notify the agent who prepared the quotation or who owns the customer (Sales Agent or Team Renewal)
         try {
-            $notifyUserId = null;
+            $policyNumber = $policy->policy_number;
+            $customerName = $policy->customer ? trim($policy->customer->first_name . ' ' . $policy->customer->last_name) : 'Customer';
+            $underwriterName = $request->user()->name;
+
+            $targetUserIds = collect();
             if ($policy->quotation_id) {
                 $quotation = Quotation::find($policy->quotation_id);
-                if ($quotation) {
-                    $notifyUserId = $quotation->prepared_by;
+                if ($quotation && $quotation->prepared_by) {
+                    $targetUserIds->push($quotation->prepared_by);
                 }
             }
-            if (!$notifyUserId && $policy->customer_id) {
+            if ($policy->customer_id) {
                 $customer = \App\Models\Customer::find($policy->customer_id);
                 if ($customer) {
-                    $notifyUserId = $customer->created_by;
+                    if ($customer->created_by) {
+                        $creator = \App\Models\User::find($customer->created_by);
+                        if ($creator && $creator->isSalesOrRenewal()) {
+                            $targetUserIds->push($creator->id);
+                        }
+                    }
+                    if ($customer->agent) {
+                        $matchedAgent = \App\Models\User::where('name', $customer->agent)->first();
+                        if ($matchedAgent && $matchedAgent->isSalesOrRenewal()) {
+                            $targetUserIds->push($matchedAgent->id);
+                        }
+                    }
                 }
             }
 
-            if ($notifyUserId) {
-                \App\Models\Notification::create([
-                    'user_id' => $notifyUserId,
-                    'title' => 'Policy Issued',
-                    'message' => "Policy {$policy->policy_number} has been successfully issued for " . ($policy->customer ? ($policy->customer->first_name . ' ' . $policy->customer->last_name) : 'Customer') . ".",
-                    'type' => 'success',
-                    'read_at' => null,
-                ]);
+            if ($targetUserIds->isEmpty()) {
+                $agentsAndRenewals = \App\Models\User::role(['Sales Agent', 'Team Renewal'])->get();
+                foreach ($agentsAndRenewals as $agentUser) {
+                    $targetUserIds->push($agentUser->id);
+                }
+            }
+
+            $title = 'Policy Number Assigned';
+            $message = "Policy No. {$policyNumber} has been successfully assigned and policy issued for {$customerName} by underwriter {$underwriterName}.";
+
+            foreach ($targetUserIds->unique() as $userId) {
+                $alreadyNotified = \App\Models\Notification::where('user_id', $userId)
+                    ->where('title', $title)
+                    ->where('message', $message)
+                    ->where('created_at', '>=', now()->subSeconds(10))
+                    ->exists();
+
+                if (!$alreadyNotified) {
+                    \App\Models\Notification::create([
+                        'user_id' => $userId,
+                        'title'   => $title,
+                        'message' => $message,
+                        'type'    => 'success',
+                        'read_at' => null,
+                    ]);
+                }
             }
 
             // Also notify all Accounting Officers about the newly issued policy statement

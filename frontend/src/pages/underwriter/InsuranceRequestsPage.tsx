@@ -10,6 +10,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { getQuotations } from '../../services/quotationApi';
 import type { Quotation, QuotationListParams } from '../../types/SalesTypes';
 import InsuranceRequestDetailPage from './InsuranceRequestDetailPage.tsx';
+import InlinePolicyNoCell from '../../components/quotations/InlinePolicyNoCell';
 import { useAuth } from '../../context/AuthContext';
 
 export default function InsuranceRequestsPage() {
@@ -157,14 +158,7 @@ export default function InsuranceRequestsPage() {
     },
     {
       key: 'policy_no', label: 'Policy No.',
-      render: (r: Quotation) => {
-        const policyNo = r.policy_number || r.customer?.policy_no || r.policy?.policy_number;
-        return (
-          <span className="font-mono text-xs font-semibold text-slate-700 uppercase">
-            {policyNo || '—'}
-          </span>
-        );
-      },
+      render: (r: Quotation) => <InlinePolicyNoCell quotation={r} />,
     },
   ];
 

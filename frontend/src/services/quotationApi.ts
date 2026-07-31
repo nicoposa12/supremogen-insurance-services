@@ -65,12 +65,12 @@ export async function reviewQuotation(
 
 export async function updateQuotationMetadata(
   id: number,
-  orNumber: string,
-  tripNumber: string
+  params: { orNumber?: string; tripNumber?: string; policyNumber?: string }
 ): Promise<SingleResponse<Quotation>> {
   const { data } = await axios.post<SingleResponse<Quotation>>(`${BASE}/${id}/metadata`, {
-    or_number: orNumber,
-    trip_number: tripNumber,
+    or_number: params.orNumber,
+    trip_number: params.tripNumber,
+    policy_number: params.policyNumber,
   });
   return data;
 }

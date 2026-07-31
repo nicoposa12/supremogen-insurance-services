@@ -360,8 +360,9 @@ class QuotationController extends Controller
 
         $action = $request->input('action');
         $invoice = null;
+        $policy = null;
 
-        DB::transaction(function () use ($quotation, $action, $request, &$invoice) {
+        DB::transaction(function () use ($quotation, $action, $request, &$invoice, &$policy) {
             $quotation->update([
                 'status' => $action === 'approve' ? 'approved' : 'rejected',
                 'reviewed_by' => $request->user()->id,
@@ -381,24 +382,25 @@ class QuotationController extends Controller
                     $customer->update(['policy_no' => $providedPolicyNo]);
                 }
 
-                $policyNoToUse = $providedPolicyNo ?: ($customer?->policy_no ?: \App\Models\Policy::generateNumber());
+                $policyNoToUse = $providedPolicyNo ?: ($customer?->policy_no ?: null);
 
                 // Find existing policy for this quotation or customer
-                $policy = \App\Models\Policy::where('quotation_id', $quotation->id)
+                $existingPolicy = \App\Models\Policy::where('quotation_id', $quotation->id)
                     ->orWhere(function ($q) use ($quotation) {
                         if ($quotation->customer_id) {
                             $q->where('customer_id', $quotation->customer_id);
                         }
                     })->first();
 
-                if ($policy) {
-                    $policy->update([
+                if ($existingPolicy) {
+                    $existingPolicy->update([
                         'policy_number' => $policyNoToUse,
                         'quotation_id' => $quotation->id,
                         'customer_id' => $quotation->customer_id,
                         'insurance_product_id' => $productId,
                         'status' => 'active',
                     ]);
+                    $policy = $existingPolicy;
                 } else {
                     $policy = \App\Models\Policy::create([
                         'policy_number' => $policyNoToUse,
@@ -448,60 +450,74 @@ class QuotationController extends Controller
                     'unit_price' => $customer?->policy_premium ?? 0,
                     'amount' => $customer?->policy_premium ?? 0,
                 ]);
-
-                // Automatically create a Claim Notification for Claims Officers
-                try {
-                    $claimNotification = \App\Models\ClaimNotification::create([
-                        'reference_number'   => \App\Models\ClaimNotification::generateNumber(),
-                        'assured_name'       => trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')),
-                        'contact_number'     => $customer->mobile ?? $customer->phone,
-                        'email_address'      => $customer->email,
-                        'insurance_provider' => $customer->insurance_provider ?? 'Supremogen Insurance Services',
-                        'plate_number'       => $customer->plate_no,
-                        'policy_number'      => $policy->policy_number,
-                        'inception_date'     => $policy->effective_date,
-                        'accident_date'      => $policy->effective_date ?? now(),
-                        'nature_of_claims'   => 'Auto-generated claim notification upon underwriting approval.',
-                        'notes'              => 'Automatically generated from approved Quotation ' . $quotation->quotation_number,
-                        'submitted_by'       => $quotation->prepared_by ?? $request->user()->id,
-                        'status'             => 'pending',
-                    ]);
-
-                    // Notify all Claims Officers
-                    $officers = \App\Models\User::role('Claims Officer')->get();
-                    foreach ($officers as $officer) {
-                        \App\Models\Notification::create([
-                            'user_id' => $officer->id,
-                            'title'   => 'Claim Notification Received',
-                            'message' => "New claim notification {$claimNotification->reference_number} for assured \"{$claimNotification->assured_name}\" — Policy {$claimNotification->policy_number}.",
-                            'type'    => 'warning',
-                            'read_at' => null,
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Failed to create automatic claim notification: ' . $e->getMessage());
-                }
             }
         });
 
-        // Notify the creator of the quotation (Sales Agent or Team Renewal)
-        try {
-            if ($quotation->prepared_by) {
-                \App\Models\Notification::create([
-                    'user_id' => $quotation->prepared_by,
-                    'title' => $action === 'approve' ? 'Quotation Approved' : 'Quotation Rejected',
-                    'message' => "Quotation {$quotation->quotation_number} has been " . ($action === 'approve' ? 'approved' : 'rejected') . " by " . $request->user()->name . ".",
-                    'type' => $action === 'approve' ? 'success' : 'error',
-                    'read_at' => null,
+        // After transaction commits, create Claim Notification outside the transaction
+        // to prevent a NOT NULL violation from rolling back the approval
+        if ($action === 'approve' && $policy) {
+            try {
+                $customer = $quotation->customer;
+                $claimNotification = \App\Models\ClaimNotification::create([
+                    'reference_number'   => \App\Models\ClaimNotification::generateNumber(),
+                    'assured_name'       => trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')),
+                    'contact_number'     => $customer->mobile ?? $customer->phone,
+                    'email_address'      => $customer->email,
+                    'insurance_provider' => $customer->insurance_provider ?? 'Supremogen Insurance Services',
+                    'plate_number'       => $customer->plate_no,
+                    'policy_number'      => $policy->policy_number ?? 'PENDING',
+                    'inception_date'     => $policy->effective_date,
+                    'accident_date'      => $policy->effective_date ?? now(),
+                    'nature_of_claims'   => 'Auto-generated claim notification upon underwriting approval.',
+                    'notes'              => 'Automatically generated from approved Quotation ' . $quotation->quotation_number,
+                    'submitted_by'       => $quotation->prepared_by ?? $request->user()->id,
+                    'status'             => 'pending',
                 ]);
+
+                // Notify all Claims Officers
+                $officers = \App\Models\User::role('Claims Officer')->get();
+                foreach ($officers as $officer) {
+                    \App\Models\Notification::create([
+                        'user_id' => $officer->id,
+                        'title'   => 'Claim Notification Received',
+                        'message' => "New claim notification {$claimNotification->reference_number} for assured \"{$claimNotification->assured_name}\" — Policy {$claimNotification->policy_number}.",
+                        'type'    => 'warning',
+                        'read_at' => null,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to create automatic claim notification: ' . $e->getMessage());
+            }
+        }
+
+        // Notify the creator & team of the quotation (Sales Agent or Team Renewal)
+        try {
+            $refNo = $quotation->quotation_number ?: ($quotation->ir_number ?: "IR-{$quotation->id}");
+            $underwriterName = $request->user()->name;
+
+            if ($action === 'approve') {
+                $assignedPolicyNo = $policy?->policy_number ?? $request->input('policy_number') ?? $quotation->customer?->policy_no;
+                if (!empty($assignedPolicyNo)) {
+                    $title = 'Policy Number Assigned';
+                    $message = "Quotation {$refNo} has been approved and Policy No. {$assignedPolicyNo} was assigned by underwriter {$underwriterName}.";
+                } else {
+                    $title = 'Quotation Approved';
+                    $message = "Quotation {$refNo} has been approved by underwriter {$underwriterName}.";
+                }
+                $type = 'success';
+            } else {
+                $title = 'Quotation Rejected';
+                $message = "Quotation {$refNo} has been rejected by underwriter {$underwriterName}.";
+                $type = 'error';
             }
 
-            // If approved, notify creator, Accounting officers, and Collection officers
+            $this->notifySalesAndRenewalAgents($quotation, $title, $message, $type);
+
+            // If approved, notify Accounting officers and Collection officers
             if ($action === 'approve') {
                 $customerName = $quotation->customer
                     ? trim($quotation->customer->first_name . ' ' . $quotation->customer->last_name)
                     : 'Customer';
-                $refNo = $quotation->quotation_number ?: ($quotation->ir_number ?: "IR-{$quotation->id}");
 
                 // 1. Notify all Accounting Officers about the newly approved policy statement
                 $accountingOfficers = \App\Models\User::role('Accounting Officer')->get();
@@ -551,7 +567,7 @@ class QuotationController extends Controller
     }
 
     /**
-     * Update quotation metadata (OR No. and Trip No.) by underwriter.
+     * Update quotation metadata (OR No., Trip No., Policy No.) by underwriter or admin.
      */
     public function updateMetadata(Request $request, string $id)
     {
@@ -561,8 +577,8 @@ class QuotationController extends Controller
             return response()->json(['success' => false, 'message' => 'Quotation not found.'], 404);
         }
 
-        // Only underwriters can update metadata
-        if (!$request->user()->hasRole('Underwriter')) {
+        // Allow Underwriters, Admins, Owners, Super Admins
+        if (!$request->user()->hasAnyRole(['Underwriter', 'Administrator', 'Owner', 'Super Admin'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized access.',
@@ -572,6 +588,7 @@ class QuotationController extends Controller
         $validator = Validator::make($request->all(), [
             'or_number' => 'nullable|string|max:100',
             'trip_number' => 'nullable|string|max:100',
+            'policy_number' => 'nullable|string|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -582,15 +599,66 @@ class QuotationController extends Controller
             ], 422);
         }
 
-        $quotation->update([
-            'or_number' => $request->input('or_number', $quotation->or_number),
-            'trip_number' => $request->input('trip_number', $quotation->trip_number),
-        ]);
+        if ($request->has('or_number')) {
+            $quotation->or_number = $request->input('or_number');
+        }
+        if ($request->has('trip_number')) {
+            $quotation->trip_number = $request->input('trip_number');
+        }
+        $quotation->save();
+
+        if ($request->has('policy_number')) {
+            $policyNo = $request->input('policy_number');
+
+            if ($quotation->customer) {
+                $quotation->customer->update(['policy_no' => $policyNo]);
+            }
+
+            $policy = \App\Models\Policy::where('quotation_id', $quotation->id)
+                ->orWhere(function ($q) use ($quotation) {
+                    if ($quotation->customer_id) {
+                        $q->where('customer_id', $quotation->customer_id);
+                    }
+                })->first();
+
+            if ($policy) {
+                $policy->update(['policy_number' => $policyNo]);
+            } else if ($policyNo && $quotation->customer_id) {
+                \App\Models\Policy::create([
+                    'policy_number' => $policyNo,
+                    'quotation_id' => $quotation->id,
+                    'customer_id' => $quotation->customer_id,
+                    'insurance_product_id' => $quotation->items->first()?->insurance_product_id,
+                    'issued_by' => $request->user()->id,
+                    'status' => 'active',
+                    'effective_date' => $quotation->customer?->inception_date ?? now(),
+                    'expiry_date' => $quotation->customer?->expiry_date ?? now()->addYear(),
+                    'total_premium' => $quotation->customer?->policy_premium ?? 0,
+                    'sum_insured' => $quotation->customer?->assured_value ?? 0,
+                    'terms_and_conditions' => $quotation->notes,
+                ]);
+            }
+
+            if (!empty($policyNo)) {
+                $refNo = $quotation->quotation_number ?: ($quotation->ir_number ?: "IR-{$quotation->id}");
+                $customerName = $quotation->customer
+                    ? trim($quotation->customer->first_name . ' ' . $quotation->customer->last_name)
+                    : 'Customer';
+                $underwriterName = $request->user()->name;
+
+                $this->notifySalesAndRenewalAgents(
+                    $quotation,
+                    'Policy Number Assigned',
+                    "Policy No. {$policyNo} has been assigned to quotation {$refNo} (Customer: {$customerName}) by underwriter {$underwriterName}.",
+                    'success'
+                );
+            }
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Quotation metadata updated successfully.',
-            'data' => $quotation->fresh(['customer', 'items.insuranceProduct']),
+            'data' => $quotation->fresh(['customer', 'items.insuranceProduct', 'policy']),
         ]);
     }
 
@@ -811,5 +879,62 @@ class QuotationController extends Controller
             'message' => $newVal ? 'Policy statement marked as Remitted.' : 'Policy statement marked as Unremitted.',
             'data' => $quotation->fresh(['customer', 'policy']),
         ]);
+    }
+
+    /**
+     * Notify Sales Agent / Team Renewal associated with a quotation.
+     */
+    protected function notifySalesAndRenewalAgents(Quotation $quotation, string $title, string $message, string $type = 'success'): void
+    {
+        try {
+            $targetUserIds = collect();
+
+            if ($quotation->prepared_by) {
+                $targetUserIds->push($quotation->prepared_by);
+            }
+
+            if ($quotation->customer) {
+                if ($quotation->customer->created_by) {
+                    $creator = \App\Models\User::find($quotation->customer->created_by);
+                    if ($creator && $creator->isSalesOrRenewal()) {
+                        $targetUserIds->push($creator->id);
+                    }
+                }
+                if ($quotation->customer->agent) {
+                    $matchedAgent = \App\Models\User::where('name', $quotation->customer->agent)->first();
+                    if ($matchedAgent && $matchedAgent->isSalesOrRenewal()) {
+                        $targetUserIds->push($matchedAgent->id);
+                    }
+                }
+            }
+
+            // Fallback: if no specific agent user found, notify all active Sales Agent and Team Renewal users
+            if ($targetUserIds->isEmpty()) {
+                $agentsAndRenewals = \App\Models\User::role(['Sales Agent', 'Team Renewal'])->get();
+                foreach ($agentsAndRenewals as $agentUser) {
+                    $targetUserIds->push($agentUser->id);
+                }
+            }
+
+            foreach ($targetUserIds->unique() as $userId) {
+                $alreadyNotified = \App\Models\Notification::where('user_id', $userId)
+                    ->where('title', $title)
+                    ->where('message', $message)
+                    ->where('created_at', '>=', now()->subSeconds(10))
+                    ->exists();
+
+                if (!$alreadyNotified) {
+                    \App\Models\Notification::create([
+                        'user_id' => $userId,
+                        'title'   => $title,
+                        'message' => $message,
+                        'type'    => $type,
+                        'read_at' => null,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify sales agent/team renewal: ' . $e->getMessage());
+        }
     }
 }
