@@ -179,6 +179,17 @@ export default function QuotationsPage() {
       render: (r: Quotation) => <StatusBadge status={r.status} />,
     },
     {
+      key: 'policy_no', label: 'Policy No.',
+      render: (r: Quotation) => {
+        const policyNo = r.policy_number || r.customer?.policy_no || r.policy?.policy_number;
+        return (
+          <span className="font-mono text-xs font-semibold text-slate-700 uppercase">
+            {policyNo || '—'}
+          </span>
+        );
+      },
+    },
+    {
       key: 'bank_attachment', label: 'Bank',
       render: (r: Quotation) => {
         const bankDoc = r.customer?.attachments?.find((d: any) => d.document_type === 'bank');

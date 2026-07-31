@@ -1886,47 +1886,6 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                   </div>
                   <div className="space-y-3 text-xs">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Selling Rate (OD) %</label>
-                      <input type="number" step="0.01" value={sellingRateOD} onChange={(e) => setSellingRateOD(Number(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Selling Rate (AON) %</label>
-                      <input type="number" step="0.01" value={sellingRateAON} onChange={(e) => setSellingRateAON(Number(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" />
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-t border-dashed border-slate-200">
-                      <span className="text-slate-500">Basic Premium</span>
-                      <span className="font-semibold text-slate-800 font-mono">₱{basicPremiumSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    {isMotor ? (
-                      <>
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-slate-500">DST (12.5%)</span>
-                          <span className="font-semibold text-slate-800 font-mono">₱{dst.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-slate-500">E-VAT (12%)</span>
-                          <span className="font-semibold text-slate-800 font-mono">₱{eVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-slate-500">LGT (0.2%)</span>
-                          <span className="font-semibold text-slate-800 font-mono">₱{lgt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-slate-500">GP * 1.2525</span>
-                        <span className="font-semibold text-slate-800 font-mono">₱{gpMultiplier.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Towing Fee / RAP (₱)</label>
-                      <input type="text" value={towingFee} onChange={(e) => setTowingFee(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder={isMotor ? "200.00" : "500.00"} />
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-t border-slate-200">
-                      <span className="font-bold text-slate-700">Gross Premium</span>
-                      <span className="font-bold text-slate-800 font-mono">₱{grossPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Agent Mark Up (₱)</label>
                       <input type="text" value={agentMarkup} onChange={(e) => setAgentMarkup(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
                     </div>
