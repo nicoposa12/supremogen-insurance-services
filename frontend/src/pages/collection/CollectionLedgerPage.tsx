@@ -1101,6 +1101,199 @@ export default function CollectionLedgerPage() {
     return 0;
   };
 
+  // Export Collection Ledger records to Excel spreadsheet
+  const exportToExcel = () => {
+    if (filteredInvoices.length === 0) {
+      showToast('No collection records available to export.', 'error');
+      return;
+    }
+
+    const todayStr = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    let rowsHtml = '';
+    filteredInvoices.forEach((row: Invoice, idx: number) => {
+      const customer = row.customer;
+      const terms = Number(customer?.payment_terms || 1);
+      const totalPremium = Number(row.total_amount);
+      const amountPaid = Number(row.amount_paid);
+      const balance = Number(row.balance);
+      const installmentAmount = totalPremium / terms;
+      const dueAmount = calculateDueAmount(row);
+
+      const payments = [...(row.payments || [])].sort(
+        (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
+      );
+
+      const inceptionDateStr = customer?.inception_date;
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+      const currentInstallmentIndex = (() => {
+        for (let i = 1; i <= terms; i++) {
+          const pay = payments[i - 1];
+          if (!pay || Number(pay.amount) < (installmentAmount - 0.05)) {
+            return i;
+          }
+        }
+        return terms + 1;
+      })();
+
+      const termCellTexts: string[] = [];
+      for (let i = 1; i <= 6; i++) {
+        if (i > terms) {
+          termCellTexts.push('—');
+          continue;
+        }
+
+        const payment = payments[i - 1];
+        const isInvoicePaid = balance <= 0;
+        const isPaid = isInvoicePaid || (payment && Number(payment.amount) >= (installmentAmount - 0.05));
+        const isPartial = !isInvoicePaid && payment && Number(payment.amount) > 0 && Number(payment.amount) < (installmentAmount - 0.05);
+        const isDue = !isInvoicePaid && !isPaid && i === currentInstallmentIndex;
+
+        let dueDateText = '—';
+        if (inceptionDateStr) {
+          const d = new Date(inceptionDateStr);
+          if (!isNaN(d.getTime())) {
+            const dateObj = new Date(d.getFullYear(), d.getMonth() + (i - 1), d.getDate());
+            dueDateText = `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+          }
+        }
+
+        let statusText = 'UNPAID';
+        if (isPaid) {
+          statusText = `Paid (${payment?.amount ? '₱' + Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Full'})`;
+        } else if (isPartial) {
+          statusText = `Partial (₱${Number(payment?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+        } else if (isDue) {
+          statusText = `Due (${dueDateText})`;
+        } else {
+          statusText = `Unpaid (${dueDateText})`;
+        }
+
+        termCellTexts.push(statusText);
+      }
+
+      const reqDate = customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US') : '—';
+      const incDate = customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US') : '—';
+      const agent = customer?.agent || '—';
+      const type = customer?.request_type === 'NEW ACCOUNT' ? 'NEW' : 'RENEWAL';
+      const assuredName = customer ? `${customer.first_name} ${customer.last_name}`.toUpperCase() : '—';
+      const reqNo = (row as any).policy?.quotation?.quotation_number || (row as any).policy?.quotation?.ir_number || (row as any).quotation_number || customer?.customer_code || '—';
+      const policyNo = customer?.policy_no || row.policy?.policy_number || '—';
+      const plateNo = customer?.plate_no || '—';
+      const statusStr = (row.status || 'sent').toUpperCase();
+
+      rowsHtml += `
+        <tr>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${idx + 1}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 6px;">${agent}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${reqDate}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${type}</td>
+          <td style="font-weight: bold; border: 1px solid #cbd5e1; padding: 6px;">${assuredName}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${reqNo}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${policyNo}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${plateNo}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${incDate}</td>
+          <td style="text-align: right; border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">₱${totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${terms}</td>
+          <td style="text-align: right; border: 1px solid #cbd5e1; padding: 6px;">₱${installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${termCellTexts[0]}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${termCellTexts[1]}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${termCellTexts[2]}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${termCellTexts[3]}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${termCellTexts[4]}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px;">${termCellTexts[5]}</td>
+          <td style="text-align: right; border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #047857;">₱${amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: right; border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #4A0E17;">₱${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: right; border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #be123c;">${dueAmount > 0 ? '₱' + dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</td>
+          <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">${statusStr}</td>
+        </tr>
+      `;
+    });
+
+    const excelTemplate = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Collection Ledger</x:Name>
+                <x:WorksheetOptions>
+                  <x:DisplayGridlines/>
+                </x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 11px; }
+          th { background-color: #4A0E17; color: #ffffff; font-weight: bold; border: 1px solid #330a10; padding: 8px; text-align: center; }
+          td { border: 1px solid #cbd5e1; padding: 6px; }
+          .title-row { font-size: 16px; font-weight: bold; color: #4A0E17; }
+          .meta-row { font-size: 11px; color: #475569; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr><td colSpan="22" class="title-row" style="font-size: 16px; font-weight: bold; color: #4A0E17;">SUPREMOGEN INSURANCE SERVICES</td></tr>
+          <tr><td colSpan="22" style="font-size: 13px; font-weight: bold; color: #1e293b;">COLLECTION PAYMENT LEDGER REPORT</td></tr>
+          <tr><td colSpan="22" class="meta-row">Export Date: ${todayStr} | Total Records: ${filteredInvoices.length}</td></tr>
+          <tr><td colSpan="22"></td></tr>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Agent</th>
+              <th>Req Date</th>
+              <th>Type</th>
+              <th>Assured Name</th>
+              <th>Req #</th>
+              <th>Policy #</th>
+              <th>Plate #</th>
+              <th>Inception Date</th>
+              <th>Total Premium</th>
+              <th>Terms</th>
+              <th>Installment Amt</th>
+              <th>1st Term</th>
+              <th>2nd Term</th>
+              <th>3rd Term</th>
+              <th>4th Term</th>
+              <th>5th Term</th>
+              <th>6th Term</th>
+              <th>Total Paid</th>
+              <th>Balance</th>
+              <th>Current Due</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([excelTemplate], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const dateStamp = new Date().toISOString().split('T')[0];
+    link.download = `Collection_Ledger_${dateStamp}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Collection Ledger exported to Excel successfully!', 'success');
+  };
+
   const needsReference = ['bank_transfer_pbcom', 'bank_transfer_security_bank', 'post_dated_checks', 'split_payment'].includes(collectMethod);
   const isTrackerMethod = ['jt', 'jrs', 'lbc'].includes(collectMethod);
 
@@ -1371,6 +1564,15 @@ export default function CollectionLedgerPage() {
           </div>
           <p className="text-xs text-slate-500">Full visual spreadsheet layout for tracking and managing installment collection schedules</p>
         </div>
+
+        <button
+          onClick={exportToExcel}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+          title="Download Collection Ledger to Excel spreadsheet"
+        >
+          <Download className="h-4 w-4" />
+          <span>Download Excel</span>
+        </button>
       </div>
 
       {/* KPI Cards Grid */}
@@ -1657,6 +1859,15 @@ export default function CollectionLedgerPage() {
                 Reset
               </button>
             )}
+
+            <button
+              onClick={exportToExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg shadow-2xs transition-all hover:scale-[1.02] active:scale-95 cursor-pointer ml-auto"
+              title="Export filtered collection records to Excel"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Export Excel</span>
+            </button>
           </div>
         </div>
 
