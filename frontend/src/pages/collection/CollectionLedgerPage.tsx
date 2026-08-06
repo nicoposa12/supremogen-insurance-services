@@ -1806,7 +1806,6 @@ export default function CollectionLedgerPage() {
                 <option value="first_payment_alarm">1st Payment Alarm (20th Day)</option>
                 <option value="dst_warning">DST Warning (80+ Days)</option>
                 <option value="sent">Sent (Unpaid)</option>
-                <option value="partial">Partially Paid</option>
                 <option value="overdue">Overdue</option>
                 <option value="overpaid">Overpayment</option>
                 <option value="paid">Paid</option>
