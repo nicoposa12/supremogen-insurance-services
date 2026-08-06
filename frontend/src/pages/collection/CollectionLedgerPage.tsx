@@ -651,6 +651,38 @@ export default function CollectionLedgerPage() {
     refetchInterval: 3000,
   });
 
+  const isPaymentVerified = (payment: Payment | null | undefined): boolean => {
+    if (!payment) return false;
+    const vStatus = (payment.verification_status || '').trim().toLowerCase();
+    return (
+      vStatus === 'verified' ||
+      vStatus.startsWith('reflected') ||
+      vStatus.includes('pbcom') ||
+      vStatus.includes('security') ||
+      vStatus.includes('jnt') ||
+      vStatus.includes('cleared')
+    );
+  };
+
+  const isPaymentPendingVerification = (payment: Payment | null | undefined): boolean => {
+    if (!payment) return false;
+    const vStatus = (payment.verification_status || '').trim().toLowerCase();
+    const isVerified =
+      vStatus === 'verified' ||
+      vStatus.startsWith('reflected') ||
+      vStatus.includes('pbcom') ||
+      vStatus.includes('security') ||
+      vStatus.includes('jnt') ||
+      vStatus.includes('cleared');
+    const isRejected = vStatus === 'rejected';
+    return !isVerified && !isRejected;
+  };
+
+  const hasPendingVerification = (invoice: Invoice): boolean => {
+    if (!invoice.payments || invoice.payments.length === 0) return false;
+    return invoice.payments.some(isPaymentPendingVerification);
+  };
+
   const { data: invoicesRes, isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices-ledger', page, searchVal, invoiceStatus, perPage],
     queryFn: () => getInvoices({
@@ -658,7 +690,7 @@ export default function CollectionLedgerPage() {
       per_page: perPage,
       search: searchVal,
       status: (invoiceStatus === 'all' || invoiceStatus === 'dst_warning' || invoiceStatus === 'first_payment_alarm' || invoiceStatus === 'sent')
-        ? 'sent,partial,overdue'
+        ? 'sent,partial,overdue,paid'
         : (invoiceStatus === 'every'
             ? 'sent,partial,overdue,paid,overpaid,cancelled,voided'
             : (invoiceStatus === 'voided' ? 'cancelled,voided' : invoiceStatus)),
@@ -712,9 +744,22 @@ export default function CollectionLedgerPage() {
     return rawList.filter((row: Invoice) => {
       const customer = row.customer;
 
-      // Sent (Unpaid) Filter & Term Filter
+      // All Outstanding filter
+      if (invoiceStatus === 'all') {
+        const hasUnverified = hasPendingVerification(row);
+        if (Number(row.balance) <= 0 && !hasUnverified) return false;
+      }
+
+      // Paid filter (Must have no pending verification payments)
+      if (invoiceStatus === 'paid') {
+        const hasUnverified = hasPendingVerification(row);
+        if (Number(row.balance) > 0 || hasUnverified) return false;
+      }
+
+      // Sent (Unpaid) Filter & Term Filter (Include records with pending verification payments)
       if (invoiceStatus === 'sent') {
-        if (Number(row.balance) <= 0) return false;
+        const hasUnverified = hasPendingVerification(row);
+        if (Number(row.balance) <= 0 && !hasUnverified) return false;
 
         if (sentUnpaidTermFilter) {
           const targetTerm = Number(sentUnpaidTermFilter);
@@ -729,9 +774,14 @@ export default function CollectionLedgerPage() {
             (a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime()
           );
 
-          const isInvoicePaid = Number(row.balance) <= 0;
+          const isInvoicePaid = Number(row.balance) <= 0 && !hasUnverified;
           const paymentForTerm = payments[targetTerm - 1];
-          const isTermPaid = isInvoicePaid || (paymentForTerm && Number(paymentForTerm.amount) >= (installmentAmount - 0.05));
+          // A term is ONLY paid if verified AND amount covers installment
+          const isTermPaid = isInvoicePaid || (
+            paymentForTerm &&
+            Number(paymentForTerm.amount) >= (installmentAmount - 0.05) &&
+            isPaymentVerified(paymentForTerm)
+          );
 
           if (isTermPaid) {
             return false;
@@ -1149,10 +1199,14 @@ export default function CollectionLedgerPage() {
         }
 
         const payment = payments[i - 1];
-        const isInvoicePaid = balance <= 0;
-        const isPaid = isInvoicePaid || (payment && Number(payment.amount) >= (installmentAmount - 0.05));
-        const isPartial = !isInvoicePaid && payment && Number(payment.amount) > 0 && Number(payment.amount) < (installmentAmount - 0.05);
-        const isDue = !isInvoicePaid && !isPaid && i === currentInstallmentIndex;
+        const isInvoicePaid = balance <= 0 && !hasPendingVerification(row);
+        const isTermVerified = isPaymentVerified(payment);
+        const isTermPending = isPaymentPendingVerification(payment);
+
+        const isPaid = isInvoicePaid || (payment && Number(payment.amount) >= (installmentAmount - 0.05) && isTermVerified);
+        const isPendingVer = isTermPending;
+        const isPartial = !isInvoicePaid && !isPendingVer && payment && Number(payment.amount) > 0 && Number(payment.amount) < (installmentAmount - 0.05);
+        const isDue = !isInvoicePaid && !isPaid && !isPendingVer && i === currentInstallmentIndex;
 
         let dueDateText = '—';
         if (inceptionDateStr) {
@@ -1166,6 +1220,8 @@ export default function CollectionLedgerPage() {
         let statusText = 'UNPAID';
         if (isPaid) {
           statusText = `Paid (${payment?.amount ? '₱' + Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Full'})`;
+        } else if (isPendingVer) {
+          statusText = `Pending Verification (₱${Number(payment?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
         } else if (isPartial) {
           statusText = `Partial (₱${Number(payment?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
         } else if (isDue) {
@@ -1994,15 +2050,15 @@ export default function CollectionLedgerPage() {
                       const dueAmount = calculateDueAmount(row);
                       const isExpanded = !!expandedInvoiceIds[row.id];
 
-                      // Calculate first active due installment index (the first one not fully paid)
+                      // Calculate first active due installment index (the first one not fully paid and verified)
                       const currentInstallmentIndex = (() => {
                         for (let i = 1; i <= terms; i++) {
                           const pay = payments[i - 1];
-                          if (!pay || Number(pay.amount) < (installmentAmount - 0.05)) {
+                          if (!pay || Number(pay.amount) < (installmentAmount - 0.05) || !isPaymentVerified(pay)) {
                             return i;
                           }
                         }
-                        return terms + 1; // All paid
+                        return terms + 1; // All paid & verified
                       })();
 
                       // 1st Payment Alarm check (No 1st payment by 20th of following month)
@@ -2169,13 +2225,17 @@ export default function CollectionLedgerPage() {
                               const isActive = idx <= terms;
                               const payment = isActive ? payments[idx - 1] : null;
 
-                              const isInvoicePaid = Number(row.balance) <= 0;
-                              const isPaid = isActive && (isInvoicePaid || (payment && Number(payment.amount) >= (installmentAmount - 0.05)));
-                              const isPartial = isActive && !isInvoicePaid && payment && Number(payment.amount) > 0 && Number(payment.amount) < (installmentAmount - 0.05);
-                              const isDue = isActive && !isInvoicePaid && !isPaid && idx === currentInstallmentIndex;
+                              const isInvoicePaid = Number(row.balance) <= 0 && !hasPendingVerification(row);
+                              const isTermVerified = isPaymentVerified(payment);
+                              const isTermPending = isPaymentPendingVerification(payment);
+
+                              const isPaid = isActive && (isInvoicePaid || (payment && Number(payment.amount) >= (installmentAmount - 0.05) && isTermVerified));
+                              const isPendingVer = isActive && isTermPending;
+                              const isPartial = isActive && !isInvoicePaid && !isPendingVer && payment && Number(payment.amount) > 0 && Number(payment.amount) < (installmentAmount - 0.05);
+                              const isDue = isActive && !isInvoicePaid && !isPaid && !isPendingVer && idx === currentInstallmentIndex;
 
                               const cellDueDate = inceptionDateStr ? new Date(new Date(inceptionDateStr).getFullYear(), new Date(inceptionDateStr).getMonth() + idx - 1, new Date(inceptionDateStr).getDate()) : null;
-                              const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && (() => {
+                              const isCellOverdue = terms >= 3 && terms <= 6 && cellDueDate && isActive && !isPaid && !isPendingVer && (() => {
                                 const today = new Date();
                                 const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                                 const cellMidnight = new Date(cellDueDate.getFullYear(), cellDueDate.getMonth(), cellDueDate.getDate());
@@ -2190,34 +2250,40 @@ export default function CollectionLedgerPage() {
                                   ? 'bg-slate-50 dark:bg-slate-900/40 text-slate-350 dark:text-slate-650'
                                   : isPaid
                                     ? 'bg-emerald-50/50 dark:bg-emerald-950/20'
-                                    : isPartial
-                                      ? 'bg-amber-50/50 dark:bg-amber-950/20'
-                                      : isDue
-                                        ? 'bg-rose-50/40 dark:bg-rose-950/20'
-                                        : 'dark:bg-slate-900/10'
+                                    : isPendingVer
+                                      ? 'bg-amber-50/70 dark:bg-amber-950/30'
+                                      : isPartial
+                                        ? 'bg-amber-50/50 dark:bg-amber-950/20'
+                                        : isDue
+                                          ? 'bg-rose-50/40 dark:bg-rose-950/20'
+                                          : 'dark:bg-slate-900/10'
                                   }`}>
                                   {isActive ? (
                                     <div className="flex flex-col items-center justify-center gap-0">
                                       <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-none">{idx}{suffix} ({monthInfo?.monthName})</span>
                                       <span className={`text-[9px] font-mono font-bold leading-tight ${isPaid
                                         ? 'text-emerald-700 dark:text-emerald-400'
-                                        : isPartial
-                                          ? 'text-amber-700 dark:text-amber-400 font-bold'
-                                          : isDue
-                                            ? 'text-rose-700 dark:text-rose-400'
-                                            : 'text-slate-655 dark:text-slate-350'
+                                        : isPendingVer
+                                          ? 'text-amber-800 dark:text-amber-300 font-bold'
+                                          : isPartial
+                                            ? 'text-amber-700 dark:text-amber-400 font-bold'
+                                            : isDue
+                                              ? 'text-rose-700 dark:text-rose-400'
+                                              : 'text-slate-655 dark:text-slate-350'
                                         }`}>
                                         ₱{installmentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </span>
                                       <span className={`text-[7px] font-extrabold uppercase mt-0.5 px-0.5 py-0.2 rounded leading-none inline-flex items-center gap-0.5 border border-transparent ${isPaid
                                         ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/30'
-                                        : isPartial
-                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/30 animate-pulse'
-                                          : isDue
-                                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse'
-                                            : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700/50'
+                                        : isPendingVer
+                                          ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-700/50 animate-pulse'
+                                          : isPartial
+                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/30 animate-pulse'
+                                            : isDue
+                                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/30 animate-pulse'
+                                              : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700/50'
                                         }`}>
-                                        <span>{isPaid ? 'Paid' : isPartial ? 'Partial' : isDue ? 'Due' : 'Unpaid'}</span>
+                                        <span>{isPaid ? 'Paid' : isPendingVer ? 'Pending' : isPartial ? 'Partial' : isDue ? 'Due' : 'Unpaid'}</span>
                                         {isCellOverdue && (
                                           <span title="Overdue by more than 3 days!">
                                             <AlertTriangle className="h-2 w-2 text-rose-600 dark:text-rose-455 animate-pulse" />
