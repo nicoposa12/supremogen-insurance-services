@@ -149,6 +149,29 @@ export default function CollectionLedgerPage() {
     }));
   };
 
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleRowClick = (row: Invoice) => {
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+    clickTimeoutRef.current = setTimeout(() => {
+      clickTimeoutRef.current = null;
+      if (canManageCollection) {
+        handleOpenCollection(row);
+      }
+    }, 250);
+  };
+
+  const handleRowDoubleClick = (row: Invoice) => {
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+    toggleExpand(row.id);
+  };
+
   const handleClearSearchAndFilters = () => {
     setSearchInput('');
     setSearchVal('');
@@ -2105,14 +2128,9 @@ export default function CollectionLedgerPage() {
                         <span key={row.id} className="contents">
                           {/* Row 1: Header row / General Details */}
                           <tr
-                            onClick={() => {
-                              if (canManageCollection) {
-                                handleOpenCollection(row);
-                              } else {
-                                toggleExpand(row.id);
-                              }
-                            }}
-                            className={`transition-all text-[10px] cursor-pointer border-b border-slate-300 ${
+                            onClick={() => handleRowClick(row)}
+                            onDoubleClick={() => handleRowDoubleClick(row)}
+                            className={`transition-all text-[10px] cursor-pointer select-none border-b border-slate-300 ${
                               isExpanded
                                 ? 'bg-amber-100/90 dark:bg-amber-950/60 text-slate-900 border-l-4 border-l-[#4A0E17] font-bold shadow-xs'
                                 : isDstWarning
