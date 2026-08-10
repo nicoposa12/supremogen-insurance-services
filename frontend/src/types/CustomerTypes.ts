@@ -174,6 +174,8 @@ export interface DashboardStats {
   returned_claims?: number;
   completed_claims?: number;
   total_claims?: number;
+  pending_quotations?: number;
+  pending_renewals?: number;
 }
 
 export interface MonthlyOverview {
