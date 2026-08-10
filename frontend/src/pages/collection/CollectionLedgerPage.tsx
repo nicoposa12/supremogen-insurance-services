@@ -2370,7 +2370,7 @@ export default function CollectionLedgerPage() {
                                 <td colSpan={3} className="px-2.5 py-1 border-r border-slate-300 text-right font-bold bg-emerald-50/40 dark:bg-emerald-950/30 text-[9.5px] uppercase tracking-wide">Automatic</td>
                                 <td colSpan={2} className="px-3 py-1 border-r border-slate-300 font-bold bg-emerald-50/40 dark:bg-emerald-950/35 text-xs">Schedule of Payment</td>
                                 <td className="px-2.5 py-1 border-r border-slate-300 font-mono text-[9.5px] bg-emerald-50/40 dark:bg-emerald-950/30 text-center font-bold">Automatic</td>
-                                <td colSpan={4} className="px-2.5 py-1 border-r border-slate-300 bg-emerald-50/40 dark:bg-emerald-950/30 font-bold text-center text-xs">Installment Due Dates</td>
+                                <td colSpan={5} className="px-2.5 py-1 border-r border-slate-300 bg-emerald-50/40 dark:bg-emerald-950/30 font-bold text-center text-xs">Installment Due Dates</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const monthInfo = installmentMonths[idx - 1];
@@ -2390,7 +2390,7 @@ export default function CollectionLedgerPage() {
                                 <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-emerald-50/40 dark:bg-emerald-950/30 text-[10px] uppercase tracking-wide">Automatic</td>
                                 <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-emerald-50/40 dark:bg-emerald-950/35">Amount of Payment</td>
                                 <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-emerald-50/40 dark:bg-emerald-950/30 text-center font-bold">Automatic</td>
-                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-emerald-50/40 dark:bg-emerald-950/30 font-bold text-center">Target Amount Per Installment</td>
+                                <td colSpan={5} className="px-3 py-1.5 border-r border-slate-300 bg-emerald-50/40 dark:bg-emerald-950/30 font-bold text-center">Target Amount Per Installment</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
@@ -2409,7 +2409,7 @@ export default function CollectionLedgerPage() {
                                 <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-pink-50/40 dark:bg-pink-950/30 text-[10px]"></td>
                                 <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-pink-50/40 dark:bg-pink-950/35">Actual Payment Date</td>
                                 <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-pink-50/40 dark:bg-pink-950/30 text-center"></td>
-                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300">Recorded Dates Collected</td>
+                                <td colSpan={5} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300">Recorded Dates Collected</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
@@ -2431,7 +2431,7 @@ export default function CollectionLedgerPage() {
                                 <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-pink-50/40 dark:bg-pink-950/30 text-[10px]"></td>
                                 <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-pink-50/40 dark:bg-pink-950/35">Actual Amount Payment</td>
                                 <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-pink-50/40 dark:bg-pink-950/30 text-center"></td>
-                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Amount Paid & Method</td>
+                                <td colSpan={5} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Amount Paid & Method</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
@@ -2460,7 +2460,7 @@ export default function CollectionLedgerPage() {
                                 <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-pink-50/40 dark:bg-pink-950/30 text-[10px]"></td>
                                 <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-pink-50/40 dark:bg-pink-950/35">Actual Reference / Check / Tracker</td>
                                 <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-pink-50/40 dark:bg-pink-950/30 text-center"></td>
-                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Ref / Check / Tracking No.</td>
+                                <td colSpan={5} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Ref / Check / Tracking No.</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
@@ -2505,7 +2505,7 @@ export default function CollectionLedgerPage() {
                                 <td colSpan={3} className="px-3 py-1.5 border-r border-slate-300 text-right font-bold bg-pink-50/40 dark:bg-pink-950/30 text-[10px]"></td>
                                 <td colSpan={2} className="px-4 py-1.5 border-r border-slate-300 font-bold bg-pink-50/40 dark:bg-pink-950/35">Actual Payment Proof</td>
                                 <td className="px-3 py-1.5 border-r border-slate-300 font-mono text-[10px] bg-pink-50/40 dark:bg-pink-950/30 text-center"></td>
-                                <td colSpan={4} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Proof of Payment</td>
+                                <td colSpan={5} className="px-3 py-1.5 border-r border-slate-300 bg-pink-50/40 dark:bg-pink-950/30 font-bold text-center text-pink-900 dark:text-pink-300 font-mono">Proof of Payment</td>
 
                                 {[1, 2, 3, 4, 5, 6].map((idx) => {
                                   const isActive = idx <= terms;
