@@ -257,6 +257,77 @@ export default function DashboardPage() {
     });
   }, [approvedList, accountingTimeframe, selectedDateStr, selectedMonth, selectedYear]);
 
+  // Dynamic Customer & Policy Metrics based on active timeframe filter
+  const filteredMetrics = useMemo(() => {
+    const policyCount = timeframeFilteredQuotations.length;
+    const uniqueCustomerSet = new Set<string>();
+    timeframeFilteredQuotations.forEach((q: any) => {
+      const id = q.customer_id || q.customer?.id || getAssuredName(q);
+      if (id && id !== 'N/A') {
+        uniqueCustomerSet.add(String(id));
+      }
+    });
+    const customerCount = uniqueCustomerSet.size || policyCount;
+
+    // Compute previous period records for trend calculation
+    const prevTimeframeQuotations = approvedList.filter((q: any) => {
+      const qDate = new Date(q.created_at || Date.now());
+
+      if (accountingTimeframe === 'daily') {
+        const targetDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : new Date();
+        const prevDate = new Date(targetDate);
+        prevDate.setDate(targetDate.getDate() - 1);
+        return qDate.toDateString() === prevDate.toDateString();
+      }
+      if (accountingTimeframe === 'weekly') {
+        const refDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : new Date();
+        const startOfPrevWeek = new Date(refDate);
+        startOfPrevWeek.setDate(refDate.getDate() - refDate.getDay() - 7);
+        startOfPrevWeek.setHours(0, 0, 0, 0);
+
+        const endOfPrevWeek = new Date(startOfPrevWeek);
+        endOfPrevWeek.setDate(startOfPrevWeek.getDate() + 6);
+        endOfPrevWeek.setHours(23, 59, 59, 999);
+
+        return qDate >= startOfPrevWeek && qDate <= endOfPrevWeek;
+      }
+      if (accountingTimeframe === 'monthly') {
+        const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+        const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+        return qDate.getMonth() === prevMonth && qDate.getFullYear() === prevYear;
+      }
+      if (accountingTimeframe === 'yearly') {
+        return qDate.getFullYear() === selectedYear - 1;
+      }
+      return false;
+    });
+
+    const prevPolicyCount = prevTimeframeQuotations.length;
+    const prevCustomerSet = new Set<string>();
+    prevTimeframeQuotations.forEach((q: any) => {
+      const id = q.customer_id || q.customer?.id || getAssuredName(q);
+      if (id && id !== 'N/A') {
+        prevCustomerSet.add(String(id));
+      }
+    });
+    const prevCustomerCount = prevCustomerSet.size || prevPolicyCount;
+
+    const customerTrend = prevCustomerCount > 0
+      ? Math.round(((customerCount - prevCustomerCount) / prevCustomerCount) * 100)
+      : (customerCount > 0 ? 100 : 0);
+
+    const policyTrend = prevPolicyCount > 0
+      ? Math.round(((policyCount - prevPolicyCount) / prevPolicyCount) * 100)
+      : (policyCount > 0 ? 100 : 0);
+
+    return {
+      customerCount,
+      customerTrend,
+      policyCount,
+      policyTrend,
+    };
+  }, [timeframeFilteredQuotations, approvedList, accountingTimeframe, selectedDateStr, selectedMonth, selectedYear]);
+
   // Aggregate Metrics based on timeframe
   const accountingMetrics = useMemo(() => {
     let totalPrem = 0;
@@ -816,7 +887,7 @@ export default function DashboardPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Customers</span>
                 <p className="text-3xl font-black text-slate-900 mt-1 tracking-tight">
-                  {(dashboard?.stats?.total_customers || activeCustomers.value || 0).toLocaleString()}
+                  {filteredMetrics.customerCount.toLocaleString()}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform">
@@ -825,20 +896,20 @@ export default function DashboardPage() {
             </div>
             <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
               <div className="flex items-center gap-1">
-                {activeCustomers.trend > 0 ? (
+                {filteredMetrics.customerTrend > 0 ? (
                   <span className="inline-flex items-center text-emerald-600 font-bold gap-0.5">
-                    <TrendingUp className="h-3.5 w-3.5" /> +{activeCustomers.trend}%
+                    <TrendingUp className="h-3.5 w-3.5" /> +{filteredMetrics.customerTrend}%
                   </span>
-                ) : activeCustomers.trend < 0 ? (
+                ) : filteredMetrics.customerTrend < 0 ? (
                   <span className="inline-flex items-center text-red-600 font-bold gap-0.5">
-                    <TrendingDown className="h-3.5 w-3.5" /> {activeCustomers.trend}%
+                    <TrendingDown className="h-3.5 w-3.5" /> {filteredMetrics.customerTrend}%
                   </span>
                 ) : (
                   <span className="inline-flex items-center text-slate-500 font-bold gap-0.5">
                     <Minus className="h-3.5 w-3.5" /> 0%
                   </span>
                 )}
-                <span>vs last {customerTimeframe}</span>
+                <span>vs last {accountingTimeframe}</span>
               </div>
               <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -853,7 +924,7 @@ export default function DashboardPage() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Active Policies</span>
                 <p className="text-3xl font-black text-slate-900 mt-1 tracking-tight">
-                  {(dashboard?.stats?.active_policies || activePolicies.value || 0).toLocaleString()}
+                  {filteredMetrics.policyCount.toLocaleString()}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-110 transition-transform">
@@ -862,20 +933,20 @@ export default function DashboardPage() {
             </div>
             <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
               <div className="flex items-center gap-1">
-                {activePolicies.trend > 0 ? (
+                {filteredMetrics.policyTrend > 0 ? (
                   <span className="inline-flex items-center text-emerald-600 font-bold gap-0.5">
-                    <TrendingUp className="h-3.5 w-3.5" /> +{activePolicies.trend}%
+                    <TrendingUp className="h-3.5 w-3.5" /> +{filteredMetrics.policyTrend}%
                   </span>
-                ) : activePolicies.trend < 0 ? (
+                ) : filteredMetrics.policyTrend < 0 ? (
                   <span className="inline-flex items-center text-red-600 font-bold gap-0.5">
-                    <TrendingDown className="h-3.5 w-3.5" /> {activePolicies.trend}%
+                    <TrendingDown className="h-3.5 w-3.5" /> {filteredMetrics.policyTrend}%
                   </span>
                 ) : (
                   <span className="inline-flex items-center text-slate-500 font-bold gap-0.5">
                     <Minus className="h-3.5 w-3.5" /> 0%
                   </span>
                 )}
-                <span>vs last {customerTimeframe}</span>
+                <span>vs last {accountingTimeframe}</span>
               </div>
               <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-1 transition-transform" />
             </div>
