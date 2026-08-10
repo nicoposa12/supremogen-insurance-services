@@ -1620,15 +1620,6 @@ export default function CollectionLedgerPage() {
           </div>
           <p className="text-xs text-slate-500">Full visual spreadsheet layout for tracking and managing installment collection schedules</p>
         </div>
-
-        <button
-          onClick={exportToExcel}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-          title="Download Collection Ledger to Excel spreadsheet"
-        >
-          <Download className="h-4 w-4" />
-          <span>Download Excel</span>
-        </button>
       </div>
 
       {/* KPI Cards Grid */}
