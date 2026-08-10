@@ -100,7 +100,9 @@ class Policy extends Model
               ->orWhereHas('customer', function ($cq) use ($term, $likeOperator) {
                   $cq->where('first_name', $likeOperator, "%{$term}%")
                      ->orWhere('last_name', $likeOperator, "%{$term}%")
-                     ->orWhere('customer_code', $likeOperator, "%{$term}%");
+                     ->orWhere('customer_code', $likeOperator, "%{$term}%")
+                     ->orWhere('policy_no', $likeOperator, "%{$term}%")
+                     ->orWhere('plate_no', $likeOperator, "%{$term}%");
               });
         });
     }

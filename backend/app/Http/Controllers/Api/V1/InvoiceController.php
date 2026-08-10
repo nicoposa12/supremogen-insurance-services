@@ -610,4 +610,99 @@ class InvoiceController extends Controller
             'data' => $subagentCommission,
         ]);
     }
+
+    /**
+     * Dispatch a Notice for Cancellation request notification from Collection to Sales Agent & Renewal Team.
+     */
+    public function notifyCancellationNotice(Request $request, string $id)
+    {
+        $invoice = Invoice::with(['customer', 'policy.quotation'])->find($id);
+        if (!$invoice) {
+            return response()->json(['success' => false, 'message' => 'Invoice not found.'], 404);
+        }
+
+        $customer = $invoice->customer;
+        $customerName = $customer ? trim($customer->first_name . ' ' . $customer->last_name) : 'Customer';
+        $policyNumber = $customer?->policy_no ?: ($invoice->policy?->policy_number ?: 'N/A');
+        $agentName = $customer?->agent ?: 'N/A';
+
+        $targetUserIds = collect();
+
+        // 1. Quotation creator / assigned agent
+        $quotation = $invoice->policy?->quotation;
+        if ($quotation && $quotation->prepared_by) {
+            $targetUserIds->push($quotation->prepared_by);
+        }
+
+        // 2. Matching agent user by name if found
+        if ($agentName !== 'N/A') {
+            $matchingAgent = \App\Models\User::where('name', 'like', "%{$agentName}%")->first();
+            if ($matchingAgent) {
+                $targetUserIds->push($matchingAgent->id);
+            }
+        }
+
+        // 3. All Sales, Renewal, Underwriter, Admin, Owner, Super Admin members
+        $rolesToNotify = [
+            'Sales Agent', 'Sales',
+            'Team Renewal', 'Renewal',
+            'Underwriter',
+            'Administrator', 'Owner', 'Super Admin',
+            'General Manager', 'Operational Manager'
+        ];
+        $teamUsers = \App\Models\User::whereHas('roles', function ($q) use ($rolesToNotify) {
+            $q->whereIn('name', $rolesToNotify);
+        })->get();
+
+        foreach ($teamUsers as $u) {
+            $targetUserIds->push($u->id);
+        }
+
+        $uniqueUserIds = $targetUserIds->unique()->filter();
+
+        $title = 'Notice for Cancellation Request';
+        $msg = "NOTICE FOR CANCELLATION: Collection has issued a cancellation notice for Policy {$policyNumber} (Assured: {$customerName}, Agent: {$agentName}) due to payment default. Sales Agent / Team Renewal, please review and submit a cancellation request.";
+
+        foreach ($uniqueUserIds as $userId) {
+            \App\Models\Notification::create([
+                'user_id' => $userId,
+                'title' => $title,
+                'message' => $msg,
+                'type' => 'warning',
+                'read_at' => null,
+            ]);
+        }
+
+        $senderName = $request->user()?->name ?? 'Collection';
+        $stamp = "Notice for Cancellation issued by {$senderName} on " . now()->format('M d, Y H:i');
+
+        // Stamp invoice, policy, quotation, and customer so all pages reflect notice sent
+        $invoice->update([
+            'notes' => trim(($invoice->notes ? $invoice->notes . ' | ' : '') . $stamp),
+        ]);
+
+        if ($invoice->policy) {
+            $invoice->policy->update([
+                'notes' => trim(($invoice->policy->notes ? $invoice->policy->notes . ' | ' : '') . $stamp),
+            ]);
+
+            if ($invoice->policy->quotation) {
+                $invoice->policy->quotation->update([
+                    'notes' => trim(($invoice->policy->quotation->notes ? $invoice->policy->quotation->notes . ' | ' : '') . $stamp),
+                ]);
+            }
+        }
+
+        if ($customer) {
+            $customer->update([
+                'notes' => trim(($customer->notes ? $customer->notes . ' | ' : '') . $stamp),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Notice for Cancellation successfully sent to Sales Agent & Team Renewal.",
+            'data' => $invoice->fresh(['customer', 'policy.quotation']),
+        ]);
+    }
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import {
@@ -83,19 +84,29 @@ export default function CustomersPage() {
   const canDelete = permissions.includes('customers.delete');
   const cannotEdit = !canEdit;
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const querySearch = searchParams.get('search') || '';
+
   // ─── Filters / Sort / Pagination ─────
   const [params, setParams] = useState<CustomerListParams>({
     page: 1,
     per_page: 15,
-    search: '',
+    search: querySearch,
     status: 'all',
     type: 'all',
     sort_by: 'created_at',
     sort_dir: 'desc',
   });
 
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState(querySearch);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    if (querySearch) {
+      setSearchInput(querySearch);
+      setParams((p) => ({ ...p, search: querySearch, page: 1 }));
+    }
+  }, [querySearch]);
   
   // Modal states
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);

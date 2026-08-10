@@ -17,6 +17,7 @@ interface DataTableProps<T> {
   loading?: boolean;
   onRowClick?: (row: T) => void;
   dense?: boolean;
+  rowClassName?: (row: T, index: number) => string;
 }
 
 export default function DataTable<T extends Record<string, any>>({
@@ -28,6 +29,7 @@ export default function DataTable<T extends Record<string, any>>({
   loading = false,
   onRowClick,
   dense = false,
+  rowClassName,
 }: DataTableProps<T>) {
   const getSortIcon = (key: string) => {
     if (sortBy !== key) return <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />;
@@ -97,21 +99,24 @@ export default function DataTable<T extends Record<string, any>>({
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => (
-              <tr
-                key={row.id ?? i}
-                onClick={() => onRowClick?.(row)}
-                className={`border-b border-slate-100 hover:bg-slate-50/80 transition ${
-                  onRowClick ? 'cursor-pointer' : ''
-                }`}
-              >
-                {columns.map((col) => (
-                  <td key={col.key} className={`text-slate-700 ${dense ? 'px-1.5 py-1.5 text-[10px]' : 'px-4 py-3.5 text-xs'} ${col.className ?? ''}`}>
-                    {col.render ? col.render(row, i) : row[col.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {data.map((row, i) => {
+              const customClass = rowClassName ? rowClassName(row, i) : '';
+              return (
+                <tr
+                  key={row.id ?? i}
+                  onClick={() => onRowClick?.(row)}
+                  className={`border-b border-slate-100 transition ${
+                    onRowClick ? 'cursor-pointer' : ''
+                  } ${customClass || 'hover:bg-slate-50/80'}`}
+                >
+                  {columns.map((col) => (
+                    <td key={col.key} className={`text-slate-700 ${dense ? 'px-1.5 py-1.5 text-[10px]' : 'px-4 py-3.5 text-xs'} ${col.className ?? ''}`}>
+                      {col.render ? col.render(row, i) : row[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
     </div>

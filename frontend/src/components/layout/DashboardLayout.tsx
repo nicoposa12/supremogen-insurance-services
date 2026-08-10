@@ -910,6 +910,7 @@ export default function DashboardLayout() {
                               const message = n.message || '';
                               const title = n.title || '';
                               
+                              const isCancellationNotice = title.toLowerCase().includes('cancellation') || message.toLowerCase().includes('cancellation');
                               const matchQuotation = message.match(/QUO-[A-Z0-9-]+/) || message.match(/QUO \d{4} \d{5}/);
                               const matchInvoice = message.match(/INV-[A-Z0-9-]+/);
                               const matchPayment = message.match(/PAY-\d{4}-\d{5}/) || message.match(/PAY-[A-Z0-9-]+/) || title.match(/PAY-[A-Z0-9-]+/);
@@ -918,72 +919,85 @@ export default function DashboardLayout() {
                               const matchPolicy = message.match(/POL-[A-Z0-9-]+/) || message.match(/Policy:?\s*([A-Z0-9-]+)/i);
                               const matchAssured = message.match(/Assured\s+([A-Za-z0-9\s]+?)(?=\s+is|\s+\(|\s+has|\s+with|$)/i);
 
-                              // For Accounting Officer role, route policy/statement/quotation notifications directly to Policy Statements
+                              // Roles checks
                               const isAccounting = roles.includes('Accounting Officer') || roles.includes('Accounting');
                               const isCollection = roles.includes('Collection') || roles.includes('Collection Officer') || roles.includes('Collector');
 
-                              if (matchPayment) {
+                              // Cancellation Request Notices
+                              if (isCancellationNotice) {
+                                const code = matchPolicy?.[1] || matchPolicy?.[0] || matchQuotation?.[0] || (matchAssured ? matchAssured[1].trim() : '');
+                                const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
+                                if (isCollection) {
+                                  navigate(`/dashboard/collection/ledger${searchQ}`);
+                                } else if (isAccounting) {
+                                  navigate(`/dashboard/policy-statements${searchQ}`);
+                                } else {
+                                  navigate(`/dashboard/quotations${searchQ}`);
+                                }
+                              } else if (matchPayment) {
                                 const code = matchPayment[0];
                                 if (isAccounting) {
-                                  navigate(`/dashboard/review-collection-payment?search=${code}&autoOpen=true`);
+                                  navigate(`/dashboard/review-collection-payment?search=${encodeURIComponent(code)}`);
                                 } else if (isCollection) {
-                                  navigate(`/dashboard/collection/ledger?search=${code}&autoOpen=true`);
+                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(code)}`);
                                 } else {
-                                  navigate(`/dashboard/payments?search=${code}`);
+                                  navigate(`/dashboard/review-collection-payment?search=${encodeURIComponent(code)}`);
                                 }
                               } else if (matchQuotation) {
                                 const code = matchQuotation[0];
                                 if (isAccounting) {
-                                  navigate(`/dashboard/policy-statements?search=${code}`);
+                                  navigate(`/dashboard/policy-statements?search=${encodeURIComponent(code)}`);
                                 } else if (isCollection) {
-                                  navigate(`/dashboard/collection/ledger?search=${code}&autoOpen=true`);
+                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(code)}`);
                                 } else if (roles.includes('Underwriter')) {
-                                  navigate(`/dashboard/insurance-requests?search=${code}`);
+                                  navigate(`/dashboard/insurance-requests?search=${encodeURIComponent(code)}`);
                                 } else {
-                                  navigate(`/dashboard/quotations?search=${code}`);
+                                  navigate(`/dashboard/quotations?search=${encodeURIComponent(code)}`);
                                 }
                               } else if (matchInvoice) {
                                 const code = matchInvoice[0];
                                 if (isCollection) {
-                                  navigate(`/dashboard/collection/ledger?search=${code}&autoOpen=true`);
+                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(code)}`);
                                 } else {
-                                  navigate(`/dashboard/invoices?search=${code}`);
+                                  navigate(`/dashboard/invoices?search=${encodeURIComponent(code)}`);
                                 }
                               } else if (matchClaimNotification) {
                                 const code = matchClaimNotification[0];
-                                navigate(`/dashboard/claim-notifications?search=${code}`);
+                                navigate(`/dashboard/claim-notifications?search=${encodeURIComponent(code)}`);
                               } else if (matchClaim) {
                                 const code = matchClaim[0];
-                                navigate(`/dashboard/claims?search=${code}`);
+                                navigate(`/dashboard/claims?search=${encodeURIComponent(code)}`);
                               } else if (matchPolicy) {
                                 const code = matchPolicy[1] || matchPolicy[0];
                                 if (isAccounting) {
-                                  navigate(`/dashboard/policy-statements?search=${code}`);
+                                  navigate(`/dashboard/policy-statements?search=${encodeURIComponent(code)}`);
                                 } else if (isCollection) {
-                                  navigate(`/dashboard/collection/ledger?search=${code}&autoOpen=true`);
+                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(code)}`);
                                 } else {
-                                  navigate(`/dashboard/renewals?search=${code}`);
+                                  navigate(`/dashboard/quotations?search=${encodeURIComponent(code)}`);
                                 }
                               } else if (matchAssured) {
                                 const assuredName = matchAssured[1].trim();
                                 if (isCollection) {
-                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(assuredName)}&autoOpen=true`);
+                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(assuredName)}`);
                                 } else if (isAccounting) {
-                                  navigate(`/dashboard/review-collection-payment?search=${encodeURIComponent(assuredName)}&autoOpen=true`);
+                                  navigate(`/dashboard/review-collection-payment?search=${encodeURIComponent(assuredName)}`);
+                                } else {
+                                  navigate(`/dashboard/customers?search=${encodeURIComponent(assuredName)}`);
                                 }
                               } else if (title.toLowerCase().includes('collection payment') || title.toLowerCase().includes('payment') || title.toLowerCase().includes('dst warning') || title.toLowerCase().includes('1st payment')) {
                                 if (isAccounting) {
                                   navigate('/dashboard/review-collection-payment');
                                 } else if (isCollection) {
-                                  navigate('/dashboard/collection/ledger?autoOpen=true');
+                                  navigate('/dashboard/collection/ledger');
                                 } else {
-                                  navigate('/dashboard/payments');
+                                  navigate('/dashboard/review-collection-payment');
                                 }
                               } else if (title.toLowerCase().includes('quotation') || title.toLowerCase().includes('statement') || title.toLowerCase().includes('policy') || title.toLowerCase().includes('freebie')) {
                                 if (isAccounting) {
                                   navigate('/dashboard/policy-statements');
                                 } else if (isCollection) {
-                                  navigate('/dashboard/collection/ledger?autoOpen=true');
+                                  navigate('/dashboard/collection/ledger');
                                 } else if (roles.includes('Underwriter')) {
                                   navigate('/dashboard/insurance-requests');
                                 } else {

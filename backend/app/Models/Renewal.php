@@ -62,6 +62,8 @@ class Renewal extends Model
               ->orWhereHas('customer', fn($cq) =>
                   $cq->where('first_name', $likeOperator, "%{$term}%")
                      ->orWhere('last_name', $likeOperator, "%{$term}%")
+                     ->orWhere('policy_no', $likeOperator, "%{$term}%")
+                     ->orWhere('plate_no', $likeOperator, "%{$term}%")
               );
         });
     }

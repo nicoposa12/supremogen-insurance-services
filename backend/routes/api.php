@@ -79,6 +79,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
         Route::post('/invoices/{invoice}/send-reminder', [InvoiceController::class, 'sendReminder']);
         Route::post('/invoices/{invoice}/notify-dst-warning', [InvoiceController::class, 'notifyDstWarning']);
+        Route::post('/invoices/{invoice}/notify-cancellation-notice', [InvoiceController::class, 'notifyCancellationNotice']);
         Route::put('/invoices/{invoice}/subagent-commission', [InvoiceController::class, 'updateSubagentCommission']);
 
         // Payments

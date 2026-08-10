@@ -38,7 +38,14 @@ class QuotationController extends Controller
         ]);
 
         if ($request->user()->isSalesOrRenewal()) {
-            $query->where('prepared_by', $request->user()->id);
+            $userId = $request->user()->id;
+            $userName = $request->user()->name;
+            $query->where(function ($q) use ($userId, $userName) {
+                $q->where('prepared_by', $userId)
+                  ->orWhereHas('customer', function ($cq) use ($userName) {
+                      $cq->where('agent', 'like', "%{$userName}%");
+                  });
+            });
         } elseif ($request->user()->hasRole('Underwriter')) {
             // Underwriters see submitted / resubmitted / under_review / approved / rejected / cancellation_requested / cancelled
             $query->whereIn('status', ['submitted', 'resubmitted', 'under_review', 'approved', 'rejected', 'cancellation_requested', 'cancelled']);

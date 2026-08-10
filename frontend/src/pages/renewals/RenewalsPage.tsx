@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Filter, RefreshCw, Eye, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
@@ -20,11 +20,21 @@ export default function RenewalsPage() {
   const { roles } = useAuth();
   const isAdmin = roles.includes('Administrator');
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const querySearch = searchParams.get('search') || '';
+
   const [params, setParams] = useState<RenewalListParams>({
-    page: 1, per_page: 15, search: '', status: 'all',
+    page: 1, per_page: 15, search: querySearch, status: 'all',
     sort_by: 'original_expiry_date', sort_dir: 'asc',
   });
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState(querySearch);
+
+  useEffect(() => {
+    if (querySearch) {
+      setSearchInput(querySearch);
+      setParams((p) => ({ ...p, search: querySearch, page: 1 }));
+    }
+  }, [querySearch]);
 
   // Process modal
   const [processTarget, setProcessTarget] = useState<Renewal | null>(null);
@@ -210,7 +220,17 @@ export default function RenewalsPage() {
         ) : (
           <>
             <DataTable columns={columns} data={renewals} sortBy={params.sort_by}
-              sortDir={params.sort_dir} onSort={handleSort} loading={isLoading} />
+              sortDir={params.sort_dir} onSort={handleSort} loading={isLoading}
+              rowClassName={(r: any) => {
+                const isCancellationNotice =
+                  r.status === 'cancelled' ||
+                  (r.status as string) === 'cancellation_requested' ||
+                  (r.policy?.notes && r.policy.notes.includes('Notice for Cancellation'));
+                return isCancellationNotice
+                  ? 'bg-amber-500/15 dark:bg-amber-950/40 hover:bg-amber-500/25 border-l-4 border-l-amber-500 text-slate-900 font-semibold shadow-2xs'
+                  : 'hover:bg-slate-50/80';
+              }}
+            />
             {pagination && (
               <div className="border-t border-slate-100">
                 <Pagination currentPage={pagination.current_page} lastPage={pagination.last_page}

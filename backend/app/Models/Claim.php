@@ -74,6 +74,8 @@ class Claim extends Model
                   $cq->where('first_name', $likeOperator, "%{$term}%")
                      ->orWhere('last_name', $likeOperator, "%{$term}%")
                      ->orWhere('customer_code', $likeOperator, "%{$term}%")
+                     ->orWhere('policy_no', $likeOperator, "%{$term}%")
+                     ->orWhere('plate_no', $likeOperator, "%{$term}%")
               )
               ->orWhereHas('policy', fn($pq) =>
                   $pq->where('policy_number', $likeOperator, "%{$term}%")

@@ -115,6 +115,7 @@ export default function PolicyStatementsPage() {
   });
 
   const allQuotations = response?.data?.data ?? [];
+
   const approvedQuotations = useMemo(() => {
     return allQuotations.filter((q) => {
       const isRelevant = q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review' || q.status === 'cancelled' || q.status === 'cancellation_requested';
@@ -364,7 +365,13 @@ export default function PolicyStatementsPage() {
                         <tr
                           key={q.id}
                           onClick={() => setSelectedQuotation(q)}
-                          className={`hover:bg-slate-50 cursor-pointer transition group ${q.status === 'cancelled' ? 'bg-rose-50/30' : ''}`}
+                          className={`cursor-pointer transition group ${
+                            (q.status === 'cancellation_requested' || (q.notes && q.notes.includes('Notice for Cancellation')) || (q.policy?.invoice?.notes && q.policy.invoice.notes.includes('Notice for Cancellation')))
+                              ? 'bg-amber-500/20 dark:bg-amber-950/50 hover:bg-amber-500/30 border-l-4 border-l-amber-600 text-slate-900 font-bold shadow-2xs'
+                              : q.status === 'cancelled'
+                                ? 'bg-rose-50/30 hover:bg-rose-50'
+                                : 'hover:bg-slate-50'
+                          }`}
                         >
                           <td className="px-5 py-4 font-bold text-slate-800 group-hover:text-[#4A0E17] transition">
                             <div>{q.quotation_number || q.ir_number || `IR-${q.id}`}</div>

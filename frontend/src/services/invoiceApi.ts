@@ -49,6 +49,11 @@ export async function notifyDstWarning(id: number): Promise<SingleResponse<Invoi
   return data;
 }
 
+export async function sendCancellationNotice(id: number): Promise<SingleResponse<Invoice>> {
+  const { data } = await axios.post<SingleResponse<Invoice>>(`${BASE}/${id}/notify-cancellation-notice`);
+  return data;
+}
+
 export async function updateSubagentCommission(id: number, payload: any): Promise<SingleResponse<any>> {
   const { data } = await axios.put<SingleResponse<any>>(`${BASE}/${id}/subagent-commission`, payload);
   return data;
