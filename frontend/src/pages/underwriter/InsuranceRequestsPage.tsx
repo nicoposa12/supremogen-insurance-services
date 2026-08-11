@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Eye, Filter, FileText, X } from 'lucide-react';
+import { Search, Eye, Filter, FileText, X, Loader2, Download } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 
 import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
@@ -11,6 +12,7 @@ import { getQuotations } from '../../services/quotationApi';
 import type { Quotation, QuotationListParams } from '../../types/SalesTypes';
 import InsuranceRequestDetailPage from './InsuranceRequestDetailPage.tsx';
 import InlinePolicyNoCell from '../../components/quotations/InlinePolicyNoCell';
+import BankAttachmentCell from '../../components/quotations/BankAttachmentCell';
 import { useAuth } from '../../context/AuthContext';
 
 export default function InsuranceRequestsPage() {
@@ -24,6 +26,43 @@ export default function InsuranceRequestsPage() {
   });
   const [searchInput, setSearchInput] = useState(querySearch);
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+
+  // Modal Preview States
+  const [previewAttachment, setPreviewAttachment] = useState<{ id: number; file_name: string; mime_type: string } | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewList, setPreviewList] = useState<any[]>([]);
+
+  const handleViewAttachment = async (att: any, list?: any[]) => {
+    setIsPreviewLoading(true);
+    setPreviewAttachment(att);
+    if (list && list.length > 0) {
+      setPreviewList(list);
+    } else {
+      setPreviewList([att]);
+    }
+    setPreviewUrl(null);
+    try {
+      const { data } = await axios.get(`/api/v1/attachments/${att.id}/download`, {
+        responseType: 'blob',
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([data], { type: att.mime_type }));
+      setPreviewUrl(blobUrl);
+    } catch (err: any) {
+      setPreviewAttachment(null);
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewAttachment(null);
+    setPreviewList([]);
+  };
 
   useEffect(() => {
     if (querySearch) {
@@ -157,6 +196,16 @@ export default function InsuranceRequestsPage() {
       render: (r: Quotation) => <StatusBadge status={r.status} />,
     },
     {
+      key: 'bank_attachment', label: 'Bank',
+      render: (r: Quotation) => (
+        <BankAttachmentCell
+          customerAttachments={r.customer?.attachments}
+          quotationAttachments={r.attachments}
+          onViewAttachment={handleViewAttachment}
+        />
+      ),
+    },
+    {
       key: 'policy_no', label: 'Policy No.',
       render: (r: Quotation) => <InlinePolicyNoCell quotation={r} />,
     },
@@ -280,6 +329,97 @@ export default function InsuranceRequestsPage() {
                 id={selectedRequestId}
                 onClose={() => setSelectedRequestId(null)}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Document Preview Modal ───────────── */}
+      {previewAttachment !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={handleClosePreview}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div className="bg-[#4A0E17] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <FileText className="h-5 w-5 text-amber-400 shrink-0" />
+                <h3 className="font-bold text-sm tracking-tight truncate max-w-[40vw]">
+                  Preview: {previewAttachment.file_name}
+                </h3>
+                {previewList.length > 1 && (
+                  <div className="flex items-center gap-1 bg-black/25 p-1 rounded-xl ml-2">
+                    {previewList.map((doc, idx) => (
+                      <button
+                        key={doc.id || idx}
+                        onClick={() => handleViewAttachment(doc, previewList)}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${
+                          doc.id === previewAttachment.id
+                            ? 'bg-amber-400 text-slate-900 shadow-xs font-bold'
+                            : 'text-white/80 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        Bank Attachment {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {previewUrl && (
+                  <a 
+                    href={previewUrl} 
+                    download={previewAttachment.file_name}
+                    className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition flex items-center justify-center"
+                    title="Download File"
+                  >
+                    <Download className="h-5 w-5" />
+                  </a>
+                )}
+                <button 
+                  onClick={handleClosePreview}
+                  className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50 flex items-center justify-center min-h-[50vh]">
+              {isPreviewLoading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-10 w-10 animate-spin text-[#4A0E17]" />
+                  <p className="text-sm font-semibold text-slate-500">Loading document preview...</p>
+                </div>
+              ) : previewUrl ? (
+                previewAttachment.mime_type.startsWith('image/') ? (
+                  <img 
+                    src={previewUrl} 
+                    alt={previewAttachment.file_name} 
+                    className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-sm border border-slate-200" 
+                  />
+                ) : previewAttachment.mime_type === 'application/pdf' ? (
+                  <iframe 
+                    src={previewUrl} 
+                    className="w-full h-[70vh] rounded-2xl border border-slate-250 bg-white" 
+                    title={previewAttachment.file_name}
+                  />
+                ) : (
+                  <div className="text-center py-10 space-y-4">
+                    <FileText className="h-16 w-16 text-slate-400 mx-auto" />
+                    <p className="text-sm font-bold text-slate-600">This file format cannot be previewed in the browser.</p>
+                    <a 
+                      href={previewUrl} 
+                      download={previewAttachment.file_name}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-bold rounded-xl transition shadow-sm"
+                    >
+                      Download File
+                    </a>
+                  </div>
+                )
+              ) : (
+                <div className="text-sm font-bold text-rose-500">Error loading file content.</div>
+              )}
             </div>
           </div>
         </div>

@@ -130,11 +130,15 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   });
 
   const uploadAttachmentMut = useMutation({
-    mutationFn: ({ file, type }: { file: File; type: string }) =>
-      uploadAttachment('customer', quotation?.customer_id || 0, file, type),
-    onSuccess: () => {
+    mutationFn: async ({ files, type }: { files: File[]; type: string }) => {
+      if (!quotation?.customer_id) throw new Error('No customer ID');
+      for (const file of files) {
+        await uploadAttachment('customer', quotation.customer_id, file, type);
+      }
+    },
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['attachments', 'customer', quotation?.customer_id] });
-      showToast('Attachment uploaded successfully.');
+      showToast(`${vars.files.length} attachment(s) uploaded successfully.`);
     },
     onError: (err: any) => showToast(err.response?.data?.message ?? 'Upload failed.', 'error'),
   });
@@ -625,95 +629,93 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
 
             {/* Attachments */}
             <div className="space-y-3">
-              <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Policy Request Attachments</h4>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider">Policy Request Attachments</h4>
+                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                  {customerAttachments.length} {customerAttachments.length === 1 ? 'file' : 'files'}
+                </span>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(() => {
-                  const orcr = customerAttachments.find((a: any) => a.document_type === 'orcr_ndos_4sides');
-                  const screenshot = customerAttachments.find((a: any) => a.document_type === 'ella_langrio_screenshot');
-                  const bankAttachment = customerAttachments.find((a: any) => a.document_type === 'bank');
-                  const deedOfSale = customerAttachments.find((a: any) => a.document_type === 'deed_of_sale_ndos');
+                  const orcrFiles = customerAttachments.filter((a: any) => a.document_type === 'orcr_ndos_4sides');
+                  const screenshotFiles = customerAttachments.filter((a: any) => a.document_type === 'ella_langrio_screenshot');
+                  const bankFiles = customerAttachments.filter((a: any) => a.document_type === 'bank');
+                  const deedOfSaleFiles = customerAttachments.filter((a: any) => a.document_type === 'deed_of_sale_ndos');
+                  const otherFiles = customerAttachments.filter((a: any) => !['orcr_ndos_4sides', 'ella_langrio_screenshot', 'bank', 'deed_of_sale_ndos'].includes(a.document_type || ''));
                   const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(quotation.customer?.ownership || '');
-                  return (
-                    <>
-                      <div className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:border-[#4A0E17]/30 transition group">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-slate-100 rounded-xl group-hover:bg-[#4A0E17]/5 group-hover:text-[#4A0E17] text-slate-400 transition shrink-0">
-                            <Paperclip className="h-4.5 w-4.5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ORCR / NDOS / 4 SIDES</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate" title={orcr ? orcr.file_name : 'No file uploaded'}>
-                              {orcr ? orcr.file_name : 'No file uploaded'}
-                            </p>
-                          </div>
-                        </div>
-                        {orcr && (
-                          <a href={getDownloadUrl(orcr.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
-                            <Download className="h-3.5 w-3.5" /> Download
-                          </a>
-                        )}
-                      </div>
 
-                      <div className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:border-[#4A0E17]/30 transition group">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-slate-100 rounded-xl group-hover:bg-[#4A0E17]/5 group-hover:text-[#4A0E17] text-slate-400 transition shrink-0">
-                            <Paperclip className="h-4.5 w-4.5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Ella Langrio Screenshot</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate" title={screenshot ? screenshot.file_name : 'No file uploaded'}>
-                              {screenshot ? screenshot.file_name : 'No file uploaded'}
-                            </p>
-                          </div>
+                  const renderCard = (file: any | null, defaultLabel: string, keyPrefix: string) => (
+                    <div key={file ? `${keyPrefix}-${file.id}` : keyPrefix} className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:border-[#4A0E17]/30 transition group">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2 bg-slate-100 rounded-xl group-hover:bg-[#4A0E17]/5 group-hover:text-[#4A0E17] text-slate-400 transition shrink-0">
+                          <Paperclip className="h-4.5 w-4.5" />
                         </div>
-                        {screenshot && (
-                          <a href={getDownloadUrl(screenshot.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
-                            <Download className="h-3.5 w-3.5" /> Download
-                          </a>
-                        )}
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{defaultLabel}</p>
+                          <p className="text-xs font-semibold text-slate-700 truncate" title={file ? file.file_name : 'No file uploaded'}>
+                            {file ? file.file_name : 'No file uploaded'}
+                          </p>
+                        </div>
                       </div>
-
-                      <div className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:border-[#4A0E17]/30 transition group">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="p-2 bg-slate-100 rounded-xl group-hover:bg-[#4A0E17]/5 group-hover:text-[#4A0E17] text-slate-400 transition shrink-0">
-                            <Paperclip className="h-4.5 w-4.5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Bank Attachment</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate" title={bankAttachment ? bankAttachment.file_name : 'No file uploaded'}>
-                              {bankAttachment ? bankAttachment.file_name : 'No file uploaded'}
-                            </p>
-                          </div>
-                        </div>
-                        {bankAttachment && (
-                          <a href={getDownloadUrl(bankAttachment.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
-                            <Download className="h-3.5 w-3.5" /> Download
-                          </a>
-                        )}
-                      </div>
-
-                      {(needsDeedOfSale || deedOfSale) && (
-                        <div className="flex items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:border-[#4A0E17]/30 transition group">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="p-2 bg-slate-100 rounded-xl group-hover:bg-[#4A0E17]/5 group-hover:text-[#4A0E17] text-slate-400 transition shrink-0">
-                              <Paperclip className="h-4.5 w-4.5" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Deed of Sale / NDOS</p>
-                              <p className="text-xs font-semibold text-slate-700 truncate" title={deedOfSale ? deedOfSale.file_name : 'No file uploaded'}>
-                                {deedOfSale ? deedOfSale.file_name : 'No file uploaded'}
-                              </p>
-                            </div>
-                          </div>
-                          {deedOfSale && (
-                            <a href={getDownloadUrl(deedOfSale.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
-                              <Download className="h-3.5 w-3.5" /> Download
-                            </a>
-                          )}
-                        </div>
+                      {file && (
+                        <a href={getDownloadUrl(file.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
+                          <Download className="h-3.5 w-3.5" /> Download
+                        </a>
                       )}
-                    </>
+                    </div>
                   );
+
+                  const items: React.ReactNode[] = [];
+
+                  // ORCR
+                  if (orcrFiles.length > 0) {
+                    orcrFiles.forEach((file: any, index: number) => {
+                      const label = orcrFiles.length > 1 ? `ORCR / NDOS / 4 SIDES (${index + 1})` : 'ORCR / NDOS / 4 SIDES';
+                      items.push(renderCard(file, label, 'orcr'));
+                    });
+                  } else {
+                    items.push(renderCard(null, 'ORCR / NDOS / 4 SIDES', 'orcr-empty'));
+                  }
+
+                  // Screenshot
+                  if (screenshotFiles.length > 0) {
+                    screenshotFiles.forEach((file: any, index: number) => {
+                      const label = screenshotFiles.length > 1 ? `Ella Langrio Screenshot (${index + 1})` : 'Ella Langrio Screenshot';
+                      items.push(renderCard(file, label, 'screenshot'));
+                    });
+                  } else {
+                    items.push(renderCard(null, 'Ella Langrio Screenshot', 'screenshot-empty'));
+                  }
+
+                  // Bank Attachments
+                  if (bankFiles.length > 0) {
+                    bankFiles.forEach((file: any, index: number) => {
+                      const label = bankFiles.length > 1 ? `Bank Attachment (${index + 1})` : 'Bank Attachment';
+                      items.push(renderCard(file, label, 'bank'));
+                    });
+                  } else {
+                    items.push(renderCard(null, 'Bank Attachment', 'bank-empty'));
+                  }
+
+                  // Deed of Sale
+                  if (deedOfSaleFiles.length > 0) {
+                    deedOfSaleFiles.forEach((file: any, index: number) => {
+                      const label = deedOfSaleFiles.length > 1 ? `Deed of Sale / NDOS (${index + 1})` : 'Deed of Sale / NDOS';
+                      items.push(renderCard(file, label, 'deed'));
+                    });
+                  } else if (needsDeedOfSale) {
+                    items.push(renderCard(null, 'Deed of Sale / NDOS', 'deed-empty'));
+                  }
+
+                  // Other Files
+                  if (otherFiles.length > 0) {
+                    otherFiles.forEach((file: any, index: number) => {
+                      const label = `Attachment / Document (${index + 1})`;
+                      items.push(renderCard(file, label, 'other'));
+                    });
+                  }
+
+                  return items;
                 })()}
               </div>
             </div>
@@ -989,9 +991,12 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
       <input
         type="file"
         ref={fileInputRef}
+        multiple
         onChange={(e) => {
           if (e.target.files && e.target.files.length > 0) {
-            uploadAttachmentMut.mutate({ file: e.target.files[0], type: 'other' });
+            const files = Array.from(e.target.files);
+            uploadAttachmentMut.mutate({ files, type: 'other' });
+            e.target.value = '';
           }
         }}
         className="hidden"
@@ -1000,9 +1005,12 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
       <input
         type="file"
         ref={bankFileInputRef}
+        multiple
         onChange={(e) => {
           if (e.target.files && e.target.files.length > 0) {
-            uploadAttachmentMut.mutate({ file: e.target.files[0], type: 'bank' });
+            const files = Array.from(e.target.files);
+            uploadAttachmentMut.mutate({ files, type: 'bank' });
+            e.target.value = '';
           }
         }}
         className="hidden"

@@ -779,7 +779,9 @@ export default function CustomerFormPage() {
               <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
               <input
                 {...register('used_rate', { required: 'Used rate representation is required' })}
-                className={inputClass(errors.used_rate)}
+                readOnly
+                disabled
+                className={`${inputClass(errors.used_rate)} bg-slate-100/80 cursor-not-allowed`}
                 placeholder="e.g. 1.30% - .10%"
               />
               {errors.used_rate && <p className="text-xs text-red-500 mt-1">{errors.used_rate.message}</p>}

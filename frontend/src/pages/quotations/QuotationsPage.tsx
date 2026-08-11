@@ -16,6 +16,7 @@ import type { Quotation, QuotationListParams } from '../../types/SalesTypes';
 import QuotationFormPage from './QuotationFormPage';
 import QuotationDetailPage from './QuotationDetailPage';
 import InlinePolicyNoCell from '../../components/quotations/InlinePolicyNoCell';
+import BankAttachmentCell from '../../components/quotations/BankAttachmentCell';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 
 export default function QuotationsPage() {
@@ -62,10 +63,16 @@ export default function QuotationsPage() {
   const [previewAttachment, setPreviewAttachment] = useState<{ id: number; file_name: string; mime_type: string } | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewList, setPreviewList] = useState<any[]>([]);
 
-  const handleViewAttachment = async (att: any) => {
+  const handleViewAttachment = async (att: any, list?: any[]) => {
     setIsPreviewLoading(true);
     setPreviewAttachment(att);
+    if (list && list.length > 0) {
+      setPreviewList(list);
+    } else {
+      setPreviewList([att]);
+    }
     setPreviewUrl(null);
     try {
       const { data } = await axios.get(`/api/v1/attachments/${att.id}/download`, {
@@ -91,6 +98,7 @@ export default function QuotationsPage() {
     }
     setPreviewUrl(null);
     setPreviewAttachment(null);
+    setPreviewList([]);
   };
 
   const { data: response, isLoading } = useQuery({
@@ -183,22 +191,13 @@ export default function QuotationsPage() {
     },
     {
       key: 'bank_attachment', label: 'Bank',
-      render: (r: Quotation) => {
-        const bankDoc = r.customer?.attachments?.find((d: any) => d.document_type === 'bank');
-        if (!bankDoc) return <span className="text-slate-350">—</span>;
-        return (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewAttachment(bankDoc);
-            }}
-            className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 border border-emerald-100 hover:border-emerald-200/80 transition-all cursor-pointer inline-flex items-center"
-            title={`View ${bankDoc.file_name}`}
-          >
-            <FileText className="h-4 w-4" />
-          </button>
-        );
-      }
+      render: (r: Quotation) => (
+        <BankAttachmentCell
+          customerAttachments={r.customer?.attachments}
+          quotationAttachments={r.attachments}
+          onViewAttachment={handleViewAttachment}
+        />
+      ),
     },
 
     {
@@ -408,12 +407,29 @@ export default function QuotationsPage() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
             
             {/* Modal Header */}
-            <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-amber-400" />
-                <h3 className="font-bold text-sm tracking-tight truncate max-w-[60vw]">
+            <div className="bg-[#4A0E17] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <FileText className="h-5 w-5 text-amber-400 shrink-0" />
+                <h3 className="font-bold text-sm tracking-tight truncate max-w-[40vw]">
                   Preview: {previewAttachment.file_name}
                 </h3>
+                {previewList.length > 1 && (
+                  <div className="flex items-center gap-1 bg-black/25 p-1 rounded-xl ml-2">
+                    {previewList.map((doc, idx) => (
+                      <button
+                        key={doc.id || idx}
+                        onClick={() => handleViewAttachment(doc, previewList)}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition cursor-pointer ${
+                          doc.id === previewAttachment.id
+                            ? 'bg-amber-400 text-slate-900 shadow-xs font-bold'
+                            : 'text-white/80 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        Bank Attachment {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {previewUrl && (

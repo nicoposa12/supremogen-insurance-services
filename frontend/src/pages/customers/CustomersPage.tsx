@@ -1119,91 +1119,109 @@ export default function CustomersPage() {
 
                         {/* Document Attachments */}
                         <div className="space-y-3">
-                          <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Document Attachments</h4>
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                            <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider">Document Attachments</h4>
+                            <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 rounded-full">
+                              {selectedAttachments.length} {selectedAttachments.length === 1 ? 'file' : 'files'}
+                            </span>
+                          </div>
                           <div className="space-y-2">
-                            {/* ORCR */}
-                            <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
-                              <div className="flex items-center gap-2">
-                                <Paperclip className="h-4 w-4 text-slate-400" />
-                                <span className="text-xs font-semibold text-slate-700">ORCR / NDOS / 4 SIDES</span>
-                              </div>
-                              {orcrAttachment ? (
-                                <a 
-                                  href={getDownloadUrl(orcrAttachment.id, token)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
-                                >
-                                  Download File
-                                </a>
-                              ) : (
-                                <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
-                              )}
-                            </div>
+                            {(() => {
+                              const orcrFiles = selectedAttachments.filter(a => a.document_type === 'orcr_ndos_4sides');
+                              const screenshotFiles = selectedAttachments.filter(a => a.document_type === 'ella_langrio_screenshot');
+                              const bankFiles = selectedAttachments.filter(a => a.document_type === 'bank');
+                              const deedOfSaleFiles = selectedAttachments.filter(a => a.document_type === 'deed_of_sale_ndos');
+                              const termApprovalFiles = selectedAttachments.filter(a => a.document_type === 'term_approval');
+                              const otherFiles = selectedAttachments.filter(a => !['orcr_ndos_4sides', 'ella_langrio_screenshot', 'bank', 'deed_of_sale_ndos', 'term_approval'].includes(a.document_type || ''));
+                              const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(selectedCustomer.ownership || '');
+                              const needsTermApproval = ['5', '6'].includes(String(selectedCustomer.payment_terms || ''));
 
-                            {/* Ella Langrio */}
-                            <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
-                              <div className="flex items-center gap-2">
-                                <Paperclip className="h-4 w-4 text-slate-400" />
-                                <span className="text-xs font-semibold text-slate-700">Ella Langrio Screenshot</span>
-                              </div>
-                              {ellaAttachment ? (
-                                <a 
-                                  href={getDownloadUrl(ellaAttachment.id, token)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
-                                >
-                                  Download File
-                                </a>
-                              ) : (
-                                <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
-                              )}
-                            </div>
-
-                            {/* Deed of Sale / NDOS */}
-                            {(['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(selectedCustomer.ownership || '') || deedOfSaleAttachment) && (
-                              <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
-                                <div className="flex items-center gap-2">
-                                  <Paperclip className="h-4 w-4 text-slate-400" />
-                                  <span className="text-xs font-semibold text-slate-700">Deed of Sale / NDOS</span>
+                              const renderRow = (file: any | null, defaultLabel: string, keyPrefix: string) => (
+                                <div key={file ? `${keyPrefix}-${file.id}` : keyPrefix} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                                    <Paperclip className="h-4 w-4 text-slate-400 shrink-0" />
+                                    <div className="min-w-0">
+                                      <span className="text-xs font-semibold text-slate-700 block truncate">{defaultLabel}</span>
+                                      {file && <span className="text-[10px] text-slate-500 block truncate" title={file.file_name}>{file.file_name}</span>}
+                                    </div>
+                                  </div>
+                                  {file ? (
+                                    <a 
+                                      href={getDownloadUrl(file.id, token)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline shrink-0 bg-[#4A0E17]/5 px-2.5 py-1 rounded-lg"
+                                    >
+                                      Download File
+                                    </a>
+                                  ) : (
+                                    <span className="text-[10px] font-semibold text-slate-400 shrink-0">Not Uploaded</span>
+                                  )}
                                 </div>
-                                {deedOfSaleAttachment ? (
-                                  <a 
-                                    href={getDownloadUrl(deedOfSaleAttachment.id, token)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
-                                  >
-                                    Download File
-                                  </a>
-                                ) : (
-                                  <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
-                                )}
-                              </div>
-                            )}
+                              );
 
-                            {/* Term Approval */}
-                            {(['5', '6'].includes(String(selectedCustomer.payment_terms || '')) || termApprovalAttachment) && (
-                              <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
-                                <div className="flex items-center gap-2">
-                                  <Paperclip className="h-4 w-4 text-slate-400" />
-                                  <span className="text-xs font-semibold text-slate-700">Term Approval Attachment</span>
-                                </div>
-                                {termApprovalAttachment ? (
-                                  <a 
-                                    href={getDownloadUrl(termApprovalAttachment.id, token)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline"
-                                  >
-                                    Download File
-                                  </a>
-                                ) : (
-                                  <span className="text-[10px] font-semibold text-slate-400">Not Uploaded</span>
-                                )}
-                              </div>
-                            )}
+                              const items: React.ReactNode[] = [];
+
+                              // ORCR
+                              if (orcrFiles.length > 0) {
+                                orcrFiles.forEach((file, index) => {
+                                  const label = orcrFiles.length > 1 ? `ORCR / NDOS / 4 SIDES (${index + 1})` : 'ORCR / NDOS / 4 SIDES';
+                                  items.push(renderRow(file, label, 'orcr'));
+                                });
+                              } else {
+                                items.push(renderRow(null, 'ORCR / NDOS / 4 SIDES', 'orcr-empty'));
+                              }
+
+                              // Ella Screenshot
+                              if (screenshotFiles.length > 0) {
+                                screenshotFiles.forEach((file, index) => {
+                                  const label = screenshotFiles.length > 1 ? `Ella Langrio Screenshot (${index + 1})` : 'Ella Langrio Screenshot';
+                                  items.push(renderRow(file, label, 'screenshot'));
+                                });
+                              } else {
+                                items.push(renderRow(null, 'Ella Langrio Screenshot', 'screenshot-empty'));
+                              }
+
+                              // Bank Attachments
+                              if (bankFiles.length > 0) {
+                                bankFiles.forEach((file, index) => {
+                                  const label = bankFiles.length > 1 ? `Bank Attachment (${index + 1})` : 'Bank Attachment';
+                                  items.push(renderRow(file, label, 'bank'));
+                                });
+                              } else {
+                                items.push(renderRow(null, 'Bank Attachment', 'bank-empty'));
+                              }
+
+                              // Deed of Sale
+                              if (deedOfSaleFiles.length > 0) {
+                                deedOfSaleFiles.forEach((file, index) => {
+                                  const label = deedOfSaleFiles.length > 1 ? `Deed of Sale / NDOS (${index + 1})` : 'Deed of Sale / NDOS';
+                                  items.push(renderRow(file, label, 'deed'));
+                                });
+                              } else if (needsDeedOfSale) {
+                                items.push(renderRow(null, 'Deed of Sale / NDOS', 'deed-empty'));
+                              }
+
+                              // Term Approval
+                              if (termApprovalFiles.length > 0) {
+                                termApprovalFiles.forEach((file, index) => {
+                                  const label = termApprovalFiles.length > 1 ? `Term Approval Attachment (${index + 1})` : 'Term Approval Attachment';
+                                  items.push(renderRow(file, label, 'term'));
+                                });
+                              } else if (needsTermApproval) {
+                                items.push(renderRow(null, 'Term Approval Attachment', 'term-empty'));
+                              }
+
+                              // Other Files
+                              if (otherFiles.length > 0) {
+                                otherFiles.forEach((file, index) => {
+                                  const label = `Attachment / Document (${index + 1})`;
+                                  items.push(renderRow(file, label, 'other'));
+                                });
+                              }
+
+                              return items;
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -1857,7 +1875,9 @@ export default function CustomersPage() {
                         <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
                         <input
                           {...register('used_rate', { required: 'Used rate representation is required' })}
-                          className={inputClass(errors.used_rate)}
+                          readOnly
+                          disabled
+                          className={`${inputClass(errors.used_rate)} bg-slate-100/80 cursor-not-allowed`}
                           placeholder="e.g. 1.30% - .10%"
                         />
                         {errors.used_rate && <p className="text-xs text-red-500 mt-1">{errors.used_rate.message}</p>}

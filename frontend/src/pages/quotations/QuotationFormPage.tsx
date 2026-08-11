@@ -1305,7 +1305,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
             ) : (
               <div>
                 <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
-                <input type="text" value={usedRate} onChange={(e) => setUsedRate(e.target.value)} className={getInputClass(usedRate)} placeholder="e.g. 1.30% - .10%" />
+                <input
+                  type="text"
+                  value={usedRate}
+                  readOnly
+                  disabled
+                  className={`${getInputClass(usedRate)} bg-slate-100/80 cursor-not-allowed`}
+                  placeholder="e.g. 1.30% - .10%"
+                />
               </div>
             )}
 
@@ -1313,7 +1320,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
               <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-slate-100">
                 <div className="md:col-span-2">
                   <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
-                  <input type="text" value={usedRate} onChange={(e) => setUsedRate(e.target.value)} className={getInputClass(usedRate)} placeholder="e.g. 1.30% - .10%" />
+                  <input
+                    type="text"
+                    value={usedRate}
+                    readOnly
+                    disabled
+                    className={`${getInputClass(usedRate)} bg-slate-100/80 cursor-not-allowed`}
+                    placeholder="e.g. 1.30% - .10%"
+                  />
                 </div>
               </div>
             )}

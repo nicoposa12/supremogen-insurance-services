@@ -77,15 +77,28 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
     },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      if (file.size > 10 * 1024 * 1024) {
-        showToast('File size exceeds the 10MB limit.', 'error');
+      const files = Array.from(e.target.files);
+      const oversized = files.filter((f) => f.size > 10 * 1024 * 1024);
+      if (oversized.length > 0) {
+        showToast('One or more files exceed the 10MB limit.', 'error');
         return;
       }
       setIsUploading(true);
-      uploadMut.mutate(file);
+      try {
+        for (const file of files) {
+          await uploadAttachment(type, id, file, uploadDocType || undefined);
+        }
+        queryClient.invalidateQueries({ queryKey: ['attachments', type, id] });
+        showToast(`${files.length} file(s) uploaded successfully.`);
+      } catch (err: any) {
+        showToast(err.response?.data?.message ?? 'Failed to upload files.', 'error');
+      } finally {
+        setIsUploading(false);
+        setUploadDocType('');
+        e.target.value = '';
+      }
     }
   };
 
@@ -271,6 +284,7 @@ export default function AttachmentPanel({ type, id, readOnly = false }: Attachme
               }`}>
                 <input 
                   type="file" 
+                  multiple
                   className="hidden" 
                   onChange={handleFileChange} 
                   disabled={isUploading} 
