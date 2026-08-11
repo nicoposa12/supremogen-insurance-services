@@ -53,6 +53,14 @@ const MONTH_NAMES = [
 ];
 const AVAILABLE_YEARS = [2024, 2025, 2026, 2027, 2028];
 
+const getTodayDateStr = () => {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user, roles } = useAuth();
@@ -76,10 +84,7 @@ export default function DashboardPage() {
   const [customerTimeframe, setCustomerTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
 
   const [accountingTimeframe, setAccountingTimeframe] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  });
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => getTodayDateStr());
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [accountingSearchQuery, setAccountingSearchQuery] = useState('');
@@ -129,30 +134,6 @@ export default function DashboardPage() {
   const approvedList = useMemo(() => {
     return quotationsList.filter((q: any) => q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review');
   }, [quotationsList]);
-
-  // Auto-select the latest month/year containing quotation records if selected month has no records
-  useEffect(() => {
-    if (approvedList.length > 0) {
-      const hasDataInSelectedMonth = approvedList.some((q: any) => {
-        const d = new Date(q.created_at || Date.now());
-        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-      });
-      if (!hasDataInSelectedMonth) {
-        let latestDate: Date | null = null;
-        approvedList.forEach((q: any) => {
-          const d = new Date(q.created_at || Date.now());
-          if (!latestDate || d > latestDate) {
-            latestDate = d;
-          }
-        });
-        if (latestDate) {
-          setSelectedMonth((latestDate as Date).getMonth());
-          setSelectedYear((latestDate as Date).getFullYear());
-          setSelectedDateStr((latestDate as Date).toISOString().split('T')[0]);
-        }
-      }
-    }
-  }, [approvedList]);
 
   const getAssuredName = (q: any): string => {
     if (!q) return 'N/A';
@@ -1048,33 +1029,24 @@ export default function DashboardPage() {
               <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 uppercase">Attention Needed</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="grid grid-cols-2 gap-3 text-center">
               <div
                 onClick={() => navigate('/dashboard/quotations')}
-                className="bg-slate-50 hover:bg-amber-50/60 border border-slate-200 p-2.5 rounded-xl cursor-pointer transition"
+                className="bg-slate-50 hover:bg-amber-50/60 border border-slate-200 p-3 rounded-xl cursor-pointer transition"
               >
-                <span className="text-lg font-black text-amber-700 block">
+                <span className="text-xl font-black text-amber-700 block">
                   {dashboard?.stats?.pending_quotations ?? (approvedList.length > 0 ? approvedList.length : 0)}
                 </span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase block">Quotations</span>
+                <span className="text-[11px] font-bold text-slate-500 uppercase block mt-0.5">Quotations</span>
               </div>
               <div
                 onClick={() => navigate('/dashboard/claim-notifications')}
-                className="bg-slate-50 hover:bg-rose-50/60 border border-slate-200 p-2.5 rounded-xl cursor-pointer transition"
+                className="bg-slate-50 hover:bg-rose-50/60 border border-slate-200 p-3 rounded-xl cursor-pointer transition"
               >
-                <span className="text-lg font-black text-rose-700 block">
+                <span className="text-xl font-black text-rose-700 block">
                   {dashboard?.stats?.pending_claims ?? 0}
                 </span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase block">Claims</span>
-              </div>
-              <div
-                onClick={() => navigate('/dashboard/renewals')}
-                className="bg-slate-50 hover:bg-blue-50/60 border border-slate-200 p-2.5 rounded-xl cursor-pointer transition"
-              >
-                <span className="text-lg font-black text-blue-700 block">
-                  {dashboard?.stats?.pending_renewals ?? 0}
-                </span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase block">Renewals</span>
+                <span className="text-[11px] font-bold text-slate-500 uppercase block mt-0.5">Claims</span>
               </div>
             </div>
           </div>
