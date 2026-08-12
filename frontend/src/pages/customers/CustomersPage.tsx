@@ -1136,91 +1136,91 @@ export default function CustomersPage() {
                               const needsDeedOfSale = ['2ND OWNER', '3RD OWNER', '4TH OWNER'].includes(selectedCustomer.ownership || '');
                               const needsTermApproval = ['5', '6'].includes(String(selectedCustomer.payment_terms || ''));
 
-                              const renderRow = (file: any | null, defaultLabel: string, keyPrefix: string) => (
-                                <div key={file ? `${keyPrefix}-${file.id}` : keyPrefix} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
-                                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                                    <Paperclip className="h-4 w-4 text-slate-400 shrink-0" />
-                                    <div className="min-w-0">
-                                      <span className="text-xs font-semibold text-slate-700 block truncate">{defaultLabel}</span>
-                                      {file && <span className="text-[10px] text-slate-500 block truncate" title={file.file_name}>{file.file_name}</span>}
+                              const renderCategoryRow = (files: any[], categoryLabel: string, keyPrefix: string, showIfEmpty: boolean = true) => {
+                                if (files.length === 0) {
+                                  if (!showIfEmpty) return null;
+                                  return (
+                                    <div key={keyPrefix} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                                        <Paperclip className="h-4 w-4 text-slate-400 shrink-0" />
+                                        <span className="text-xs font-semibold text-slate-700 block truncate">{categoryLabel}</span>
+                                      </div>
+                                      <span className="text-[10px] font-semibold text-slate-400 shrink-0">Not Uploaded</span>
+                                    </div>
+                                  );
+                                }
+
+                                if (files.length === 1) {
+                                  const file = files[0];
+                                  return (
+                                    <div key={`${keyPrefix}-${file.id}`} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                                        <Paperclip className="h-4 w-4 text-slate-400 shrink-0" />
+                                        <div className="min-w-0">
+                                          <span className="text-xs font-semibold text-slate-700 block truncate">{categoryLabel}</span>
+                                          <span className="text-[10px] text-slate-500 block truncate" title={file.file_name}>{file.file_name}</span>
+                                        </div>
+                                      </div>
+                                      <a 
+                                        href={getDownloadUrl(file.id, token)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline shrink-0 bg-[#4A0E17]/5 px-2.5 py-1 rounded-lg"
+                                      >
+                                        Download File
+                                      </a>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div key={`${keyPrefix}-multi`} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2">
+                                    <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                                      <div className="flex items-center gap-2">
+                                        <Paperclip className="h-4 w-4 text-[#4A0E17] shrink-0" />
+                                        <span className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">{categoryLabel} ({files.length})</span>
+                                      </div>
+                                      <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                                        {files.length} files
+                                      </span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      {files.map((file: any, index: number) => (
+                                        <div key={file.id || index} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white border border-slate-100">
+                                          <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                                            <span className="text-[10px] font-mono font-bold text-slate-400">#{index + 1}</span>
+                                            <span className="text-xs font-semibold text-slate-700 truncate" title={file.file_name}>{file.file_name}</span>
+                                          </div>
+                                          <a 
+                                            href={getDownloadUrl(file.id, token)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline shrink-0 bg-[#4A0E17]/5 px-2 py-0.5 rounded"
+                                          >
+                                            Download
+                                          </a>
+                                        </div>
+                                      ))}
                                     </div>
                                   </div>
-                                  {file ? (
-                                    <a 
-                                      href={getDownloadUrl(file.id, token)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline shrink-0 bg-[#4A0E17]/5 px-2.5 py-1 rounded-lg"
-                                    >
-                                      Download File
-                                    </a>
-                                  ) : (
-                                    <span className="text-[10px] font-semibold text-slate-400 shrink-0">Not Uploaded</span>
-                                  )}
-                                </div>
-                              );
+                                );
+                              };
 
                               const items: React.ReactNode[] = [];
-
-                              // ORCR
-                              if (orcrFiles.length > 0) {
-                                orcrFiles.forEach((file, index) => {
-                                  const label = orcrFiles.length > 1 ? `ORCR / NDOS / 4 SIDES (${index + 1})` : 'ORCR / NDOS / 4 SIDES';
-                                  items.push(renderRow(file, label, 'orcr'));
-                                });
-                              } else {
-                                items.push(renderRow(null, 'ORCR / NDOS / 4 SIDES', 'orcr-empty'));
+                              items.push(renderCategoryRow(orcrFiles, 'ORCR / NDOS / 4 SIDES', 'orcr', true));
+                              items.push(renderCategoryRow(screenshotFiles, 'Ella Langrio Screenshot', 'screenshot', true));
+                              items.push(renderCategoryRow(bankFiles, 'Bank Attachment', 'bank', true));
+                              if (deedOfSaleFiles.length > 0 || needsDeedOfSale) {
+                                items.push(renderCategoryRow(deedOfSaleFiles, 'Deed of Sale / NDOS', 'deed', true));
                               }
-
-                              // Ella Screenshot
-                              if (screenshotFiles.length > 0) {
-                                screenshotFiles.forEach((file, index) => {
-                                  const label = screenshotFiles.length > 1 ? `Ella Langrio Screenshot (${index + 1})` : 'Ella Langrio Screenshot';
-                                  items.push(renderRow(file, label, 'screenshot'));
-                                });
-                              } else {
-                                items.push(renderRow(null, 'Ella Langrio Screenshot', 'screenshot-empty'));
+                              if (termApprovalFiles.length > 0 || needsTermApproval) {
+                                items.push(renderCategoryRow(termApprovalFiles, 'Term Approval Attachment', 'term', true));
                               }
-
-                              // Bank Attachments
-                              if (bankFiles.length > 0) {
-                                bankFiles.forEach((file, index) => {
-                                  const label = bankFiles.length > 1 ? `Bank Attachment (${index + 1})` : 'Bank Attachment';
-                                  items.push(renderRow(file, label, 'bank'));
-                                });
-                              } else {
-                                items.push(renderRow(null, 'Bank Attachment', 'bank-empty'));
-                              }
-
-                              // Deed of Sale
-                              if (deedOfSaleFiles.length > 0) {
-                                deedOfSaleFiles.forEach((file, index) => {
-                                  const label = deedOfSaleFiles.length > 1 ? `Deed of Sale / NDOS (${index + 1})` : 'Deed of Sale / NDOS';
-                                  items.push(renderRow(file, label, 'deed'));
-                                });
-                              } else if (needsDeedOfSale) {
-                                items.push(renderRow(null, 'Deed of Sale / NDOS', 'deed-empty'));
-                              }
-
-                              // Term Approval
-                              if (termApprovalFiles.length > 0) {
-                                termApprovalFiles.forEach((file, index) => {
-                                  const label = termApprovalFiles.length > 1 ? `Term Approval Attachment (${index + 1})` : 'Term Approval Attachment';
-                                  items.push(renderRow(file, label, 'term'));
-                                });
-                              } else if (needsTermApproval) {
-                                items.push(renderRow(null, 'Term Approval Attachment', 'term-empty'));
-                              }
-
-                              // Other Files
                               if (otherFiles.length > 0) {
-                                otherFiles.forEach((file, index) => {
-                                  const label = `Attachment / Document (${index + 1})`;
-                                  items.push(renderRow(file, label, 'other'));
-                                });
+                                items.push(renderCategoryRow(otherFiles, 'Attachment / Document', 'other', false));
                               }
 
-                              return items;
+                              return items.filter(Boolean);
                             })()}
                           </div>
                         </div>
