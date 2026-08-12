@@ -218,23 +218,68 @@ export default function QuotationDetailPage({
         {activeTab === 'info' && (
           <div className="space-y-6">
             {quotation.status === 'cancellation_requested' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <span>Cancellation Request Pending Underwriter Approval</span>
+              <div className="bg-[#f0f2f5] border border-slate-200/80 rounded-2xl p-6 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-red-600 text-white rounded-xl shadow-xs">
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm uppercase tracking-tight">
+                      REQUEST FOR CANCELLATION
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-amber-200">
+                    Pending Underwriter Review
+                  </span>
                 </div>
-                <p className="text-xs text-amber-800 font-medium">
-                  Reason: {quotation.cancellation_reason || quotation.cancellation_details?.reason || '—'}
-                </p>
+
+                <div className="space-y-2 text-xs sm:text-sm font-medium text-slate-800 tracking-wide">
+                  <p className="flex items-baseline gap-2">
+                    <span className="font-bold text-slate-900 uppercase">WRITING DATE:</span>
+                    <span className="text-slate-800">{quotation.cancellation_details?.writing_date || '—'}</span>
+                  </p>
+                  <p className="flex items-baseline gap-2">
+                    <span className="font-bold text-slate-900 uppercase">INCEPTION DATE:</span>
+                    <span className="text-slate-800">{quotation.cancellation_details?.inception || '—'}</span>
+                  </p>
+                  <p className="flex items-baseline gap-2">
+                    <span className="font-bold text-slate-900 uppercase">ASSURED NAME:</span>
+                    <span className="text-slate-800 uppercase">{quotation.cancellation_details?.client_name || [quotation.customer?.first_name, quotation.customer?.last_name].filter(Boolean).join(' ') || '—'}</span>
+                  </p>
+                  <p className="flex items-baseline gap-2">
+                    <span className="font-bold text-slate-900 uppercase">POLICY NUMBER:</span>
+                    <span className="font-mono text-slate-900">{quotation.cancellation_details?.policy_number || quotation.customer?.policy_no || (quotation as any).policy?.policy_number || '—'}</span>
+                  </p>
+                  <p className="flex items-baseline gap-2">
+                    <span className="font-bold text-slate-900 uppercase">PLATE NUMBER:</span>
+                    <span className="font-mono text-slate-900 uppercase">{quotation.cancellation_details?.plate_number || quotation.customer?.plate_no || '—'}</span>
+                  </p>
+                  <p className="flex items-baseline gap-2">
+                    <span className="font-bold text-slate-900 uppercase">INSURANCE PROVIDER:</span>
+                    <span className="text-slate-800 uppercase">{quotation.cancellation_details?.provider || 'ALPHA'}</span>
+                  </p>
+
+                  <div className="pt-3">
+                    <p className="flex items-baseline gap-2">
+                      <span className="font-bold text-slate-900 uppercase">REASON OF CANCELLATION:</span>
+                      <span className="text-slate-800 font-semibold">{quotation.cancellation_reason || quotation.cancellation_details?.reason || '—'}</span>
+                    </p>
+                  </div>
+                </div>
+
                 {quotation.cancellation_details?.attachment_url && (
-                  <div className="pt-1">
+                  <div className="pt-3 border-t border-slate-200/80 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-slate-600" />
+                      <span className="font-bold text-slate-700 text-xs">Cancellation Supporting Document</span>
+                    </div>
                     <a
                       href={quotation.cancellation_details.attachment_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="font-bold text-blue-600 hover:underline text-xs inline-flex items-center gap-1"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition"
                     >
-                      <FileText className="h-3.5 w-3.5" /> View Cancellation Attachment
+                      <Download className="h-3.5 w-3.5" /> View / Download Attachment
                     </a>
                   </div>
                 )}
