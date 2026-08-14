@@ -3,7 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FileSpreadsheet, Search, Eye, Printer, Loader2, ArrowLeft,
-  RefreshCw, X, Calendar, CheckCircle2, Clock, Gift, Paperclip, Upload
+  RefreshCw, X, Calendar, CheckCircle2, Clock, Gift, Paperclip, Upload,
+  DollarSign, TrendingUp, Wallet, Filter, ChevronDown, SlidersHorizontal,
+  Download
 } from 'lucide-react';
 
 import { getQuotations, toggleQuotationRemittance } from '../../services/quotationApi';
@@ -12,6 +14,7 @@ import Pagination from '../../components/ui/Pagination';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 import { useToast } from '../../components/ui/Toast';
 import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
+import { useAuth } from '../../context/AuthContext';
 
 const roundTwo = (num: number): number => Math.round(num * 100 + 1e-9) / 100;
 const formatCurrency = (val: number | string | undefined | null): string => {
@@ -19,6 +22,14 @@ const formatCurrency = (val: number | string | undefined | null): string => {
   if (isNaN(num)) return '0.00';
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+const AVAILABLE_YEARS = [2024, 2025, 2026, 2027];
+
+type TimeframeType = 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 const getAssuredName = (q: Quotation): string => {
   const firstItem = q.items?.[0];
@@ -61,7 +72,72 @@ const getCbicTariffPremiums = (coverageAmt: number, isCV: boolean) => {
   return table[closest] || (isCV ? { ebi: 660, tppd: 1395 } : { ebi: 420, tppd: 1245 });
 };
 
-import { useAuth } from '../../context/AuthContext';
+// Unified Quotation Financials Calculator
+const calculateQuotationFinancials = (q: Quotation) => {
+  const firstItem = q.items?.[0];
+  const cov = firstItem?.coverage_details || {};
+  const custAny = (q.customer || {}) as any;
+  const provider = (cov.insurance_provider || cov.provider || custAny.insurance_provider || 'ALPHA').toUpperCase();
+  const isCBIC = provider.includes('CBIC');
+
+  const totalPolicyPremium = Number(q.total_premium || cov.net_premium || custAny.policy_premium || 0);
+  const subAgentMarkup = Number(cov.calculator?.sub_agent_markup || cov.sub_agent_markup || custAny.sub_agent_markup || 0);
+  const agentMarkup = Number(cov.calculator?.agent_markup || cov.agent_markup || custAny.agent_markup || 0);
+  const freebie = Number(cov.calculator?.freebie_amount ?? (cov.calculator?.freebie_cashback || cov.freebie || custAny.freebie || 0));
+  const cashback = Number(cov.calculator?.cashback_amount || 0);
+  const totalDeductions = agentMarkup + subAgentMarkup + freebie + cashback;
+
+  const itemSumInsured = Number(firstItem?.sum_insured || 0);
+  const covSumInsured = Number(cov.sum_insured || cov.coverages?.own_damage || cov.own_damage_coverage || custAny.own_damage_coverage || 0);
+  const sumInsured = itemSumInsured > 0 ? itemSumInsured : (covSumInsured > 0 ? covSumInsured : 430000);
+
+  let netRemittance = 0;
+  let companyIncome = 0;
+  let netIncome = 0;
+
+  if (isCBIC) {
+    const usageStr = ((custAny.usage || '') + ' ' + (custAny.quotation_used || '') + ' ' + (cov.usage || '')).toUpperCase();
+    const isTNVS = usageStr.includes('TNVS') || usageStr.includes('HIRE') || usageStr.includes('YELLOW');
+    const covBIVal = Number(cov.coverages?.bi || cov.cov_bi || custAny.bi_coverage || 200000);
+    const cbicTariff = getCbicTariffPremiums(covBIVal, isTNVS);
+    const cbicNetBasicPrem = Math.round((sumInsured * 0.0065 + sumInsured * 0.0030 + cbicTariff.ebi + cbicTariff.tppd) * 100) / 100;
+    const cbicNetGrossPrem = Math.round((cbicNetBasicPrem + (cbicNetBasicPrem * 0.125) + (cbicNetBasicPrem * 0.12) + (cbicNetBasicPrem * 0.0011)) * 100) / 100;
+    const cbicNetTariffComm = Math.round(((cbicTariff.ebi * 0.30 + cbicTariff.tppd * 0.20) * 0.90) * 100) / 100;
+
+    netRemittance = Math.round((cbicNetGrossPrem - cbicNetTariffComm) * 100) / 100;
+    companyIncome = Math.round((totalPolicyPremium - netRemittance) * 100) / 100;
+    netIncome = Math.round((companyIncome - totalDeductions) * 100) / 100;
+  } else {
+    const premOD = Math.round(sumInsured * 0.0070 * 100) / 100;
+    const premAON = Math.round(sumInsured * 0.0020 * 100) / 100;
+    const premBIVal = Number(cov.premiums?.bi || cov.prem_bi || 420);
+    const premPDVal = Number(cov.premiums?.pd || cov.prem_pd || 1245);
+    const premPAVal = Number(cov.premiums?.pa || cov.prem_pa || 0);
+
+    const subtotalPremium = Math.round((premOD + premAON + premBIVal + premPDVal + premPAVal) * 100) / 100;
+    const chargesAmount = Math.round(subtotalPremium * 0.2461 * 100) / 100;
+    const towingFee = Number(cov.calculator?.towing_fee || cov.towing_fee || 100);
+    const grossTotal = Math.round((subtotalPremium + chargesAmount + towingFee) * 100) / 100;
+
+    const commOnTariff = Math.round((premBIVal * 0.30 + premPDVal * 0.30) * 100) / 100;
+    const totalCommOnTariff = Math.round((commOnTariff - (commOnTariff * 0.10)) * 100) / 100;
+
+    netRemittance = Math.round((grossTotal - totalCommOnTariff) * 100) / 100;
+    companyIncome = Math.round((totalPolicyPremium - netRemittance) * 100) / 100;
+    netIncome = Math.round((companyIncome - totalDeductions) * 100) / 100;
+  }
+
+  return {
+    provider,
+    isCBIC,
+    totalPolicyPremium,
+    netRemittance,
+    companyIncome,
+    totalDeductions,
+    netIncome,
+    date: new Date(q.created_at || Date.now()),
+  };
+};
 
 export default function PolicyStatementsPage() {
   const queryClient = useQueryClient();
@@ -72,6 +148,16 @@ export default function PolicyStatementsPage() {
   const isAccountingOrAdmin = roles.some((r: string) =>
     ['Accounting Officer', 'Team Support Operation', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
+
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  const [timeframe, setTimeframe] = useState<TimeframeType>('monthly');
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr);
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const [showCustomDates, setShowCustomDates] = useState<boolean>(false);
+
   const urlSearch = searchParams.get('search') || '';
   const [searchInput, setSearchInput] = useState(urlSearch);
   const [selectedProvider, setSelectedProvider] = useState<'ALL' | 'ALPHA' | 'CBIC'>('ALL');
@@ -106,7 +192,7 @@ export default function PolicyStatementsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchInput, selectedProvider, dateFrom, dateTo]);
+  }, [searchInput, selectedProvider, timeframe, selectedDateStr, selectedMonth, selectedYear, dateFrom, dateTo]);
 
   // Fetch approved Policy Issuance Requests
   const { data: response, isLoading, refetch } = useQuery({
@@ -116,6 +202,7 @@ export default function PolicyStatementsPage() {
 
   const allQuotations = response?.data?.data ?? [];
 
+  // Filter approved quotations with timeframe & filters
   const approvedQuotations = useMemo(() => {
     return allQuotations.filter((q) => {
       const isRelevant = q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review' || q.status === 'cancelled' || q.status === 'cancellation_requested';
@@ -128,14 +215,36 @@ export default function PolicyStatementsPage() {
       if (selectedProvider === 'ALPHA' && !provider.includes('ALPHA')) return false;
       if (selectedProvider === 'CBIC' && !provider.includes('CBIC')) return false;
 
+      const qDate = new Date(q.created_at || Date.now());
+
+      // Timeframe filtering
+      if (timeframe === 'daily') {
+        const targetDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : new Date();
+        if (qDate.toDateString() !== targetDate.toDateString()) return false;
+      } else if (timeframe === 'weekly') {
+        const refDate = selectedDateStr ? new Date(selectedDateStr + 'T00:00:00') : new Date();
+        const startOfWeek = new Date(refDate);
+        startOfWeek.setDate(refDate.getDate() - refDate.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        if (qDate < startOfWeek || qDate > endOfWeek) return false;
+      } else if (timeframe === 'monthly') {
+        if (qDate.getMonth() !== selectedMonth || qDate.getFullYear() !== selectedYear) return false;
+      } else if (timeframe === 'yearly') {
+        if (qDate.getFullYear() !== selectedYear) return false;
+      }
+
+      // Custom date range filter
       if (dateFrom) {
         const from = new Date(dateFrom + 'T00:00:00');
-        const qDate = new Date(q.created_at);
         if (qDate < from) return false;
       }
       if (dateTo) {
         const to = new Date(dateTo + 'T23:59:59');
-        const qDate = new Date(q.created_at);
         if (qDate > to) return false;
       }
 
@@ -147,19 +256,51 @@ export default function PolicyStatementsPage() {
       const agent = (typeof q.prepared_by === 'object' ? q.prepared_by?.name : '')?.toLowerCase() || '';
       return ref.includes(query) || customer.includes(query) || policy.includes(query) || agent.includes(query);
     });
-  }, [allQuotations, searchInput, selectedProvider, dateFrom, dateTo]);
+  }, [allQuotations, searchInput, selectedProvider, timeframe, selectedDateStr, selectedMonth, selectedYear, dateFrom, dateTo]);
 
   // Overall financial totals
-  const overallTotals = useMemo(() => {
+  const accountingMetrics = useMemo(() => {
     let totalPrem = 0;
+    let totalRemit = 0;
+    let totalCompInc = 0;
+    let totalDeductions = 0;
+    let totalNetInc = 0;
+
     approvedQuotations.forEach((q) => {
-      totalPrem += Number(q.total_premium || 0);
+      const fin = calculateQuotationFinancials(q);
+      totalPrem += fin.totalPolicyPremium;
+      totalRemit += fin.netRemittance;
+      totalCompInc += fin.companyIncome;
+      totalDeductions += fin.totalDeductions;
+      totalNetInc += fin.netIncome;
     });
+
     return {
       count: approvedQuotations.length,
       totalPrem: Math.round(totalPrem),
+      totalRemit: Math.round(totalRemit),
+      totalCompInc: Math.round(totalCompInc),
+      totalDeductions: Math.round(totalDeductions),
+      totalNetInc: Math.round(totalNetInc),
+      marginPct: totalPrem > 0 ? ((totalCompInc / totalPrem) * 100).toFixed(1) : '0',
     };
   }, [approvedQuotations]);
+
+  const timeframeLabel = useMemo(() => {
+    if (timeframe === 'daily') {
+      return selectedDateStr ? new Date(selectedDateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'DAILY';
+    }
+    if (timeframe === 'weekly') {
+      return selectedDateStr ? `WEEK OF ${new Date(selectedDateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}` : 'WEEKLY';
+    }
+    if (timeframe === 'monthly') {
+      return `${MONTH_NAMES[selectedMonth].toUpperCase()} ${selectedYear}`;
+    }
+    if (timeframe === 'yearly') {
+      return `${selectedYear}`;
+    }
+    return 'ALL TIME';
+  }, [timeframe, selectedDateStr, selectedMonth, selectedYear]);
 
   const total = approvedQuotations.length;
   const lastPage = Math.ceil(total / perPage) || 1;
@@ -171,94 +312,525 @@ export default function PolicyStatementsPage() {
     return approvedQuotations.slice(start, start + perPage);
   }, [approvedQuotations, currentPage, perPage]);
 
+  // Export Key Metrics and Detailed Table to Excel
+  const exportToExcel = () => {
+    if (approvedQuotations.length === 0) {
+      showToast('No policy statements to export', 'error');
+      return;
+    }
+
+    const generatedDate = new Date().toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
+    const providerLabel = selectedProvider === 'ALL'
+      ? 'All Providers (Alpha & CBIC)'
+      : selectedProvider === 'ALPHA'
+      ? 'ALPHA Insurance'
+      : 'CBIC Insurance';
+
+    // Build Table Rows HTML
+    const rowsHtml = approvedQuotations.map((q) => {
+      const fin = calculateQuotationFinancials(q);
+      const agentName = typeof q.prepared_by === 'object' ? q.prepared_by?.name : (q.prepared_by || 'Sales Agent');
+      const createdDate = new Date(q.created_at);
+      const dateFormatted = `${createdDate.toLocaleDateString('en-US')} ${createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+      const refNo = q.quotation_number || q.ir_number || `IR-${q.id}`;
+      const assured = getAssuredName(q);
+      const statusRemit = q.is_remitted ? 'Remitted' : 'Unremitted';
+      const isCancelled = q.status === 'cancelled' ? ' [CANCELLED]' : '';
+
+      return `
+        <tr>
+          <td style="text-align: left; font-family: monospace;">${refNo}${isCancelled}</td>
+          <td style="text-align: left; font-weight: 500;">${assured}</td>
+          <td style="text-align: center;">${fin.provider}</td>
+          <td style="text-align: right; font-family: monospace;">₱${formatCurrency(fin.totalPolicyPremium)}</td>
+          <td style="text-align: right; font-family: monospace;">₱${formatCurrency(fin.netRemittance)}</td>
+          <td style="text-align: right; font-family: monospace; color: #b45309; font-weight: 600;">₱${formatCurrency(fin.companyIncome)}</td>
+          <td style="text-align: right; font-family: monospace; color: #be123c;">₱${formatCurrency(fin.totalDeductions)}</td>
+          <td style="text-align: right; font-family: monospace; color: #047857; font-weight: bold;">₱${formatCurrency(fin.netIncome)}</td>
+          <td style="text-align: center;">${statusRemit}</td>
+          <td style="text-align: left;">${agentName}</td>
+          <td style="text-align: center;">${dateFormatted}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const excelContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Policy Statements</x:Name>
+                <x:WorksheetOptions>
+                  <x:DisplayGridlines/>
+                </x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1e293b; }
+          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+          th, td { border: 1px solid #cbd5e1; padding: 8px 10px; font-size: 10pt; }
+          .header-title { font-size: 16pt; font-weight: bold; color: #4A0E17; text-align: left; }
+          .header-sub { font-size: 10pt; color: #64748b; }
+          .section-header { font-size: 11pt; font-weight: bold; background-color: #f1f5f9; color: #0f172a; padding: 8px 10px; text-align: left; }
+          .kpi-title { font-size: 9pt; font-weight: bold; text-transform: uppercase; color: #475569; background-color: #f8fafc; }
+          .kpi-value { font-size: 12pt; font-weight: bold; }
+          .tbl-th { background-color: #4A0E17; color: #ffffff; font-weight: bold; font-size: 9pt; text-align: center; }
+          .tbl-total { background-color: #f8fafc; font-weight: bold; border-top: 2px solid #475569; }
+        </style>
+      </head>
+      <body>
+        <!-- Report Header -->
+        <table style="border: none; margin-bottom: 12px;">
+          <tr style="border: none;">
+            <td colspan="11" style="border: none;" class="header-title">SUPREMOGEN INSURANCE SERVICES</td>
+          </tr>
+          <tr style="border: none;">
+            <td colspan="11" style="border: none; font-size: 13pt; font-weight: bold; color: #1e293b;">POLICY STATEMENTS & FINANCIAL LEDGER REPORT</td>
+          </tr>
+          <tr style="border: none;">
+            <td colspan="11" style="border: none;" class="header-sub">
+              Timeframe: <strong>${timeframeLabel}</strong> &nbsp;|&nbsp; Provider Filter: <strong>${providerLabel}</strong> &nbsp;|&nbsp; Exported On: <strong>${generatedDate}</strong>
+            </td>
+          </tr>
+        </table>
+
+        <!-- 1. Key Metrics & Financial Computation Flow -->
+        <table style="margin-bottom: 20px;">
+          <tr>
+            <th colspan="11" class="section-header">1. FINANCIAL COMPUTATION FLOW & EXECUTIVE KEY METRICS</th>
+          </tr>
+          <tr style="background-color: #f8fafc;">
+            <td colspan="2" class="kpi-title" style="text-align: center;">TOTAL POLICY PREMIUM</td>
+            <td style="text-align: center; font-weight: bold; font-size: 11pt; background-color: #ffffff;">−</td>
+            <td colspan="2" class="kpi-title" style="text-align: center;">PROVIDER REMITTANCES</td>
+            <td style="text-align: center; font-weight: bold; font-size: 11pt; background-color: #ffffff;">=</td>
+            <td colspan="2" class="kpi-title" style="text-align: center;">GROSS COMPANY INCOME</td>
+            <td style="text-align: center; font-weight: bold; font-size: 11pt; background-color: #ffffff;">−</td>
+            <td class="kpi-title" style="text-align: center;">MARKUPS & FREEBIES</td>
+            <td class="kpi-title" style="text-align: center; background-color: #d1fae5; color: #065f46;">NET COMPANY INCOME</td>
+          </tr>
+          <tr>
+            <td colspan="2" class="kpi-value" style="color: #1d4ed8; text-align: center;">₱${accountingMetrics.totalPrem.toLocaleString('en-US')}</td>
+            <td style="text-align: center; font-weight: bold;">−</td>
+            <td colspan="2" class="kpi-value" style="color: #7e22ce; text-align: center;">₱${accountingMetrics.totalRemit.toLocaleString('en-US')}</td>
+            <td style="text-align: center; font-weight: bold;">=</td>
+            <td colspan="2" class="kpi-value" style="color: #b45309; text-align: center;">₱${accountingMetrics.totalCompInc.toLocaleString('en-US')}</td>
+            <td style="text-align: center; font-weight: bold;">−</td>
+            <td class="kpi-value" style="color: #be123c; text-align: center;">₱${accountingMetrics.totalDeductions.toLocaleString('en-US')}</td>
+            <td class="kpi-value" style="color: #047857; text-align: center; background-color: #ecfdf5; font-size: 13pt;">₱${accountingMetrics.totalNetInc.toLocaleString('en-US')}</td>
+          </tr>
+          <tr style="font-size: 8.5pt; color: #64748b; background-color: #ffffff;">
+            <td colspan="2" style="text-align: center;">${accountingMetrics.count} Policies (${timeframe.toUpperCase()})</td>
+            <td style="text-align: center;"></td>
+            <td colspan="2" style="text-align: center;">Net to ${selectedProvider === 'ALL' ? 'Alpha & CBIC' : selectedProvider === 'ALPHA' ? 'Alpha Insurance' : 'CBIC Insurance'}</td>
+            <td style="text-align: center;"></td>
+            <td colspan="2" style="text-align: center;">Profit Margin: ${accountingMetrics.marginPct}%</td>
+            <td style="text-align: center;"></td>
+            <td style="text-align: center;">Agent/Sub-Agent/Freebie/Cashback</td>
+            <td style="text-align: center; font-weight: bold; color: #047857;">Final Net Profit</td>
+          </tr>
+        </table>
+
+        <!-- 2. Detailed Data Table -->
+        <table>
+          <tr>
+            <th colspan="11" class="section-header">2. DETAILED POLICY STATEMENTS LEDGER (${approvedQuotations.length} RECORDS)</th>
+          </tr>
+          <tr>
+            <th class="tbl-th">Ref / IR No.</th>
+            <th class="tbl-th">Assured Name</th>
+            <th class="tbl-th">Provider</th>
+            <th class="tbl-th">Total Premium</th>
+            <th class="tbl-th">Net Remittance</th>
+            <th class="tbl-th">Company Income</th>
+            <th class="tbl-th">Markups & Freebies</th>
+            <th class="tbl-th">Net Income</th>
+            <th class="tbl-th">Remittance Status</th>
+            <th class="tbl-th">Agent</th>
+            <th class="tbl-th">Date & Time Filed</th>
+          </tr>
+          ${rowsHtml}
+          <!-- Totals Footer Row -->
+          <tr class="tbl-total">
+            <td colspan="3" style="text-align: right; font-weight: bold; font-size: 10pt; padding: 10px;">TOTALS (${approvedQuotations.length} POLICIES):</td>
+            <td style="text-align: right; font-family: monospace; font-weight: bold; font-size: 10pt; color: #1d4ed8;">₱${formatCurrency(accountingMetrics.totalPrem)}</td>
+            <td style="text-align: right; font-family: monospace; font-weight: bold; font-size: 10pt; color: #7e22ce;">₱${formatCurrency(accountingMetrics.totalRemit)}</td>
+            <td style="text-align: right; font-family: monospace; font-weight: bold; font-size: 10pt; color: #b45309;">₱${formatCurrency(accountingMetrics.totalCompInc)}</td>
+            <td style="text-align: right; font-family: monospace; font-weight: bold; font-size: 10pt; color: #be123c;">₱${formatCurrency(accountingMetrics.totalDeductions)}</td>
+            <td style="text-align: right; font-family: monospace; font-weight: bold; font-size: 10.5pt; color: #047857;">₱${formatCurrency(accountingMetrics.totalNetInc)}</td>
+            <td colspan="3" style="text-align: center; color: #64748b; font-size: 9pt;">Overall Margin: ${accountingMetrics.marginPct}%</td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([excelContent], {
+      type: 'application/vnd.ms-excel;charset=utf-8;',
+    });
+
+    const sanitizedTimeframe = timeframeLabel.replace(/[^a-zA-Z0-9_-]+/g, '_');
+    const sanitizedProvider = selectedProvider === 'ALL' ? 'All_Providers' : selectedProvider;
+    const fileName = `Policy_Statements_${sanitizedProvider}_${sanitizedTimeframe}.xls`;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Policy statements exported to Excel successfully', 'success');
+  };
+
   return (
     <div className="space-y-4">
-      {/* Page Title */}
-      <div className="flex items-center justify-between print:hidden no-print">
+      {/* Header & Minimalistic Timeframe Selector Bar */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs print:hidden no-print">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-xl font-bold text-slate-800">Policy Statements</h1>
             {!isAccountingOrAdmin && (
-              <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+              <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
                 <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-500">Auto-generated tariff, commission, remittance, and company income statements</p>
+          <p className="text-xs text-slate-500 mt-0.5">Auto-generated tariff, commission, remittance, and company income statements</p>
         </div>
+
+        {/* Minimalistic Timeframe Pill Switcher & Dynamic Date Selectors */}
+        {!selectedQuotation && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 border border-slate-200">
+              {(['daily', 'weekly', 'monthly', 'yearly', 'all'] as const).map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => {
+                    setTimeframe(tf);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition uppercase cursor-pointer ${
+                    timeframe === tf
+                      ? 'bg-[#4A0E17] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+
+            {timeframe === 'daily' && (
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Day:</span>
+                <input
+                  type="date"
+                  value={selectedDateStr}
+                  onChange={(e) => { setSelectedDateStr(e.target.value); setCurrentPage(1); }}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                />
+              </div>
+            )}
+
+            {timeframe === 'weekly' && (
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Week Of:</span>
+                <input
+                  type="date"
+                  value={selectedDateStr}
+                  onChange={(e) => { setSelectedDateStr(e.target.value); setCurrentPage(1); }}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                />
+              </div>
+            )}
+
+            {timeframe === 'monthly' && (
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Month:</span>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => { setSelectedMonth(Number(e.target.value)); setCurrentPage(1); }}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer pr-1"
+                >
+                  {MONTH_NAMES.map((m, idx) => (
+                    <option key={m} value={idx}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => { setSelectedYear(Number(e.target.value)); setCurrentPage(1); }}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                >
+                  {AVAILABLE_YEARS.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {timeframe === 'yearly' && (
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Year:</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => { setSelectedYear(Number(e.target.value)); setCurrentPage(1); }}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                >
+                  {AVAILABLE_YEARS.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Minimalistic Financial Computation Flow & KPI Summary Cards */}
+      {!selectedQuotation && (
+        <div className="space-y-3 print:hidden no-print">
+          {/* Interactive Financial Computation Flow Bar */}
+          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 font-bold text-slate-700 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] uppercase tracking-wider font-extrabold text-slate-800">
+                  Financial Computation Flow ({timeframeLabel}):
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 font-mono text-[11px] w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
+                <div className="bg-slate-50 hover:bg-blue-50/50 px-3 py-1.5 rounded-xl border border-slate-200 transition shrink-0">
+                  <span className="text-slate-500 uppercase text-[9px] block font-sans font-medium">Total Premium</span>
+                  <span className="font-bold text-blue-700 text-xs sm:text-sm">₱{accountingMetrics.totalPrem.toLocaleString('en-US')}</span>
+                </div>
+                <span className="text-slate-400 font-sans font-bold text-xs sm:text-sm">−</span>
+                <div className="bg-slate-50 hover:bg-purple-50/50 px-3 py-1.5 rounded-xl border border-slate-200 transition shrink-0">
+                  <span className="text-slate-500 uppercase text-[9px] block font-sans font-medium">Provider Remittances</span>
+                  <span className="font-bold text-purple-700 text-xs sm:text-sm">₱{accountingMetrics.totalRemit.toLocaleString('en-US')}</span>
+                </div>
+                <span className="text-slate-400 font-sans font-bold text-xs sm:text-sm">=</span>
+                <div className="bg-slate-50 hover:bg-amber-50/50 px-3 py-1.5 rounded-xl border border-slate-200 transition shrink-0">
+                  <span className="text-slate-500 uppercase text-[9px] block font-sans font-medium">Company Income</span>
+                  <span className="font-bold text-amber-700 text-xs sm:text-sm">₱{accountingMetrics.totalCompInc.toLocaleString('en-US')}</span>
+                </div>
+                <span className="text-slate-400 font-sans font-bold text-xs sm:text-sm">−</span>
+                <div className="bg-slate-50 hover:bg-rose-50/50 px-3 py-1.5 rounded-xl border border-slate-200 transition shrink-0">
+                  <span className="text-slate-500 uppercase text-[9px] block font-sans font-medium">Markups, Freebies & Cashback</span>
+                  <span className="font-bold text-rose-700 text-xs sm:text-sm">₱{accountingMetrics.totalDeductions.toLocaleString('en-US')}</span>
+                </div>
+                <span className="text-slate-400 font-sans font-bold text-xs sm:text-sm">=</span>
+                <div className="bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-emerald-800 font-extrabold shadow-2xs shrink-0">
+                  <span className="text-emerald-700 uppercase text-[9px] block font-sans font-medium">NET INCOME</span>
+                  <span className="text-xs sm:text-sm font-bold text-emerald-700">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 Minimalistic Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Total Policy Premium */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Policy Premium</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                    ₱{accountingMetrics.totalPrem.toLocaleString('en-US')}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span className="text-emerald-600 font-bold inline-flex items-center gap-0.5">
+                  <TrendingUp className="h-3 w-3" /> {accountingMetrics.count} {accountingMetrics.count === 1 ? 'policy' : 'policies'}
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium">({timeframe.toUpperCase()})</span>
+              </div>
+            </div>
+
+            {/* Provider Remittances */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Provider Remittances</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                    ₱{accountingMetrics.totalRemit.toLocaleString('en-US')}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
+                  <FileSpreadsheet className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span className="text-purple-700 font-semibold">
+                  {selectedProvider === 'ALL' ? 'Alpha & CBIC' : selectedProvider === 'ALPHA' ? 'Alpha Insurance' : 'CBIC Insurance'}
+                </span>
+                <span className="text-[11px] text-slate-400">Net Remittance</span>
+              </div>
+            </div>
+
+            {/* Gross Company Income */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Gross Company Income</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                    ₱{accountingMetrics.totalCompInc.toLocaleString('en-US')}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span className="text-amber-700 font-bold">Margin {accountingMetrics.marginPct}%</span>
+                <span className="text-[11px] text-slate-400">Pre-deductions</span>
+              </div>
+            </div>
+
+            {/* NET COMPANY INCOME (Emerald Theme Card) */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#022c22] to-[#065f46] rounded-2xl p-4 text-white border border-emerald-400/40 shadow-sm flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/90 block">NET COMPANY INCOME</span>
+                  <h3 className="text-2xl font-black text-white mt-1">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</h3>
+                </div>
+                <div className="p-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-emerald-300">
+                  <Wallet className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-emerald-800/60 flex items-center justify-between text-xs text-emerald-200 font-medium">
+                <span className="text-[11px] text-emerald-200/90">After Deductions</span>
+                <span className="inline-flex items-center gap-1 font-bold text-emerald-300 text-[11px]">
+                  <TrendingUp className="h-3 w-3" /> Net Profit
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Refined Aligned Filter and Search Bar Container */}
       {!selectedQuotation && (
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 bg-white rounded-2xl border border-slate-200/80 p-4 print:hidden no-print">
-          {/* Search Input */}
-          <div className="relative flex-grow min-w-[240px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search policy request number, customer, policy, agent..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
-            />
-            {searchInput && (
-              <button
-                onClick={() => setSearchInput('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer flex items-center justify-center"
-                title="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+        <div className="space-y-2 print:hidden no-print">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 bg-white rounded-2xl border border-slate-200/80 p-3.5">
+            {/* Search Input */}
+            <div className="relative flex-grow min-w-[240px]">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search policy request number, customer, policy, agent..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition cursor-pointer flex items-center justify-center"
+                  title="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
 
-          {/* Insurance Provider Dropdown */}
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 shrink-0">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Provider:</span>
-            <select
-              value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value as any)}
-              className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer pr-1"
+            {/* Insurance Provider Dropdown */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 shrink-0">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Provider:</span>
+              <select
+                value={selectedProvider}
+                onChange={(e) => setSelectedProvider(e.target.value as any)}
+                className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer pr-1"
+              >
+                <option value="ALL">All Providers</option>
+                <option value="ALPHA">ALPHA Insurance</option>
+                <option value="CBIC">CBIC Insurance</option>
+              </select>
+            </div>
+
+            {/* Toggle Custom Date Range Button */}
+            <button
+              onClick={() => setShowCustomDates(!showCustomDates)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer shrink-0 ${
+                showCustomDates || dateFrom || dateTo
+                  ? 'bg-[#4A0E17]/10 text-[#4A0E17] border-[#4A0E17]/30'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
             >
-              <option value="ALL">All Providers</option>
-              <option value="ALPHA">ALPHA Insurance</option>
-              <option value="CBIC">CBIC Insurance</option>
-            </select>
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span>Custom Dates</span>
+              {(dateFrom || dateTo) && (
+                <span className="w-2 h-2 rounded-full bg-[#4A0E17]" />
+              )}
+            </button>
+
+            {/* Export to Excel Action Button */}
+            <button
+              onClick={exportToExcel}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm shadow-emerald-700/20 transition-all active:scale-95 cursor-pointer shrink-0"
+              title="Export Key Metrics & Policy Statements to Excel"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Export to Excel</span>
+            </button>
           </div>
 
-          {/* Aligned Date Range Selector */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-              <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">From:</span>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
-              />
-            </div>
+          {/* Expandable Custom Date Range Selector */}
+          {showCustomDates && (
+            <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200/90 rounded-2xl p-3">
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">From:</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                />
+              </div>
 
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">To:</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
-              />
-            </div>
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">To:</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                />
+              </div>
 
-            {(dateFrom || dateTo) && (
-              <button
-                onClick={() => { setDateFrom(''); setDateTo(''); }}
-                className="inline-flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl transition cursor-pointer text-xs"
-                title="Clear date filter"
-              >
-                <X className="h-3.5 w-3.5" /> Clear
-              </button>
-            )}
-          </div>
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => { setDateFrom(''); setDateTo(''); }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl transition cursor-pointer text-xs border border-rose-200"
+                  title="Clear date filter"
+                >
+                  <X className="h-3.5 w-3.5" /> Reset Dates
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -280,7 +852,9 @@ export default function PolicyStatementsPage() {
             <div className="text-center py-16 px-4">
               <FileSpreadsheet className="h-12 w-12 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-600 font-semibold text-base">No policy requests found</p>
-              <p className="text-slate-400 text-xs mt-1">Approved policy issuance requests will automatically appear here.</p>
+              <p className="text-slate-400 text-xs mt-1">
+                {timeframe !== 'all' ? `No statements found for the selected ${timeframe} period.` : 'Approved policy issuance requests will automatically appear here.'}
+              </p>
             </div>
           ) : (
             <>
@@ -303,63 +877,11 @@ export default function PolicyStatementsPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {paginatedQuotations.map((q) => {
-                      const firstItem = q.items?.[0];
-                      const cov = firstItem?.coverage_details || {};
-                      const custAny = (q.customer || {}) as any;
-                      const provider = cov.insurance_provider || cov.provider || custAny.insurance_provider || 'ALPHA';
-                      const isCBIC = provider.toUpperCase().includes('CBIC');
+                      const fin = calculateQuotationFinancials(q);
                       const agentName = typeof q.prepared_by === 'object' ? q.prepared_by?.name : 'Sales Agent';
                       const createdDate = new Date(q.created_at);
                       const formattedDateStr = createdDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
                       const formattedTimeStr = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-
-                      // Compute metrics for the table row
-                      const totalPolicyPremium = Number(q.total_premium || cov.net_premium || custAny.policy_premium || 0);
-                      const subAgentMarkup = Number(cov.calculator?.sub_agent_markup || cov.sub_agent_markup || custAny.sub_agent_markup || 0);
-                      const agentMarkup = Number(cov.calculator?.agent_markup || cov.agent_markup || custAny.agent_markup || 0);
-                      const freebie = Number(cov.calculator?.freebie_amount ?? (cov.calculator?.freebie_cashback || cov.freebie || custAny.freebie || 0));
-                      const cashback = Number(cov.calculator?.cashback_amount || 0);
-                      const totalDeductions = agentMarkup + subAgentMarkup + freebie + cashback;
-
-                      const itemSumInsured = Number(firstItem?.sum_insured || 0);
-                      const covSumInsured = Number(cov.sum_insured || cov.coverages?.own_damage || cov.own_damage_coverage || custAny.own_damage_coverage || 0);
-                      const sumInsured = itemSumInsured > 0 ? itemSumInsured : (covSumInsured > 0 ? covSumInsured : 430000);
-
-                      let netRemittance = 0;
-                      let companyIncome = 0;
-                      let netIncome = 0;
-
-                      if (isCBIC) {
-                        const usageStr = ((custAny.usage || '') + ' ' + (custAny.quotation_used || '') + ' ' + (cov.usage || '')).toUpperCase();
-                        const isTNVS = usageStr.includes('TNVS') || usageStr.includes('HIRE') || usageStr.includes('YELLOW');
-                        const covBIVal = Number(cov.coverages?.bi || cov.cov_bi || custAny.bi_coverage || 200000);
-                        const cbicTariff = getCbicTariffPremiums(covBIVal, isTNVS);
-                        const cbicNetBasicPrem = Math.round((sumInsured * 0.0065 + sumInsured * 0.0030 + cbicTariff.ebi + cbicTariff.tppd) * 100) / 100;
-                        const cbicNetGrossPrem = Math.round((cbicNetBasicPrem + (cbicNetBasicPrem * 0.125) + (cbicNetBasicPrem * 0.12) + (cbicNetBasicPrem * 0.0011)) * 100) / 100;
-                        const cbicNetTariffComm = Math.round(((cbicTariff.ebi * 0.30 + cbicTariff.tppd * 0.20) * 0.90) * 100) / 100;
-
-                        netRemittance = Math.round((cbicNetGrossPrem - cbicNetTariffComm) * 100) / 100;
-                        companyIncome = Math.round((totalPolicyPremium - netRemittance) * 100) / 100;
-                        netIncome = Math.round((companyIncome - totalDeductions) * 100) / 100;
-                      } else {
-                        const premOD = Math.round(sumInsured * 0.0070 * 100) / 100;
-                        const premAON = Math.round(sumInsured * 0.0020 * 100) / 100;
-                        const premBIVal = Number(cov.premiums?.bi || cov.prem_bi || 420);
-                        const premPDVal = Number(cov.premiums?.pd || cov.prem_pd || 1245);
-                        const premPAVal = Number(cov.premiums?.pa || cov.prem_pa || 0);
-
-                        const subtotalPremium = Math.round((premOD + premAON + premBIVal + premPDVal + premPAVal) * 100) / 100;
-                        const chargesAmount = Math.round(subtotalPremium * 0.2461 * 100) / 100;
-                        const towingFee = Number(cov.calculator?.towing_fee || cov.towing_fee || 100);
-                        const grossTotal = Math.round((subtotalPremium + chargesAmount + towingFee) * 100) / 100;
-
-                        const commOnTariff = Math.round((premBIVal * 0.30 + premPDVal * 0.30) * 100) / 100;
-                        const totalCommOnTariff = Math.round((commOnTariff - (commOnTariff * 0.10)) * 100) / 100;
-
-                        netRemittance = Math.round((grossTotal - totalCommOnTariff) * 100) / 100;
-                        companyIncome = Math.round((totalPolicyPremium - netRemittance) * 100) / 100;
-                        netIncome = Math.round((companyIncome - totalDeductions) * 100) / 100;
-                      }
 
                       return (
                         <tr
@@ -385,24 +907,24 @@ export default function PolicyStatementsPage() {
                             {getAssuredName(q)}
                           </td>
                           <td className="px-5 py-4 text-xs">
-                            <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg uppercase border ${isCBIC
+                            <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg uppercase border ${fin.isCBIC
                                 ? 'bg-amber-50 text-amber-800 border-amber-200/80'
                                 : 'bg-blue-50 text-blue-800 border-blue-200/80'
                               }`}>
-                              {provider}
+                              {fin.provider}
                             </span>
                           </td>
                           <td className="px-5 py-4 font-bold text-slate-800">
-                            ₱{formatCurrency(q.total_premium)}
+                            ₱{formatCurrency(fin.totalPolicyPremium)}
                           </td>
                           <td className="px-5 py-4 font-medium text-slate-700 font-mono text-xs">
-                            ₱{formatCurrency(netRemittance)}
+                            ₱{formatCurrency(fin.netRemittance)}
                           </td>
                           <td className="px-5 py-4 font-bold text-amber-700 font-mono text-xs">
-                            ₱{formatCurrency(companyIncome)}
+                            ₱{formatCurrency(fin.companyIncome)}
                           </td>
                           <td className="px-5 py-4 font-extrabold text-emerald-700 font-mono text-xs">
-                            ₱{formatCurrency(netIncome)}
+                            ₱{formatCurrency(fin.netIncome)}
                           </td>
                           <td className="px-5 py-4 text-xs" onClick={(e) => e.stopPropagation()}>
                             <button
@@ -411,8 +933,8 @@ export default function PolicyStatementsPage() {
                               title="Click to toggle remittance status"
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide border transition-all active:scale-95 cursor-pointer ${
                                 q.is_remitted
-                                  ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200 hover:bg-emerald-100/90'
-                                  : 'bg-slate-50 text-slate-600 border-slate-200/90 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
+                                    ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200 hover:bg-emerald-100/90'
+                                    : 'bg-slate-50 text-slate-600 border-slate-200/90 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
                               }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${q.is_remitted ? 'bg-emerald-500' : 'bg-slate-400'}`} />
@@ -421,6 +943,7 @@ export default function PolicyStatementsPage() {
                           </td>
                           <td className="px-5 py-4 text-xs" onClick={(e) => e.stopPropagation()}>
                             {(() => {
+                              const custAny = (q.customer || {}) as any;
                               const invoice = q.policy?.invoice;
                               const terms = Number(q.customer?.payment_terms || custAny.payment_terms || 1);
                               const verifiedPayments = (invoice?.payments || []).filter(
