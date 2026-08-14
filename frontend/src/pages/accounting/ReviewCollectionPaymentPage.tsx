@@ -20,7 +20,8 @@ import {
   Truck,
   Filter,
   Gift,
-  Eye
+  Eye,
+  Hash
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -58,6 +59,7 @@ export default function ReviewCollectionPaymentPage() {
   const [searchInput, setSearchInput] = useState(searchParamVal);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationRefNo, setVerificationRefNo] = useState('');
   const [actionType, setActionType] = useState<'verified' | 'rejected' | null>(null);
   const [selectedVerificationStatus, setSelectedVerificationStatus] = useState<string>('REFLECTED PBCOM');
   const [specialFile, setSpecialFile] = useState<File | null>(null);
@@ -138,7 +140,8 @@ export default function ReviewCollectionPaymentPage() {
       const match = payments.find(
         (p) =>
           p.payment_number?.toUpperCase() === searchParamVal.toUpperCase() ||
-          p.reference_number?.toUpperCase() === searchParamVal.toUpperCase()
+          p.reference_number?.toUpperCase() === searchParamVal.toUpperCase() ||
+          p.accounting_ref_no?.toUpperCase() === searchParamVal.toUpperCase()
       ) || payments[0];
 
       if (match) {
@@ -172,8 +175,8 @@ export default function ReviewCollectionPaymentPage() {
 
   // Verification Mutation
   const verifyMut = useMutation({
-    mutationFn: ({ id, status, notes, specialAttachment }: { id: number; status: string; notes?: string; specialAttachment?: File | null }) =>
-      verifyPayment(id, status as any, notes, specialAttachment),
+    mutationFn: ({ id, status, notes, accounting_ref_no, specialAttachment }: { id: number; status: string; notes?: string; accounting_ref_no?: string; specialAttachment?: File | null }) =>
+      verifyPayment(id, status as any, notes, specialAttachment, accounting_ref_no),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['payments-review'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
@@ -188,6 +191,7 @@ export default function ReviewCollectionPaymentPage() {
       setSelectedPayment(null);
       setActionType(null);
       setVerificationNotes('');
+      setVerificationRefNo('');
       setSpecialFile(null);
     },
     onError: (err: any) => {
@@ -204,6 +208,7 @@ export default function ReviewCollectionPaymentPage() {
     setSelectedPayment(payment);
     setActionType(action);
     setVerificationNotes(payment.verification_notes || '');
+    setVerificationRefNo(payment.accounting_ref_no || '');
     const currentStatus = (payment.verification_status as string) || '';
     setSelectedVerificationStatus(
       currentStatus &&
@@ -345,6 +350,15 @@ export default function ReviewCollectionPaymentPage() {
           </div>
         );
       },
+    },
+    {
+      key: 'accounting_ref_no',
+      label: 'Ref No',
+      render: (p: Payment) => (
+        <span className="font-mono text-xs font-bold text-slate-800">
+          {p.accounting_ref_no || '—'}
+        </span>
+      ),
     },
     {
       key: 'verification_status',
@@ -693,6 +707,24 @@ export default function ReviewCollectionPaymentPage() {
               </div>
             )}
 
+            {actionType === 'verified' && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-slate-800">
+                    <Hash className="h-3.5 w-3.5 text-[#4A0E17]" />
+                    Reference Number (Optional)
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={verificationRefNo}
+                  onChange={(e) => setVerificationRefNo(e.target.value)}
+                  placeholder="Enter OR # or transaction reference..."
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+                />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Verification Remarks / Notes (Optional)
@@ -719,6 +751,7 @@ export default function ReviewCollectionPaymentPage() {
                     id: selectedPayment.id,
                     status: actionType === 'verified' ? selectedVerificationStatus : 'REJECTED',
                     notes: verificationNotes,
+                    accounting_ref_no: verificationRefNo,
                     specialAttachment: specialFile,
                   })
                 }

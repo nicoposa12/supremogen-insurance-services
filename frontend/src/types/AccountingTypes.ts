@@ -70,6 +70,7 @@ export interface Payment {
   payment_method: PaymentMethod;
   payment_date: string;
   reference_number: string | null;
+  accounting_ref_no?: string | null;
   notes: string | null;
   status: 'completed' | 'refunded' | 'voided' | string;
   verification_status?: 'pending_verification' | 'verified' | 'rejected';

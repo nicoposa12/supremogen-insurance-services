@@ -364,6 +364,8 @@ class PaymentController extends Controller
         $validator = Validator::make($request->all(), [
             'status' => 'required|string|max:255',
             'notes'  => 'nullable|string|max:2000',
+            'accounting_ref_no' => 'nullable|string|max:255',
+            'reference_number'  => 'nullable|string|max:255',
             'special_attachment' => 'nullable|file|mimes:jpeg,jpg,png,pdf,doc,docx,zip|max:10240',
         ]);
 
@@ -395,12 +397,20 @@ class PaymentController extends Controller
 
         $oldVerificationStatus = $payment->verification_status;
 
-        $payment->update([
+        $updateData = [
             'verification_status' => $status,
             'verification_notes'  => $notes,
             'verified_by'         => $request->user()->id,
             'verified_at'         => now(),
-        ]);
+        ];
+
+        if ($request->has('accounting_ref_no')) {
+            $updateData['accounting_ref_no'] = $request->input('accounting_ref_no');
+        } elseif ($request->has('reference_number')) {
+            $updateData['accounting_ref_no'] = $request->input('reference_number');
+        }
+
+        $payment->update($updateData);
 
         $this->audit('payment.verify', $payment, 'Verified payment #' . $payment->payment_number . ' as: ' . $status,
             ['verification_status' => $oldVerificationStatus],

@@ -14,7 +14,7 @@ class Payment extends Model
     protected $fillable = [
         'payment_number', 'invoice_id', 'received_by',
         'amount', 'payment_method', 'payment_date',
-        'reference_number', 'notes', 'status',
+        'reference_number', 'accounting_ref_no', 'notes', 'status',
         'verification_status', 'verification_notes', 'verified_by', 'verified_at',
     ];
 
@@ -61,6 +61,7 @@ class Payment extends Model
         return $query->where(function ($q) use ($term, $likeOperator) {
             $q->where('payment_number', $likeOperator, "%{$term}%")
               ->orWhere('reference_number', $likeOperator, "%{$term}%")
+              ->orWhere('accounting_ref_no', $likeOperator, "%{$term}%")
               ->orWhereHas('invoice', function ($iq) use ($term, $likeOperator) {
                   $iq->where('invoice_number', $likeOperator, "%{$term}%");
               });
