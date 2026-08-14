@@ -928,7 +928,22 @@ export default function DashboardLayout() {
 
                               // Remittance Status notifications
                               const isRemittance = title.toLowerCase().includes('remittance') || message.toLowerCase().includes('remitted');
-                              if (isRemittance) {
+
+                              // Completed Claim Requirements notifications (Evaluation Letter, LOA, Offer Letter, Denied Claim, or Requirements Completed)
+                              const isCompletedRequirementNotice = 
+                                title.toLowerCase().includes('completed') || 
+                                title.toLowerCase().includes('official claim document') ||
+                                message.toLowerCase().includes('requirements completed') ||
+                                message.toLowerCase().includes('evaluation letter') ||
+                                message.toLowerCase().includes('offer letter') ||
+                                message.toLowerCase().includes('loa') ||
+                                message.toLowerCase().includes('denied claim');
+
+                              if (isCompletedRequirementNotice && (matchClaimNotification || matchClaim || message.toLowerCase().includes('claim notification'))) {
+                                const code = matchClaimNotification?.[0] || matchClaim?.[0] || (message.match(/\(([^)]+)\)/)?.[1] || '').trim();
+                                const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
+                                navigate(`/dashboard/completed-requirements${searchQ}`);
+                              } else if (isRemittance) {
                                 const code = matchQuotation?.[0] || matchPolicy?.[1] || matchPolicy?.[0] || (message.match(/\(([^)]+)\)/)?.[1] || '').trim();
                                 const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
                                 if (isClaimsOfficer) {

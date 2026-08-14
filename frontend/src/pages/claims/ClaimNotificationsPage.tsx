@@ -302,7 +302,17 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
             <div>
               <h3 className="text-white font-bold text-base">{docTitle}</h3>
               <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[550px]">
-                {viewAttachment.file_name} ({(viewAttachment.file_size / 1024).toFixed(1)} KB) | Uploaded: {new Date(viewAttachment.created_at).toLocaleDateString()} {new Date(viewAttachment.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })} {docNote ? ` | Note: ${docNote}` : ''}
+                {viewAttachment.file_name} ({(viewAttachment.file_size / 1024).toFixed(1)} KB) | Uploaded: {new Date(viewAttachment.created_at).toLocaleDateString()} {new Date(viewAttachment.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
+                {(() => {
+                  const info = viewAttachment.uploader_info || viewAttachment.uploaded_by || viewAttachment.uploadedBy;
+                  const uploaderName = typeof info === 'object' && info !== null ? info.name : null;
+                  const roleName = typeof info === 'object' && info !== null ? (info.role_name || info.roles?.[0]?.name) : null;
+                  if (uploaderName || roleName) {
+                    return ` | By: ${uploaderName || 'User'} (${roleName || 'User'})`;
+                  }
+                  return '';
+                })()}
+                {docNote ? ` | Note: ${docNote}` : ''}
               </p>
             </div>
             <button
@@ -641,6 +651,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     .filter((r) => {
       if (completedOnly) return r.status === 'completed';
       if (params.status === 'completed') return r.status === 'completed';
+      if (params.search && params.search.trim()) return true;
       if (!params.status || params.status === 'all') return r.status !== 'completed';
       return r.status === params.status;
     })
@@ -935,6 +946,43 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       );
     };
 
+    // Helper to calculate uploader role badge (Claims Officer, Sales Agent, Team Renewal, Admin, etc.)
+    const getUploaderBadge = (att: any) => {
+      const info = att.uploader_info || att.uploaded_by || att.uploadedBy;
+      const roleName = typeof info === 'object' && info !== null ? (info.role_name || info.roles?.[0]?.name) : null;
+      const uploaderName = typeof info === 'object' && info !== null ? info.name : null;
+
+      const cleanRole = (roleName || '').toLowerCase();
+
+      let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+      let displayRole = roleName || '';
+
+      if (cleanRole.includes('claims')) {
+        badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
+        displayRole = 'Claims Officer';
+      } else if (cleanRole.includes('sales') || cleanRole.includes('agent')) {
+        badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+        displayRole = 'Sales Agent';
+      } else if (cleanRole.includes('renewal')) {
+        badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+        displayRole = 'Team Renewal';
+      } else if (cleanRole.includes('admin') || cleanRole.includes('owner')) {
+        badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+        displayRole = 'Admin';
+      } else if (!displayRole) {
+        displayRole = 'Uploaded';
+      }
+
+      return (
+        <span
+          className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border shrink-0 ${badgeColor}`}
+          title={uploaderName ? `Uploaded by: ${uploaderName} (${displayRole})` : `Uploaded by ${displayRole}`}
+        >
+          {displayRole}
+        </span>
+      );
+    };
+
     // Filter out official completed claim documents so they don't appear in standard uploaded requirements box
     const officialDocLabels = (COMPLETED_REQUIREMENTS || []).map((r) => r.label.trim().toLowerCase());
     const nonOfficialAttachments = (detailRecord?.attachments || []).filter((att: any) => {
@@ -976,6 +1024,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-xs font-bold text-slate-800 truncate" title={docTitle}>{docTitle}</p>
                         {badge}
+                        {getUploaderBadge(att)}
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5 truncate" title={att.file_name}>
                         {att.file_name} <span className="text-slate-400">({(att.file_size / 1024).toFixed(1)} KB)</span>
@@ -1088,6 +1137,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                               OLD FILE
                             </span>
                           )}
+                          {getUploaderBadge(att)}
                         </div>
                         {docNote && (
                           <div className="min-w-0 w-full mt-0.5">
@@ -1574,94 +1624,106 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-700" />
                 <p className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
-                  {isClaimsOfficer || isAdmin ? 'Official Completed Claim Documents (Upload Attachments)' : 'Official Completed Claim Documents'}
+                  Official Completed Claim Documents (Upload Attachments)
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {COMPLETED_REQUIREMENTS.map((req) => (
-                  <div key={req.key} className="space-y-1 bg-white p-3.5 rounded-xl border border-emerald-150 shadow-2xs">
-                    <span className="block text-xs font-bold text-emerald-950 uppercase tracking-wide">{req.label}</span>
-                    
-                    {/* Only Claims Officers and Administrators can choose/upload files */}
-                    {(isClaimsOfficer || isAdmin) && (
-                      <div className="flex flex-col gap-1.5 mt-1">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="file"
-                            id={`detail-file-${req.key}`}
-                            multiple
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files || []);
-                              if (files.length > 0) {
-                                setRequirementFiles((prev) => ({
-                                  ...prev,
-                                  [req.key]: [...(prev[req.key] || []), ...files],
-                                }));
-                              }
-                            }}
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor={`detail-file-${req.key}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                          >
-                            <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                            <span>Choose File</span>
-                          </label>
-                          {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
-                            <span className="text-xs text-slate-400 italic">No files selected</span>
-                          )}
-                        </div>
+                {COMPLETED_REQUIREMENTS.map((req) => {
+                  const isEvalOrOffer = req.key === 'comp_1' || req.key === 'comp_3' || req.label === 'EVALUATION LETTER' || req.label === 'OFFER LETTER';
+                  const canUploadThisReq = isClaimsOfficer || isAdmin || (canSubmit && isEvalOrOffer);
 
-                        {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {requirementFiles[req.key].map((file, idx) => (
-                              <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900">
-                                <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
-                                <span className="truncate max-w-[120px] font-medium">{file.name}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRequirementFiles((prev) => {
-                                      const list = (prev[req.key] || []).filter((_, i) => i !== idx);
-                                      const copy = { ...prev };
-                                      if (list.length === 0) {
-                                        delete copy[req.key];
-                                      } else {
-                                        copy[req.key] = list;
-                                      }
-                                      return copy;
-                                    });
-                                  }}
-                                  className="text-slate-400 hover:text-red-500 transition cursor-pointer"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
+                  return (
+                    <div key={req.key} className="space-y-1 bg-white p-3.5 rounded-xl border border-emerald-150 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="block text-xs font-bold text-emerald-950 uppercase tracking-wide">{req.label}</span>
+                        {canSubmit && !isClaimsOfficer && !isAdmin && isEvalOrOffer && (
+                          <span className="text-[9px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            Upload Allowed
+                          </span>
                         )}
                       </div>
-                    )}
+                      
+                      {/* Claims Officers & Admins can upload all; Agents & Renewal can upload Evaluation Letter and Offer Letter */}
+                      {canUploadThisReq && (
+                        <div className="flex flex-col gap-1.5 mt-1">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              id={`detail-file-${req.key}`}
+                              multiple
+                              onChange={(e) => {
+                                const files = Array.from(e.target.files || []);
+                                if (files.length > 0) {
+                                  setRequirementFiles((prev) => ({
+                                    ...prev,
+                                    [req.key]: [...(prev[req.key] || []), ...files],
+                                  }));
+                                }
+                              }}
+                              className="hidden"
+                            />
+                            <label
+                              htmlFor={`detail-file-${req.key}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                            >
+                              <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                              <span>Choose File</span>
+                            </label>
+                            {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                              <span className="text-xs text-slate-400 italic">No files selected</span>
+                            )}
+                          </div>
 
-                    {(isClaimsOfficer || isAdmin) && requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                      <div className="mt-1">
-                        <input
-                          type="text"
-                          placeholder="Add a brief note for this document..."
-                          value={requirementNotes[req.key] || ''}
-                          onChange={(e) => {
-                            setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
-                          }}
-                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-emerald-600/20 focus:border-emerald-600"
-                        />
-                      </div>
-                    )}
+                          {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {requirementFiles[req.key].map((file, idx) => (
+                                <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900">
+                                  <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                  <span className="truncate max-w-[120px] font-medium">{file.name}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRequirementFiles((prev) => {
+                                        const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                        const copy = { ...prev };
+                                        if (list.length === 0) {
+                                          delete copy[req.key];
+                                        } else {
+                                          copy[req.key] = list;
+                                        }
+                                        return copy;
+                                      });
+                                    }}
+                                    className="text-slate-400 hover:text-red-500 transition cursor-pointer"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                    {/* Always display uploaded requirement files for viewing and downloading */}
-                    {renderUploadedRequirementFiles(req.label)}
-                  </div>
-                ))}
+                      {canUploadThisReq && requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                        <div className="mt-1">
+                          <input
+                            type="text"
+                            placeholder="Add a brief note for this document..."
+                            value={requirementNotes[req.key] || ''}
+                            onChange={(e) => {
+                              setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                            }}
+                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-emerald-600/20 focus:border-emerald-600"
+                          />
+                        </div>
+                      )}
+
+                      {/* Always display uploaded requirement files for viewing and downloading */}
+                      {renderUploadedRequirementFiles(req.label)}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1773,7 +1835,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
             </div>
           )}
 
-          {(isClaimsOfficer || isAdmin || (!completedOnly && (selectedRecord.status as string) !== 'completed')) && (
+          {(isClaimsOfficer || isAdmin || canSubmit || (!completedOnly && (selectedRecord.status as string) !== 'completed')) && (
             <div className="flex justify-end pt-2">
               <button
                 onClick={handleDetailUpload}
@@ -1788,7 +1850,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                 ) : (
                   <>
                     <Send className="h-4 w-4" />
-                    <span>Upload Attachments</span>
+                    <span>{canSubmit && !isClaimsOfficer && !isAdmin ? 'Send Documents to Claims Officer' : 'Upload Attachments'}</span>
                   </>
                 )}
               </button>

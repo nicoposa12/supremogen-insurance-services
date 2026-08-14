@@ -23,6 +23,10 @@ class Attachment extends Model
         'storage_disk',
     ];
 
+    protected $appends = [
+        'uploader_info',
+    ];
+
     /**
      * Get the owning attachable model.
      */
@@ -37,5 +41,21 @@ class Attachment extends Model
     public function uploadedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * Get uploader summary info with role.
+     */
+    public function getUploaderInfoAttribute(): ?array
+    {
+        $user = $this->uploadedBy;
+        if (!$user) {
+            return null;
+        }
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'role_name' => $user->role_name ?? $user->roles->first()?->name ?? 'User',
+        ];
     }
 }

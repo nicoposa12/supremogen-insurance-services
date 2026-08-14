@@ -255,17 +255,27 @@ class AttachmentController extends Controller
         // Notify on claim_notification attachments
         if ($type === 'claim_notification') {
             $user = $request->user();
-            $isAgent = $user && ($user->hasRole('Sales Agent') || $user->hasRole('Team Renewal'));
+            $isClaimsOfficer = $user && (
+                $user->hasAnyRole(['Claims Officer', 'Administrator', 'Owner', 'Super Admin']) ||
+                in_array($user->role_name ?? '', ['Claims Officer', 'Administrator', 'Owner', 'Super Admin']) ||
+                str_contains(strtolower($user->role_name ?? ''), 'claims') ||
+                str_contains(strtolower($user->role_name ?? ''), 'admin')
+            );
             
-            if ($isAgent) {
+            if (!$isClaimsOfficer) {
+                // If uploaded by Sales Agent / Team Renewal / Submitter, notify Claims Officers
                 try {
                     $officers = \App\Models\User::role('Claims Officer')->get();
-                    $docLabel = $attachment->document_type ?: 'Attachment';
+                    if ($officers->isEmpty()) {
+                        $officers = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'Claims Officer'))->get();
+                    }
+                    $docLabel = $attachment->document_type ?: 'Document';
+                    $uploaderRole = $user ? ($user->roles->first()?->name ?? 'Sales Agent') : 'Agent';
                     foreach ($officers as $officer) {
                         \App\Models\Notification::create([
                             'user_id' => $officer->id,
-                            'title'   => 'Claim Requirement Uploaded',
-                            'message' => "{$user->name} uploaded a requirement ({$docLabel} - {$attachment->file_name}) for claim notification {$model->reference_number}.",
+                            'title'   => 'Claim Document Uploaded by Agent',
+                            'message' => "{$user->name} ({$uploaderRole}) uploaded a document ({$docLabel} - {$attachment->file_name}) for claim notification {$model->reference_number}.",
                             'type'    => 'info',
                             'read_at' => null,
                         ]);

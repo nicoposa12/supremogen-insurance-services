@@ -211,7 +211,7 @@ class ClaimNotificationController extends Controller
         $record = ClaimNotification::with([
             'submittedBy:id,name,email',
             'acknowledgedBy:id,name,email',
-            'attachments.uploadedBy:id,name',
+            'attachments.uploadedBy.roles:id,name',
             'policy.quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
             'quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
         ])->find($id);
