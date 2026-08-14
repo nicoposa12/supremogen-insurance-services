@@ -701,8 +701,14 @@ class InvoiceController extends Controller
 
         $uniqueUserIds = $targetUserIds->unique()->filter();
 
+        $quotation = $invoice->policy?->quotation;
+        $quotationNumber = $quotation?->quotation_number ?? $invoice->quotation_number ?? null;
+        $referenceText = ($policyNumber && $policyNumber !== 'N/A')
+            ? "Policy {$policyNumber}"
+            : ($quotationNumber ? "Quotation {$quotationNumber}" : "Invoice {$invoice->invoice_number}");
+
         $title = 'Notice for Cancellation Request';
-        $msg = "NOTICE FOR CANCELLATION: Collection has issued a cancellation notice for Policy {$policyNumber} (Assured: {$customerName}, Agent: {$agentName}) due to payment default. Sales Agent / Team Renewal, please review and submit a cancellation request.";
+        $msg = "NOTICE FOR CANCELLATION: Collection has issued a cancellation notice for {$referenceText} (Assured: {$customerName}, Agent: {$agentName}) due to payment default. Sales Agent / Team Renewal, please review and submit a cancellation request.";
 
         foreach ($uniqueUserIds as $userId) {
             \App\Models\Notification::create([

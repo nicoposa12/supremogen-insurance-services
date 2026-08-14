@@ -912,14 +912,53 @@ export default function DashboardLayout() {
                               const message = n.message || '';
                               const title = n.title || '';
                               
-                              const isCancellationNotice = title.toLowerCase().includes('cancellation') || message.toLowerCase().includes('cancellation');
-                              const matchQuotation = message.match(/QUO-[A-Z0-9-]+/) || message.match(/QUO \d{4} \d{5}/);
-                              const matchInvoice = message.match(/INV-[A-Z0-9-]+/);
-                              const matchPayment = message.match(/PAY-\d{4}-\d{5}/) || message.match(/PAY-[A-Z0-9-]+/) || title.match(/PAY-[A-Z0-9-]+/);
-                              const matchClaimNotification = message.match(/CLN-[A-Z0-9-]+/) || title.match(/CLN-[A-Z0-9-]+/);
-                              const matchClaim = message.match(/CLM-[A-Z0-9-]+/);
-                              const matchPolicy = message.match(/POL-[A-Z0-9-]+/) || message.match(/Policy:?\s*([A-Z0-9-]+)/i);
-                              const matchAssured = message.match(/Assured\s+([A-Za-z0-9\s]+?)(?=\s+is|\s+\(|\s+has|\s+with|$)/i);
+                              const matchQuotation = message.match(/QUO-[A-Z0-9-]+/i) || message.match(/QUO \d{4} \d{5}/i);
+                              const matchInvoice = message.match(/INV-[A-Z0-9-]+/i);
+                              const matchPayment = message.match(/PAY-\d{4}-\d{5}/i) || message.match(/PAY-[A-Z0-9-]+/i) || title.match(/PAY-[A-Z0-9-]+/i);
+                              const matchClaimNotification = message.match(/CLN-[A-Z0-9-]+/i) || title.match(/CLN-[A-Z0-9-]+/i);
+                              const matchClaim = message.match(/CLM-[A-Z0-9-]+/i);
+
+                              // Safe Policy extraction (ignoring N/A, NA, etc.)
+                              const getPolicyCode = (msg: string): string | null => {
+                                const direct = msg.match(/POL-[A-Za-z0-9-]+/i);
+                                if (direct) return direct[0];
+                                const labeled = msg.match(/Policy:?\s*([A-Za-z0-9\/-]+)/i);
+                                if (labeled && labeled[1]) {
+                                  const clean = labeled[1].trim();
+                                  if (!['N/A', 'NA', 'NONE', 'NULL', 'N'].includes(clean.toUpperCase()) && clean.length >= 2) {
+                                    return clean;
+                                  }
+                                }
+                                return null;
+                              };
+                              const policyCode = getPolicyCode(message);
+
+                              // Safe Assured extraction
+                              const getAssuredName = (msg: string): string | null => {
+                                const colonMatch = msg.match(/Assured:?\s*([A-Za-z0-9\s\.\-]+?)(?=[,\)\(\]]|\s+is|\s+has|\s+with|\s+due|$)/i);
+                                if (colonMatch && colonMatch[1]) {
+                                  const clean = colonMatch[1].trim();
+                                  if (clean && !['N/A', 'NONE', 'NULL'].includes(clean.toUpperCase()) && clean.length >= 2) {
+                                    return clean;
+                                  }
+                                }
+                                const directMatch = msg.match(/Assured\s+([A-Za-z0-9\s\.\-]+?)(?=\s+is|\s+\(|\s+has|\s+with|$)/i);
+                                if (directMatch && directMatch[1]) {
+                                  const clean = directMatch[1].trim();
+                                  if (clean && !['N/A', 'NONE', 'NULL'].includes(clean.toUpperCase()) && clean.length >= 2) {
+                                    return clean;
+                                  }
+                                }
+                                const parenMatch = msg.match(/\(([A-Za-z0-9\s\.\-]+?)\)/);
+                                if (parenMatch && parenMatch[1]) {
+                                  const candidate = parenMatch[1].trim();
+                                  if (!candidate.toLowerCase().startsWith('assured:') && !candidate.toLowerCase().startsWith('agent:') && candidate.length >= 2) {
+                                    return candidate;
+                                  }
+                                }
+                                return null;
+                              };
+                              const assuredName = getAssuredName(message);
 
                               // Roles checks
                               const isClaimsOfficer = roles.includes('Claims Officer');
@@ -939,12 +978,14 @@ export default function DashboardLayout() {
                                 message.toLowerCase().includes('loa') ||
                                 message.toLowerCase().includes('denied claim');
 
+                              const isCancellationNotice = title.toLowerCase().includes('cancellation') || message.toLowerCase().includes('cancellation');
+
                               if (isCompletedRequirementNotice && (matchClaimNotification || matchClaim || message.toLowerCase().includes('claim notification'))) {
-                                const code = matchClaimNotification?.[0] || matchClaim?.[0] || (message.match(/\(([^)]+)\)/)?.[1] || '').trim();
+                                const code = matchClaimNotification?.[0] || matchClaim?.[0] || assuredName || '';
                                 const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
                                 navigate(`/dashboard/completed-requirements${searchQ}`);
                               } else if (isRemittance) {
-                                const code = matchQuotation?.[0] || matchPolicy?.[1] || matchPolicy?.[0] || (message.match(/\(([^)]+)\)/)?.[1] || '').trim();
+                                const code = matchQuotation?.[0] || policyCode || assuredName || '';
                                 const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
                                 if (isClaimsOfficer) {
                                   navigate(`/dashboard/claim-notifications${searchQ}`);
@@ -957,12 +998,11 @@ export default function DashboardLayout() {
                                 }
                               } else if (isClaimsOfficer) {
                                 // Claims Officers are routed to claim-notifications for any policy, claim, or customer notice
-                                const assuredMatch = message.match(/\(([^)]+)\)/) || matchAssured;
-                                const searchCode = matchClaimNotification?.[0] || matchClaim?.[0] || (assuredMatch ? (assuredMatch[1] || assuredMatch[0]).trim() : (matchPolicy?.[1] || matchPolicy?.[0] || matchQuotation?.[0] || ''));
+                                const searchCode = matchClaimNotification?.[0] || matchClaim?.[0] || assuredName || policyCode || matchQuotation?.[0] || '';
                                 const searchQ = searchCode ? `?search=${encodeURIComponent(searchCode)}` : '';
                                 navigate(`/dashboard/claim-notifications${searchQ}`);
                               } else if (isCancellationNotice) {
-                                const code = matchPolicy?.[1] || matchPolicy?.[0] || matchQuotation?.[0] || (matchAssured ? matchAssured[1].trim() : '');
+                                const code = policyCode || matchQuotation?.[0] || assuredName || '';
                                 const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
                                 if (isCollection) {
                                   navigate(`/dashboard/collection/ledger${searchQ}`);
@@ -1004,17 +1044,15 @@ export default function DashboardLayout() {
                               } else if (matchClaim) {
                                 const code = matchClaim[0];
                                 navigate(`/dashboard/claim-notifications?search=${encodeURIComponent(code)}`);
-                              } else if (matchPolicy) {
-                                const code = matchPolicy[1] || matchPolicy[0];
+                              } else if (policyCode) {
                                 if (isAccounting) {
-                                  navigate(`/dashboard/policy-statements?search=${encodeURIComponent(code)}`);
+                                  navigate(`/dashboard/policy-statements?search=${encodeURIComponent(policyCode)}`);
                                 } else if (isCollection) {
-                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(code)}`);
+                                  navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(policyCode)}`);
                                 } else {
-                                  navigate(`/dashboard/quotations?search=${encodeURIComponent(code)}`);
+                                  navigate(`/dashboard/quotations?search=${encodeURIComponent(policyCode)}`);
                                 }
-                              } else if (matchAssured) {
-                                const assuredName = matchAssured[1].trim();
+                              } else if (assuredName) {
                                 if (isCollection) {
                                   navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(assuredName)}`);
                                 } else if (isAccounting) {
