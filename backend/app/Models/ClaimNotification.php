@@ -49,6 +49,11 @@ class ClaimNotification extends Model
         return $this->belongsTo(User::class, 'acknowledged_by');
     }
 
+    public function policy(): BelongsTo
+    {
+        return $this->belongsTo(Policy::class, 'policy_number', 'policy_number');
+    }
+
     // ─── Scopes ───────────────────────────────────
 
     public function scopeSearch(Builder $query, ?string $term): Builder

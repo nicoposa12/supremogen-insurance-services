@@ -119,6 +119,17 @@ export interface ClaimNotification {
   acknowledged_by: number | { id: number; name: string; email?: string } | null;
   acknowledged_at: string | null;
   attachments?: any[];
+  policy?: {
+    id: number;
+    policy_number: string;
+    quotation?: {
+      id: number;
+      quotation_number: string;
+      ir_number?: string;
+      is_remitted: boolean;
+      remitted_at?: string;
+    };
+  };
   created_at: string;
   updated_at: string;
 }

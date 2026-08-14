@@ -1760,6 +1760,19 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   { label: 'Insurance Provider', value: selectedRecord.insurance_provider },
                   { label: 'Plate Number', value: selectedRecord.plate_number || '—' },
                   { label: 'Policy Number', value: selectedRecord.policy_number },
+                  ...(selectedRecord.policy?.quotation ? [{
+                    label: 'Remittance Status',
+                    value: (
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold border ${
+                        selectedRecord.policy.quotation.is_remitted
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : 'bg-amber-50 text-amber-800 border-amber-300'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${selectedRecord.policy.quotation.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        {selectedRecord.policy.quotation.is_remitted ? 'Remitted to Provider' : 'Unremitted'}
+                      </span>
+                    ) as any
+                  }] : []),
                   {
                     label: 'Inception Date',
                     value: selectedRecord.inception_date
@@ -1870,6 +1883,23 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
               <Printer className="h-4 w-4" />
               <span>Print Notification</span>
             </button>
+            {selectedRecord.policy?.quotation && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border shadow-xs ${
+                  selectedRecord.policy.quotation.is_remitted
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                    : 'bg-amber-50 text-amber-800 border-amber-300'
+                }`}
+                title={
+                  selectedRecord.policy.quotation.is_remitted
+                    ? `Remitted ${selectedRecord.policy.quotation.remitted_at ? 'on ' + new Date(selectedRecord.policy.quotation.remitted_at).toLocaleDateString() : ''}`
+                    : 'Premium has not yet been remitted to provider'
+                }
+              >
+                <span className={`w-2 h-2 rounded-full ${selectedRecord.policy.quotation.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span>{selectedRecord.policy.quotation.is_remitted ? 'Remitted' : 'Unremitted'}</span>
+              </span>
+            )}
             <StatusBadge status={selectedRecord.status} />
           </div>
         </div>
@@ -2958,7 +2988,19 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       render: (r: ClaimNotification) => (
         <div>
           <p className="font-medium text-slate-800 uppercase">{r.assured_name}</p>
-          <p className="text-xs text-slate-500 uppercase">{r.policy_number}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-xs text-slate-500 uppercase">{r.policy_number}</span>
+            {r.policy?.quotation && (
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                r.policy.quotation.is_remitted
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                  : 'bg-amber-50 text-amber-800 border-amber-300'
+              }`}>
+                <span className={`w-1 h-1 rounded-full ${r.policy.quotation.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                {r.policy.quotation.is_remitted ? 'Remitted' : 'Unremitted'}
+              </span>
+            )}
+          </div>
         </div>
       ),
     },

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
+use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -878,16 +880,42 @@ class QuotationController extends Controller
 
         $newVal = !(bool) $quotation->is_remitted;
         $boolString = $newVal ? 'true' : 'false';
+        $remittedAt = $newVal ? now()->toDateTimeString() : null;
+        $remittedAtSql = $remittedAt ? "'{$remittedAt}'" : 'NULL';
 
         // PostgreSQL requires raw boolean keyword (true/false) instead of integer binding (1/0)
-        DB::statement("UPDATE quotations SET is_remitted = {$boolString}, updated_at = NOW() WHERE id = ?", [$quotation->id]);
+        DB::statement("UPDATE quotations SET is_remitted = {$boolString}, remitted_at = {$remittedAtSql}, updated_at = NOW() WHERE id = ?", [$quotation->id]);
 
         $quotation->refresh();
+
+        // Notify Claims Officers about remittance status change
+        try {
+            $user = $request->user();
+            $customerName = '';
+            if ($quotation->customer) {
+                $customerName = trim(($quotation->customer->first_name ?? '') . ' ' . ($quotation->customer->last_name ?? ''));
+            }
+            $ref = $quotation->quotation_number ?? $quotation->ir_number ?? "QUO-{$quotation->id}";
+            $statusText = $newVal ? 'Remitted' : 'Unremitted';
+
+            $claimsOfficers = User::role('Claims Officer')->get();
+            foreach ($claimsOfficers as $officer) {
+                Notification::create([
+                    'user_id' => $officer->id,
+                    'title'   => "Remittance Status: {$statusText}",
+                    'message' => "{$user->name} marked {$ref}" . ($customerName ? " ({$customerName})" : '') . " as {$statusText}.",
+                    'type'    => $newVal ? 'success' : 'warning',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to notify Claims Officers about remittance change: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,
             'message' => $newVal ? 'Policy statement marked as Remitted.' : 'Policy statement marked as Unremitted.',
-            'data' => $quotation->fresh(['customer', 'policy']),
+            'data' => $quotation->fresh(['customer', 'policy', 'attachments']),
         ]);
     }
 

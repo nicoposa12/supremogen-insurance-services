@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FileSpreadsheet, Search, Eye, Printer, Loader2, ArrowLeft,
   RefreshCw, X, Calendar, CheckCircle2, Clock, Gift, Paperclip, Upload,
@@ -8,12 +8,13 @@ import {
   Download
 } from 'lucide-react';
 
-import { getQuotations, toggleQuotationRemittance } from '../../services/quotationApi';
+import { getQuotations } from '../../services/quotationApi';
 import type { Quotation } from '../../types/SalesTypes';
 import Pagination from '../../components/ui/Pagination';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 import { useToast } from '../../components/ui/Toast';
 import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
+import RemittanceAttachmentModal from '../../components/modals/RemittanceAttachmentModal';
 import { useAuth } from '../../context/AuthContext';
 
 const roundTwo = (num: number): number => Math.round(num * 100 + 1e-9) / 100;
@@ -163,6 +164,7 @@ export default function PolicyStatementsPage() {
   const [selectedProvider, setSelectedProvider] = useState<'ALL' | 'ALPHA' | 'CBIC'>('ALL');
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [freebieModalTarget, setFreebieModalTarget] = useState<Quotation | null>(null);
+  const [remittanceModalTarget, setRemittanceModalTarget] = useState<Quotation | null>(null);
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -170,19 +172,6 @@ export default function PolicyStatementsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
-  const remittanceMutation = useMutation({
-    mutationFn: (quotationId: number) => toggleQuotationRemittance(quotationId),
-    onSuccess: (res) => {
-      showToast(res.message || 'Remittance status updated', 'success');
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      if (selectedQuotation && selectedQuotation.id === res.data.id) {
-        setSelectedQuotation(res.data);
-      }
-    },
-    onError: () => {
-      showToast('Failed to update remittance status', 'error');
-    },
-  });
 
   useEffect(() => {
     if (urlSearch) {
@@ -840,6 +829,7 @@ export default function PolicyStatementsPage() {
           quotation={selectedQuotation}
           onBack={() => setSelectedQuotation(null)}
           onOpenFreebieModal={(q) => setFreebieModalTarget(q)}
+          onOpenRemittanceModal={(q) => setRemittanceModalTarget(q)}
         />
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -928,9 +918,8 @@ export default function PolicyStatementsPage() {
                           </td>
                           <td className="px-2 py-2 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                             <button
-                              onClick={() => remittanceMutation.mutate(q.id)}
-                              disabled={remittanceMutation.isPending}
-                              title="Click to toggle remittance status"
+                              onClick={() => setRemittanceModalTarget(q)}
+                              title="Click to manage remittance status & attachments"
                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide border transition-all active:scale-95 cursor-pointer ${
                                 q.is_remitted
                                     ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200 hover:bg-emerald-100/90'
@@ -1041,11 +1030,24 @@ export default function PolicyStatementsPage() {
           onAttachmentUploaded={() => refetch()}
         />
       )}
+
+      {/* Remittance Attachment Modal */}
+      {remittanceModalTarget && (
+        <RemittanceAttachmentModal
+          isOpen={Boolean(remittanceModalTarget)}
+          onClose={() => setRemittanceModalTarget(null)}
+          quotationId={remittanceModalTarget.id}
+          quotationRef={remittanceModalTarget.quotation_number || remittanceModalTarget.ir_number || `IR-${remittanceModalTarget.id}`}
+          customerName={getAssuredName(remittanceModalTarget)}
+          isRemitted={Boolean(remittanceModalTarget.is_remitted)}
+          onStatusChanged={() => refetch()}
+        />
+      )}
     </div>
   );
 }
 
-function StatementDetailView({ quotation, onBack, onOpenFreebieModal }: { quotation: Quotation; onBack: () => void; onOpenFreebieModal: (q: Quotation) => void }) {
+function StatementDetailView({ quotation, onBack, onOpenFreebieModal, onOpenRemittanceModal }: { quotation: Quotation; onBack: () => void; onOpenFreebieModal: (q: Quotation) => void; onOpenRemittanceModal: (q: Quotation) => void }) {
   const firstItem = quotation.items?.[0];
   const cov = firstItem?.coverage_details || {};
   const custAny = (quotation.customer || {}) as any;
@@ -1193,19 +1195,6 @@ function StatementDetailView({ quotation, onBack, onOpenFreebieModal }: { quotat
     window.print();
   };
 
-  const queryClient = useQueryClient();
-  const { showToast } = useToast();
-  const remittanceMutation = useMutation({
-    mutationFn: (quotationId: number) => toggleQuotationRemittance(quotationId),
-    onSuccess: (res) => {
-      showToast(res.message || 'Remittance status updated', 'success');
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-    },
-    onError: () => {
-      showToast('Failed to update remittance status', 'error');
-    },
-  });
-
   return (
     <div className="space-y-6">
       {/* Top Action Bar (Screen only) */}
@@ -1219,9 +1208,8 @@ function StatementDetailView({ quotation, onBack, onOpenFreebieModal }: { quotat
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => remittanceMutation.mutate(quotation.id)}
-            disabled={remittanceMutation.isPending}
-            title="Click to toggle remittance status"
+            onClick={() => onOpenRemittanceModal(quotation)}
+            title="Click to manage remittance status & attachments"
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wide border transition-all active:scale-95 cursor-pointer ${
               quotation.is_remitted
                 ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200 hover:bg-emerald-100/90'

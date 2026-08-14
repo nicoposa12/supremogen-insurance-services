@@ -26,6 +26,7 @@ class Quotation extends Model
         'reviewed_by',
         'status',
         'is_remitted',
+        'remitted_at',
         'valid_until',
         'total_premium',
         'notes',
@@ -45,6 +46,7 @@ class Quotation extends Model
     {
         return [
             'is_remitted' => 'boolean',
+            'remitted_at' => 'datetime',
             'valid_until' => 'date',
             'total_premium' => 'decimal:2',
             'submitted_at' => 'datetime',
