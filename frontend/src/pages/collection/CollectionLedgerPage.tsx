@@ -2886,18 +2886,30 @@ export default function CollectionLedgerPage() {
                                             VERIFIED ({labelText})
                                           </span>
                                           {(() => {
-                                            const specialAtt = payment.attachments?.find(
+                                            const specialAtts = payment.attachments?.filter(
                                               (att) => att.document_type === 'special_attachment' || att.file_name?.toLowerCase().includes('special attachment')
-                                            );
-                                            if (specialAtt) {
+                                            ) || [];
+                                            if (specialAtts.length === 1) {
                                               return (
                                                 <button
                                                   type="button"
-                                                  onClick={() => handleViewProof(specialAtt)}
+                                                  onClick={() => handleViewProof(specialAtts[0])}
                                                   className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[9px] font-bold shadow-2xs transition cursor-pointer"
-                                                  title="View Special Attachment uploaded by Accounting"
+                                                  title={`View Special Attachment (${specialAtts[0].file_name})`}
                                                 >
                                                   <Paperclip className="h-2.5 w-2.5 text-amber-700" /> Special File
+                                                </button>
+                                              );
+                                            }
+                                            if (specialAtts.length > 1) {
+                                              return (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleViewProof(specialAtts[0])}
+                                                  className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[9px] font-bold shadow-2xs transition cursor-pointer"
+                                                  title={`View all ${specialAtts.length} special attachments`}
+                                                >
+                                                  <Paperclip className="h-2.5 w-2.5 text-amber-700" /> Special Files ({specialAtts.length})
                                                 </button>
                                               );
                                             }

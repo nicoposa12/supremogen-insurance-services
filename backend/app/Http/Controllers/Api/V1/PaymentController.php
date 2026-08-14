@@ -366,7 +366,8 @@ class PaymentController extends Controller
             'notes'  => 'nullable|string|max:2000',
             'accounting_ref_no' => 'nullable|string|max:255',
             'reference_number'  => 'nullable|string|max:255',
-            'special_attachment' => 'nullable|file|mimes:jpeg,jpg,png,pdf,doc,docx,zip|max:10240',
+            'special_attachment' => 'nullable',
+            'special_attachments' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -417,22 +418,32 @@ class PaymentController extends Controller
             ['verification_status' => $status],
         );
 
-        if ($request->hasFile('special_attachment')) {
-            $file = $request->file('special_attachment');
-            $originalName = $file->getClientOriginalName();
-            $extension = $file->getClientOriginalExtension();
-            $safeName = \Illuminate\Support\Str::uuid() . '.' . $extension;
-            $disk = config('filesystems.default');
-            $path = $file->storeAs("attachments/payment_special", $safeName, $disk);
+        $filesToSave = [];
+        if ($request->hasFile('special_attachments')) {
+            $uploaded = $request->file('special_attachments');
+            $filesToSave = is_array($uploaded) ? $uploaded : [$uploaded];
+        } elseif ($request->hasFile('special_attachment')) {
+            $uploaded = $request->file('special_attachment');
+            $filesToSave = is_array($uploaded) ? $uploaded : [$uploaded];
+        }
 
-            $payment->attachments()->create([
-                'file_name' => 'Special Attachment: ' . $originalName,
-                'file_path' => $path,
-                'file_size' => $file->getSize(),
-                'mime_type' => $file->getMimeType(),
-                'document_type' => 'special_attachment',
-                'uploaded_by' => $request->user()?->id,
-            ]);
+        foreach ($filesToSave as $file) {
+            if ($file && $file->isValid()) {
+                $originalName = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $safeName = \Illuminate\Support\Str::uuid() . '.' . $extension;
+                $disk = config('filesystems.default');
+                $path = $file->storeAs("attachments/payment_special", $safeName, $disk);
+
+                $payment->attachments()->create([
+                    'file_name' => 'Special Attachment: ' . $originalName,
+                    'file_path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'document_type' => 'special_attachment',
+                    'uploaded_by' => $request->user()?->id,
+                ]);
+            }
         }
 
         // Recalculate invoice balance upon verification

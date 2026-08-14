@@ -21,7 +21,8 @@ import {
   Filter,
   Gift,
   Eye,
-  Hash
+  Hash,
+  Trash2
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -62,7 +63,8 @@ export default function ReviewCollectionPaymentPage() {
   const [verificationRefNo, setVerificationRefNo] = useState('');
   const [actionType, setActionType] = useState<'verified' | 'rejected' | null>(null);
   const [selectedVerificationStatus, setSelectedVerificationStatus] = useState<string>('REFLECTED PBCOM');
-  const [specialFile, setSpecialFile] = useState<File | null>(null);
+  const [specialFiles, setSpecialFiles] = useState<File[]>([]);
+  const [deletingAttId, setDeletingAttId] = useState<number | null>(null);
   const [freebieModalTarget, setFreebieModalTarget] = useState<Payment | null>(null);
 
   const hasAutoOpenedRef = useRef(false);
@@ -89,12 +91,18 @@ export default function ReviewCollectionPaymentPage() {
 
   // Proof Preview Modal States
   const [previewAttachment, setPreviewAttachment] = useState<{ id: number; file_name: string; mime_type?: string } | null>(null);
+  const [previewAttachmentsList, setPreviewAttachmentsList] = useState<any[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
-  const handleViewProof = async (att: any) => {
+  const handleViewProof = async (att: any, allAtts?: any[]) => {
     setIsPreviewLoading(true);
     setPreviewAttachment(att);
+    if (allAtts && allAtts.length > 0) {
+      setPreviewAttachmentsList(allAtts);
+    } else {
+      setPreviewAttachmentsList([att]);
+    }
     setPreviewUrl(null);
     try {
       const { data } = await axios.get(`/api/v1/attachments/${att.id}/download`, {
@@ -121,6 +129,7 @@ export default function ReviewCollectionPaymentPage() {
     }
     setPreviewUrl(null);
     setPreviewAttachment(null);
+    setPreviewAttachmentsList([]);
   };
 
   // Fetch payments
@@ -175,7 +184,7 @@ export default function ReviewCollectionPaymentPage() {
 
   // Verification Mutation
   const verifyMut = useMutation({
-    mutationFn: ({ id, status, notes, accounting_ref_no, specialAttachment }: { id: number; status: string; notes?: string; accounting_ref_no?: string; specialAttachment?: File | null }) =>
+    mutationFn: ({ id, status, notes, accounting_ref_no, specialAttachment }: { id: number; status: string; notes?: string; accounting_ref_no?: string; specialAttachment?: File | File[] | null }) =>
       verifyPayment(id, status as any, notes, specialAttachment, accounting_ref_no),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['payments-review'] });
@@ -192,12 +201,35 @@ export default function ReviewCollectionPaymentPage() {
       setActionType(null);
       setVerificationNotes('');
       setVerificationRefNo('');
-      setSpecialFile(null);
+      setSpecialFiles([]);
     },
     onError: (err: any) => {
       showToast(err.response?.data?.message || 'Failed to process payment verification.', 'error');
     },
   });
+
+  const handleDeleteAttachment = async (attId: number) => {
+    if (!window.confirm('Are you sure you want to remove this attachment?')) return;
+    try {
+      setDeletingAttId(attId);
+      await axios.delete(`/api/v1/attachments/${attId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      showToast('Attachment deleted successfully.');
+      queryClient.invalidateQueries({ queryKey: ['payments-review'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      if (selectedPayment) {
+        setSelectedPayment({
+          ...selectedPayment,
+          attachments: selectedPayment.attachments?.filter((a) => a.id !== attId) || [],
+        });
+      }
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to delete attachment.', 'error');
+    } finally {
+      setDeletingAttId(null);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,7 +251,7 @@ export default function ReviewCollectionPaymentPage() {
         ? currentStatus
         : 'REFLECTED PBCOM'
     );
-    setSpecialFile(null);
+    setSpecialFiles([]);
   };
 
   // Calculate Metrics from DB summary or paginated records fallback
@@ -315,36 +347,61 @@ export default function ReviewCollectionPaymentPage() {
       key: 'proof',
       label: 'Proof & Special Attachment',
       render: (p: Payment) => {
-        const att = p.attachments?.find((a) => a.document_type !== 'special_attachment') || p.attachments?.[0];
-        const specialAtt = p.attachments?.find((a) => a.document_type === 'special_attachment' || a.file_name?.toLowerCase().includes('special attachment'));
+        const atts = p.attachments?.filter((a) => a.document_type !== 'special_attachment' && !a.file_name?.toLowerCase().includes('special attachment')) || [];
+        const specialAtts = p.attachments?.filter((a) => a.document_type === 'special_attachment' || a.file_name?.toLowerCase().includes('special attachment')) || [];
 
-        if (!att && !specialAtt) {
+        if (atts.length === 0 && specialAtts.length === 0) {
           return <span className="text-xs text-slate-300 font-medium">—</span>;
         }
 
         return (
-          <div className="flex flex-wrap items-center gap-1">
-            {att && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {atts.length === 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleViewProof(att);
+                  handleViewProof(atts[0], atts);
                 }}
                 className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition cursor-pointer shadow-2xs"
+                title={`View Proof (${atts[0].file_name})`}
               >
                 <Paperclip className="h-3 w-3 text-slate-500" /> Proof
               </button>
             )}
-            {specialAtt && (
+            {atts.length > 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleViewProof(specialAtt);
+                  handleViewProof(atts[0], atts);
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition cursor-pointer shadow-2xs"
+                title={`View all ${atts.length} proof attachments`}
+              >
+                <Paperclip className="h-3 w-3 text-slate-500" /> Proofs ({atts.length})
+              </button>
+            )}
+            {specialAtts.length === 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewProof(specialAtts[0], specialAtts);
                 }}
                 className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[11px] rounded-lg border border-amber-300 transition cursor-pointer shadow-2xs"
-                title="View Special Attachment uploaded by Accounting"
+                title={`View Special Attachment (${specialAtts[0].file_name})`}
               >
                 <Paperclip className="h-3 w-3 text-amber-600" /> Special File
+              </button>
+            )}
+            {specialAtts.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewProof(specialAtts[0], specialAtts);
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[11px] rounded-lg border border-amber-300 transition cursor-pointer shadow-2xs"
+                title={`View all ${specialAtts.length} special attachments`}
+              >
+                <Paperclip className="h-3 w-3 text-amber-600" /> Special Files ({specialAtts.length})
               </button>
             )}
           </div>
@@ -683,7 +740,7 @@ export default function ReviewCollectionPaymentPage() {
             )}
 
             {actionType === 'verified' && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-slate-800">
                     <Paperclip className="h-3.5 w-3.5 text-[#4A0E17]" />
@@ -693,16 +750,107 @@ export default function ReviewCollectionPaymentPage() {
                     Accounting File
                   </span>
                 </label>
+
+                {/* Existing Saved Attachments List */}
+                {(() => {
+                  const existingSpecialAtts = selectedPayment.attachments?.filter(
+                    (a) => a.document_type === 'special_attachment' || a.file_name?.toLowerCase().includes('special attachment')
+                  ) || [];
+
+                  if (existingSpecialAtts.length === 0) return null;
+
+                  return (
+                    <div className="space-y-1.5 mb-2">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        <Check className="h-3 w-3 text-emerald-600" />
+                        Saved Attachments ({existingSpecialAtts.length})
+                      </p>
+                      <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                        {existingSpecialAtts.map((att, idx) => (
+                          <div
+                            key={att.id || idx}
+                            className="flex items-center justify-between p-2 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <Paperclip className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                              <span className="font-semibold text-slate-800 truncate text-[11px]" title={att.file_name}>
+                                {att.file_name.replace(/^Special Attachment:\s*/i, '')}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              <button
+                                type="button"
+                                onClick={() => handleViewProof(att)}
+                                className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[10px] rounded-lg transition cursor-pointer"
+                                title="Preview file"
+                              >
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deletingAttId === att.id}
+                                onClick={() => handleDeleteAttachment(att.id)}
+                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                                title="Delete attachment"
+                              >
+                                {deletingAttId === att.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Upload New / Additional Files */}
                 <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-2 hover:border-[#4A0E17]/40 transition">
                   <input
                     type="file"
+                    multiple
                     accept="image/*,.pdf,.doc,.docx,.zip"
-                    onChange={(e) => setSpecialFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const newFiles = Array.from(e.target.files || []);
+                      setSpecialFiles((prev) => [...prev, ...newFiles]);
+                      e.target.value = '';
+                    }}
                     className="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#4A0E17] file:text-white hover:file:bg-[#3D0B12] transition cursor-pointer"
                   />
                 </div>
+
+                {/* Pending New Files List */}
+                {specialFiles.length > 0 && (
+                  <div className="space-y-1 mt-1">
+                    <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                      New Files to Upload ({specialFiles.length})
+                    </p>
+                    <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                      {specialFiles.map((f, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-1.5 px-2 bg-emerald-50/80 border border-emerald-200 rounded-lg text-xs"
+                        >
+                          <span className="truncate text-emerald-900 font-medium text-[11px]">{f.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSpecialFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="text-rose-500 hover:text-rose-700 p-0.5 cursor-pointer"
+                            title="Remove"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-[11px] text-slate-400 font-medium">
-                  Attach official receipt, deposit slip, or accounting audit file to reflect on the Collection Ledger.
+                  Attach official receipt, deposit slip, or accounting audit file. Previously uploaded files will be preserved.
                 </p>
               </div>
             )}
@@ -752,7 +900,7 @@ export default function ReviewCollectionPaymentPage() {
                     status: actionType === 'verified' ? selectedVerificationStatus : 'REJECTED',
                     notes: verificationNotes,
                     accounting_ref_no: verificationRefNo,
-                    specialAttachment: specialFile,
+                    specialAttachment: specialFiles.length > 0 ? specialFiles : null,
                   })
                 }
                 disabled={verifyMut.isPending}
@@ -775,13 +923,42 @@ export default function ReviewCollectionPaymentPage() {
               <div className="flex items-center gap-3 min-w-0">
                 <FileText className="h-5 w-5 text-amber-300 shrink-0" />
                 <h3 className="font-bold text-sm tracking-tight truncate">
-                  Proof of Payment - {previewAttachment.file_name}
+                  {previewAttachment.file_name.replace(/^Special Attachment:\s*/i, '')}
                 </h3>
               </div>
               <button onClick={handleClosePreview} className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer">
                 <X className="h-5 w-5" />
               </button>
             </div>
+
+            {/* Multi-file Tabs Switcher */}
+            {previewAttachmentsList.length > 1 && (
+              <div className="bg-[#38080f] px-6 py-2 flex items-center gap-2 overflow-x-auto border-t border-white/10">
+                <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider shrink-0">
+                  Files ({previewAttachmentsList.length}):
+                </span>
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                  {previewAttachmentsList.map((att, idx) => {
+                    const isSelected = previewAttachment.id === att.id;
+                    const cleanName = att.file_name.replace(/^Special Attachment:\s*/i, '');
+                    return (
+                      <button
+                        key={att.id || idx}
+                        onClick={() => handleViewProof(att, previewAttachmentsList)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-400 text-slate-900 shadow-xs'
+                            : 'bg-white/10 text-white/90 hover:bg-white/20'
+                        }`}
+                      >
+                        <Paperclip className="h-3 w-3" />
+                        <span className="max-w-[140px] truncate">{cleanName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="p-6 flex-1 overflow-y-auto flex items-center justify-center min-h-[300px] bg-slate-50">
               {isPreviewLoading ? (

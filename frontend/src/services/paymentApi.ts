@@ -72,7 +72,7 @@ export async function verifyPayment(
   id: number,
   status: string,
   notes?: string,
-  specialAttachment?: File | null,
+  specialAttachment?: File | File[] | null,
   accounting_ref_no?: string
 ): Promise<SingleResponse<Payment>> {
   const formData = new FormData();
@@ -82,7 +82,18 @@ export async function verifyPayment(
     formData.append('accounting_ref_no', accounting_ref_no);
     formData.append('reference_number', accounting_ref_no);
   }
-  if (specialAttachment) formData.append('special_attachment', specialAttachment);
+  if (specialAttachment) {
+    if (Array.isArray(specialAttachment)) {
+      specialAttachment.forEach((f) => {
+        if (f) {
+          formData.append('special_attachments[]', f);
+        }
+      });
+    } else {
+      formData.append('special_attachment', specialAttachment);
+      formData.append('special_attachments[]', specialAttachment);
+    }
+  }
 
   const { data } = await axios.post<SingleResponse<Payment>>(`${BASE}/${id}/verify`, formData, {
     headers: {
