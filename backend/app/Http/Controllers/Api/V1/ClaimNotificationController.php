@@ -309,8 +309,8 @@ class ClaimNotificationController extends Controller
             return response()->json(['success' => false, 'message' => 'Claim notification not found.'], 404);
         }
 
-        if (!in_array($record->status, ['pending', 'resubmitted'])) {
-            return response()->json(['success' => false, 'message' => 'Only pending or resubmitted notifications can be returned.'], 422);
+        if (!in_array($record->status, ['pending', 'resubmitted', 'acknowledged'])) {
+            return response()->json(['success' => false, 'message' => 'Only pending, resubmitted, or acknowledged notifications can be returned.'], 422);
         }
 
         $reason = $request->input('reason', '');

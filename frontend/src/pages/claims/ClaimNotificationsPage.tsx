@@ -1007,8 +1007,11 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                 </div>
 
                 {docNote && (
-                  <div className="px-2.5 py-1.5 bg-amber-50/60 border-l-2 border-amber-400 rounded-r-lg text-[11px] text-amber-900 font-medium">
-                    Note: {docNote}
+                  <div
+                    className="px-2.5 py-1.5 bg-amber-50/60 border-l-2 border-amber-400 rounded-r-lg text-[11px] text-amber-900 font-medium truncate cursor-help"
+                    title={`Note: ${docNote}`}
+                  >
+                    <span className="font-bold text-amber-950">Note:</span> {docNote}
                   </div>
                 )}
               </div>
@@ -1066,28 +1069,35 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                         : 'bg-slate-50/80 border-slate-200 text-slate-700'
                       }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <FileText className={`h-3.5 w-3.5 shrink-0 ${isNew ? 'text-emerald-600' : 'text-slate-400'}`} />
-                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[150px]" title={att.file_name}>
-                          {att.file_name}
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          ({(att.file_size / 1024).toFixed(1)} KB)
-                        </span>
-                        {isNew ? (
-                          <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-wider shadow-2xs">
-                            NEW FILE
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[200px]" title={att.file_name}>
+                            {att.file_name}
                           </span>
-                        ) : (
-                          <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 text-[9px] font-bold uppercase tracking-wider">
-                            OLD FILE
+                          <span className="text-[10px] text-slate-500 shrink-0">
+                            ({(att.file_size / 1024).toFixed(1)} KB)
                           </span>
-                        )}
+                          {isNew ? (
+                            <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-wider shadow-2xs shrink-0">
+                              NEW FILE
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 text-[9px] font-bold uppercase tracking-wider shrink-0">
+                              OLD FILE
+                            </span>
+                          )}
+                        </div>
                         {docNote && (
-                          <span className="text-[10px] text-amber-700 italic truncate max-w-[120px]" title={`Note: ${docNote}`}>
-                            Note: {docNote}
-                          </span>
+                          <div className="min-w-0 w-full mt-0.5">
+                            <p
+                              className="text-[10px] text-amber-800 font-medium italic truncate cursor-help block max-w-full"
+                              title={`Note: ${docNote}`}
+                            >
+                              <span className="font-bold text-amber-900 not-italic">Note:</span> {docNote}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1944,23 +1954,32 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
           </div>
           <div className="flex items-center gap-2">
             {isClaimsOfficer && selectedRecord.status === 'acknowledged' && (
-              <button
-                onClick={() => completeMut.mutate(selectedRecord.id)}
-                disabled={completeMut.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm shadow-emerald-700/20 transition cursor-pointer"
-              >
-                {completeMut.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Completing...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 text-emerald-200" />
-                    <span>Mark Requirements Completed</span>
-                  </>
-                )}
-              </button>
+              <>
+                <button
+                  onClick={() => setReturnTarget(selectedRecord)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 hover:bg-rose-100/80 text-rose-700 text-sm font-medium rounded-xl border border-rose-200 shadow-2xs transition cursor-pointer"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Return to Agent</span>
+                </button>
+                <button
+                  onClick={() => completeMut.mutate(selectedRecord.id)}
+                  disabled={completeMut.isPending}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm shadow-emerald-700/20 transition cursor-pointer"
+                >
+                  {completeMut.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Completing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-200" />
+                      <span>Mark Requirements Completed</span>
+                    </>
+                  )}
+                </button>
+              </>
             )}
             <button
               onClick={() => window.print()}
@@ -1997,7 +2016,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
         {renderPrintableDocument(false)}
 
         {/* Action buttons */}
-        {isClaimsOfficer && (selectedRecord.status === 'pending' || selectedRecord.status === 'resubmitted') && (
+        {isClaimsOfficer && (selectedRecord.status === 'pending' || selectedRecord.status === 'resubmitted' || selectedRecord.status === 'acknowledged') && (
           <div className="flex justify-end gap-3 pt-4 no-print">
             <button
               onClick={() => setReturnTarget(selectedRecord)}
@@ -2005,12 +2024,14 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
             >
               <RotateCcw className="h-4 w-4" /> Return to Agent
             </button>
-            <button
-              onClick={() => setAcknowledgeTarget(selectedRecord)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl shadow-sm transition cursor-pointer"
-            >
-              <CheckCircle2 className="h-4 w-4" /> Acknowledge Notification
-            </button>
+            {selectedRecord.status !== 'acknowledged' && (
+              <button
+                onClick={() => setAcknowledgeTarget(selectedRecord)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl shadow-sm transition cursor-pointer"
+              >
+                <CheckCircle2 className="h-4 w-4" /> Acknowledge Notification
+              </button>
+            )}
           </div>
         )}
 
@@ -3100,16 +3121,18 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       key: 'actions', label: '', className: 'text-right',
       render: (r: ClaimNotification) => (
         <div className="flex items-center justify-end gap-1">
-          {isClaimsOfficer && (r.status === 'pending' || r.status === 'resubmitted') && (
+          {isClaimsOfficer && (r.status === 'pending' || r.status === 'resubmitted' || r.status === 'acknowledged') && (
             <>
               <button onClick={(e) => { e.stopPropagation(); setReturnTarget(r); }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Return to Agent">
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer" title="Return to Agent">
                 <RotateCcw className="h-4 w-4" />
               </button>
-              <button onClick={(e) => { e.stopPropagation(); setAcknowledgeTarget(r); }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Acknowledge">
-                <CheckCircle2 className="h-4 w-4" />
-              </button>
+              {r.status !== 'acknowledged' && (
+                <button onClick={(e) => { e.stopPropagation(); setAcknowledgeTarget(r); }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer" title="Acknowledge">
+                  <CheckCircle2 className="h-4 w-4" />
+                </button>
+              )}
             </>
           )}
         </div>
