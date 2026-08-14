@@ -58,6 +58,8 @@ export default function ReviewCollectionPaymentPage() {
   });
 
   const [searchInput, setSearchInput] = useState(searchParamVal);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [verificationNotes, setVerificationNotes] = useState('');
   const [verificationRefNo, setVerificationRefNo] = useState('');
@@ -599,8 +601,8 @@ export default function ReviewCollectionPaymentPage() {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
-        <form onSubmit={handleSearch} className="relative w-full sm:w-80">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
+        <form onSubmit={handleSearch} className="relative w-full xl:w-72">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
@@ -626,7 +628,57 @@ export default function ReviewCollectionPaymentPage() {
           )}
         </form>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Date Filter Range */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 transition hover:border-slate-300">
+            <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">From:</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDateFrom(val);
+                setParams((p) => ({ ...p, date_from: val || undefined, page: 1 }));
+              }}
+              className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 transition hover:border-slate-300">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">To:</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDateTo(val);
+                setParams((p) => ({ ...p, date_to: val || undefined, page: 1 }));
+              }}
+              className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+            />
+          </div>
+
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => {
+                setDateFrom('');
+                setDateTo('');
+                setParams((p) => {
+                  const updated = { ...p, page: 1 };
+                  delete updated.date_from;
+                  delete updated.date_to;
+                  return updated;
+                });
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition cursor-pointer text-xs shadow-2xs"
+              title="Clear date filter"
+            >
+              <X className="h-3.5 w-3.5" /> Clear Dates
+            </button>
+          )}
+
+          {/* Status Filter */}
           <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 transition hover:border-slate-300">
             <Filter className="h-4 w-4 text-slate-400" />
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status:</span>

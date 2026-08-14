@@ -34,6 +34,28 @@ class PaymentController extends Controller
             });
         }
 
+        if ($request->filled('date_from')) {
+            $dateFrom = $request->input('date_from');
+            $baseQuery->where(function ($q) use ($dateFrom) {
+                $q->whereDate('payment_date', '>=', $dateFrom)
+                  ->orWhere(function ($sub) use ($dateFrom) {
+                      $sub->whereNull('payment_date')
+                          ->whereDate('created_at', '>=', $dateFrom);
+                  });
+            });
+        }
+
+        if ($request->filled('date_to')) {
+            $dateTo = $request->input('date_to');
+            $baseQuery->where(function ($q) use ($dateTo) {
+                $q->whereDate('payment_date', '<=', $dateTo)
+                  ->orWhere(function ($sub) use ($dateTo) {
+                      $sub->whereNull('payment_date')
+                          ->whereDate('created_at', '<=', $dateTo);
+                  });
+            });
+        }
+
         $summary = [
             'pending' => (clone $baseQuery)->where(function ($q) {
                 $q->where('verification_status', 'pending_verification')
