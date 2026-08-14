@@ -128,12 +128,12 @@ const OWN_DAMAGE_REQUIREMENTS = [
 ];
 
 const TTPD_REQUIREMENTS = [
-  { key: 'tppd_1', label: '1. Police report/Affidavit' },
-  { key: 'tppd_2', label: '2. Adverse Official Receipt and Certificate of Registration (ORCR)' },
-  { key: 'tppd_3', label: '3. Adverse Driver’s license' },
-  { key: 'tppd_4', label: '4. Adverse Repair Estimate' },
-  { key: 'tppd_5', label: '5. Adverse Certificate of no claim from his/her insurance provider' },
-  { key: 'tppd_6', label: '6. Adverse photos of damaged unit showing the plate number' },
+  { key: 'tppd_1', label: 'POLICE REPORT/AFFIDAVIT' },
+  { key: 'tppd_2', label: 'ADVERSE OFFICIAL RECEIPT AND CERTIFICATE OF REGISTRATION (ORCR)' },
+  { key: 'tppd_3', label: 'ADVERSE DRIVER’S LICENSE' },
+  { key: 'tppd_4', label: 'ADVERSE REPAIR ESTIMATE' },
+  { key: 'tppd_5', label: 'ADVERSE CERTIFICATE OF NO CLAIM FROM HIS/HER INSURANCE PROVIDER' },
+  { key: 'tppd_6', label: 'ADVERSE PHOTOS OF DAMAGED UNIT SHOWING THE PLATE NUMBER' },
 ];
 
 const ACT_OF_NATURE_REQUIREMENTS = [
