@@ -23,6 +23,9 @@ class SubagentCommission extends Model
         'amount_3',
         'released_date_4',
         'amount_4',
+        'refund_date',
+        'refund_amount',
+        'refund_notes',
         'notes',
     ];
 
@@ -33,6 +36,7 @@ class SubagentCommission extends Model
             'amount_2' => 'decimal:2',
             'amount_3' => 'decimal:2',
             'amount_4' => 'decimal:2',
+            'refund_amount' => 'decimal:2',
         ];
     }
 

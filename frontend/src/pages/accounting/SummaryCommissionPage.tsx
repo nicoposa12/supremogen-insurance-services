@@ -26,6 +26,8 @@ import {
   Trash2,
   Upload,
   FileText,
+  RotateCcw,
+  AlertTriangle,
 } from 'lucide-react';
 import { getInvoices, updateSubagentCommission } from '../../services/invoiceApi';
 import { getAttachments, uploadAttachment, deleteAttachment, downloadAttachment, getAttachmentPreview, type Attachment } from '../../services/attachmentApi';
@@ -51,6 +53,7 @@ export default function SummaryCommissionPage() {
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
   const [selectedProvider, setSelectedProvider] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedBalanceStatus, setSelectedBalanceStatus] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>(
     new Date().toISOString().slice(0, 7) // e.g. "2026-06"
   );
@@ -317,8 +320,15 @@ export default function SummaryCommissionPage() {
       const relDate4 = subComm.released_date_4 || null;
       const amt4 = Number(subComm.amount_4 || 0);
 
+      const refundDate = subComm.refund_date || null;
+      const refundAmount = Number(subComm.refund_amount || 0);
+      const refundNotes = subComm.refund_notes || '';
+
       const totalReleased = amt1 + amt2 + amt3 + amt4;
-      const remaining = Math.max(0, subAgentMarkup - totalReleased);
+      const netReleased = totalReleased - refundAmount;
+      const remaining = Math.max(0, subAgentMarkup - netReleased);
+      const isOverpaid = totalReleased > subAgentMarkup;
+      const overpaidAmount = Math.max(0, totalReleased - subAgentMarkup);
 
       const estComm = agentMarkup;
       const estIncentive = Number((cust as any)?.incentive || 1000);
@@ -335,6 +345,7 @@ export default function SummaryCommissionPage() {
       const proofAtt2 = allAtts.find((att) => att.document_type === 'subagent_release_proof_2');
       const proofAtt3 = allAtts.find((att) => att.document_type === 'subagent_release_proof_3');
       const proofAtt4 = allAtts.find((att) => att.document_type === 'subagent_release_proof_4');
+      const proofRefund = allAtts.find((att) => att.document_type === 'subagent_refund_proof');
 
       return {
         id: inv.id,
@@ -371,12 +382,19 @@ export default function SummaryCommissionPage() {
         amt3,
         relDate4,
         amt4,
+        refundDate,
+        refundAmount,
+        refundNotes,
         proofAtt1,
         proofAtt2,
         proofAtt3,
         proofAtt4,
+        proofRefund,
         totalReleased,
+        netReleased,
         remaining,
+        isOverpaid,
+        overpaidAmount,
         subCommData: subComm,
       };
     });
@@ -415,6 +433,29 @@ export default function SummaryCommissionPage() {
       ) {
         return false;
       }
+      if (selectedBalanceStatus !== 'all') {
+        const isExcessOverpaid = row.totalReleased > row.subAgentMarkup && (row.refundAmount || 0) < (row.totalReleased - row.subAgentMarkup);
+        const hasRefund = Boolean(row.refundAmount && row.refundAmount > 0);
+        const hasPendingBalance = !isExcessOverpaid && row.remaining > 0;
+        const isSettled = !isExcessOverpaid && row.remaining === 0 && row.totalReleased > 0;
+        const isUnreleased = row.totalReleased === 0;
+
+        if (selectedBalanceStatus === 'overpaid' && !isExcessOverpaid) {
+          return false;
+        }
+        if (selectedBalanceStatus === 'refunded' && !hasRefund) {
+          return false;
+        }
+        if (selectedBalanceStatus === 'pending' && !hasPendingBalance) {
+          return false;
+        }
+        if (selectedBalanceStatus === 'settled' && !isSettled) {
+          return false;
+        }
+        if (selectedBalanceStatus === 'unreleased' && !isUnreleased) {
+          return false;
+        }
+      }
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matches =
@@ -428,7 +469,7 @@ export default function SummaryCommissionPage() {
       }
       return true;
     });
-  }, [commissionRows, selectedMonth, selectedAgent, selectedProvider, selectedStatus, searchQuery]);
+  }, [commissionRows, selectedMonth, selectedAgent, selectedProvider, selectedStatus, selectedBalanceStatus, searchQuery]);
 
   // Calculate totals
   const totalPremiumSum = useMemo(
@@ -881,11 +922,57 @@ export default function SummaryCommissionPage() {
       key: 'remaining',
       label: 'REMAINING',
       className: 'whitespace-nowrap font-mono',
-      render: (row: any) => (
-        <span className={`text-[9.5px] font-black ${row.remaining > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
-          {row.remaining > 0 ? `₱${formatAmount(row.remaining)}` : '—'}
-        </span>
-      ),
+      render: (row: any) => {
+        const netReleased = row.totalReleased - (row.refundAmount || 0);
+        const diff = row.subAgentMarkup - netReleased;
+        const isExcess = row.totalReleased > row.subAgentMarkup;
+        const overpaidAmt = row.totalReleased - row.subAgentMarkup;
+
+        if (row.refundAmount > 0) {
+          const isFullySettled = netReleased <= row.subAgentMarkup;
+          return (
+            <div className="flex flex-col items-center leading-tight">
+              <span className={`text-[9.5px] font-black ${isFullySettled ? 'text-emerald-700' : 'text-rose-700'}`}>
+                {isFullySettled ? '₱0.00' : `OVER: ₱${formatAmount(Math.abs(diff))}`}
+              </span>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-[8px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 px-1 py-0.5 rounded" title={`Refunded: ₱${formatAmount(row.refundAmount)} on ${row.refundDate || 'N/A'}`}>
+                  ↩ ₱{formatAmount(row.refundAmount)}
+                </span>
+                {row.proofRefund && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPreview(row.proofRefund)}
+                    className="p-0.5 text-purple-700 hover:text-purple-900 hover:bg-purple-100 rounded transition cursor-pointer"
+                    title="View Refund Proof Attachment"
+                  >
+                    <Upload className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        if (isExcess) {
+          return (
+            <div className="flex flex-col items-center leading-tight">
+              <span className="text-[9px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
+                OVERPAID ₱{formatAmount(overpaidAmt)}
+              </span>
+              <span className="text-[8px] font-extrabold text-rose-600 mt-0.5 flex items-center gap-0.5">
+                <RotateCcw className="h-2.5 w-2.5" /> Refund Due
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <span className={`text-[9.5px] font-black ${row.remaining > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
+            {row.remaining > 0 ? `₱${formatAmount(row.remaining)}` : '—'}
+          </span>
+        );
+      },
     },
     ...(isAccountingOrAdmin
       ? [
@@ -1057,22 +1144,22 @@ export default function SummaryCommissionPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-2.5 no-print">
-        <div className="flex flex-col md:flex-row items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-2 no-print shadow-2xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
           {/* Search Input */}
-          <div className="relative flex-grow w-full md:w-auto">
+          <div className="relative flex-1 min-w-[160px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search assured name, agent, sub-agent, plate, provider..."
+              placeholder="Search assured, agent, plate..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
+              className="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
             />
           </div>
 
           {/* Month Selector */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shrink-0">
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 shrink-0">
             <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
             <span className="text-[10px] font-bold text-slate-500 uppercase">Month:</span>
             <input
@@ -1085,7 +1172,7 @@ export default function SummaryCommissionPage() {
               <button
                 type="button"
                 onClick={() => setSelectedMonth('')}
-                className="text-[10px] font-extrabold text-[#4A0E17] hover:bg-[#4A0E17]/10 px-1.5 py-0.5 rounded transition cursor-pointer"
+                className="text-[10px] font-extrabold text-[#4A0E17] hover:bg-[#4A0E17]/10 px-1 py-0.5 rounded transition cursor-pointer"
                 title="Show All Months"
               >
                 ALL
@@ -1094,25 +1181,25 @@ export default function SummaryCommissionPage() {
           </div>
 
           {/* Agent Selector */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shrink-0">
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 shrink-0">
             <Briefcase className="h-3.5 w-3.5 text-[#4A0E17]" />
             <span className="text-[10px] font-bold text-slate-500 uppercase">Agent:</span>
             <select
               value={selectedAgent}
               onChange={(e) => setSelectedAgent(e.target.value)}
-              className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+              className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer max-w-[130px]"
             >
               <option value="all">All Agents</option>
               {availableAgents.map((ag) => (
                 <option key={ag.name} value={ag.name}>
-                  {ag.name} ({ag.role})
+                  {ag.name}
                 </option>
               ))}
             </select>
           </div>
 
           {/* Provider Selector */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shrink-0">
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 shrink-0">
             <Filter className="h-3.5 w-3.5 text-slate-400" />
             <span className="text-[10px] font-bold text-slate-500 uppercase">Provider:</span>
             <select
@@ -1123,6 +1210,24 @@ export default function SummaryCommissionPage() {
               <option value="all">All Providers</option>
               <option value="ALPHA">ALPHA Insurance</option>
               <option value="CBIC">CBIC Insurance</option>
+            </select>
+          </div>
+
+          {/* Balance / Overpayment / Refund Status Filter */}
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 shrink-0">
+            <DollarSign className="h-3.5 w-3.5 text-[#4A0E17]" />
+            <span className="text-[10px] font-bold text-slate-500 uppercase">Balance:</span>
+            <select
+              value={selectedBalanceStatus}
+              onChange={(e) => setSelectedBalanceStatus(e.target.value)}
+              className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+            >
+              <option value="all">All Balances</option>
+              <option value="overpaid">🚨 Overpaid (Refund Due)</option>
+              <option value="refunded">💜 Refunded</option>
+              <option value="pending">⏳ With Balance</option>
+              <option value="settled">✅ Settled</option>
+              <option value="unreleased">⚪ Unreleased</option>
             </select>
           </div>
         </div>
@@ -1297,6 +1402,11 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
   const [relDate4, setRelDate4] = useState<string>(subComm.released_date_4 || '');
   const [amt4, setAmt4] = useState<string>(subComm.amount_4 !== undefined ? String(subComm.amount_4) : '');
 
+  const [refundDate, setRefundDate] = useState<string>(subComm.refund_date || '');
+  const [refundAmount, setRefundAmount] = useState<string>(subComm.refund_amount !== undefined && Number(subComm.refund_amount) > 0 ? String(subComm.refund_amount) : '');
+  const [refundNotes, setRefundNotes] = useState<string>(subComm.refund_notes || '');
+  const [uploadingRefundProof, setUploadingRefundProof] = useState<boolean>(false);
+
   const [notes, setNotes] = useState<string>(subComm.notes || '');
 
   const [uploadingReleaseNum, setUploadingReleaseNum] = useState<number | null>(null);
@@ -1345,6 +1455,12 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
     );
   };
 
+  const getRefundProofAttachment = () => {
+    return attachments.find(
+      (att) => att.document_type === 'subagent_refund_proof' || att.file_name?.toLowerCase().includes('refund_proof')
+    );
+  };
+
   const handleUploadProof = async (releaseNum: number, file: File) => {
     setUploadingReleaseNum(releaseNum);
     try {
@@ -1355,6 +1471,19 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
       showToast(err.response?.data?.message || 'Failed to upload proof attachment.', 'error');
     } finally {
       setUploadingReleaseNum(null);
+    }
+  };
+
+  const handleUploadRefundProof = async (file: File) => {
+    setUploadingRefundProof(true);
+    try {
+      await uploadAttachment('invoice', record.id, file, 'subagent_refund_proof');
+      showToast('Refund proof attachment uploaded successfully.', 'success');
+      refetchAttachments();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to upload refund proof.', 'error');
+    } finally {
+      setUploadingRefundProof(false);
     }
   };
 
@@ -1390,6 +1519,9 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
         amount_3: amt3 ? parseFloat(amt3) : 0,
         released_date_4: relDate4 || null,
         amount_4: amt4 ? parseFloat(amt4) : 0,
+        refund_date: refundDate || null,
+        refund_amount: refundAmount ? parseFloat(refundAmount) : 0,
+        refund_notes: refundNotes || null,
         notes: notes || null,
       });
     },
@@ -1413,7 +1545,11 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
     (parseFloat(amt3) || 0) +
     (parseFloat(amt4) || 0);
 
-  const calculatedRemaining = Math.max(0, record.subAgentMarkup - calculatedTotalReleased);
+  const parsedRefundAmount = parseFloat(refundAmount) || 0;
+  const calculatedNetReleased = calculatedTotalReleased - parsedRefundAmount;
+  const isOverpaid = calculatedTotalReleased > record.subAgentMarkup;
+  const overpaidAmount = Math.max(0, calculatedTotalReleased - record.subAgentMarkup);
+  const remainingAfterRefund = record.subAgentMarkup - calculatedNetReleased;
 
   const renderReleaseCard = (
     releaseNum: number,
@@ -1553,7 +1689,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
         {/* Modal Form Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Refined Financial KPI Grid */}
-          <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl">
             <div>
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Mark Up / Referral</span>
               <span className="text-sm font-black text-slate-900 font-mono">₱{Number(record.subAgentMarkup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -1563,10 +1699,156 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
               <span className="text-sm font-black text-emerald-800 font-mono">₱{calculatedTotalReleased.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             <div>
-              <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Remaining Balance</span>
-              <span className="text-sm font-black text-rose-800 font-mono">₱{calculatedRemaining.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Total Refunded</span>
+              <span className="text-sm font-black text-purple-800 font-mono">₱{parsedRefundAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div>
+              <span className={`text-[10px] font-bold uppercase tracking-wider block ${isOverpaid && parsedRefundAmount < overpaidAmount ? 'text-rose-600' : 'text-slate-700'}`}>
+                {isOverpaid && parsedRefundAmount < overpaidAmount ? 'Excess Overpayment' : 'Net Remaining'}
+              </span>
+              <span className={`text-sm font-black font-mono ${isOverpaid && parsedRefundAmount < overpaidAmount ? 'text-rose-700' : 'text-slate-900'}`}>
+                ₱{Math.abs(remainingAfterRefund).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
+
+          {/* Overpayment Alert & Refund Section */}
+          {(isOverpaid || parsedRefundAmount > 0) && (
+            <div className="p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl space-y-3 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-purple-100 text-purple-800 rounded-xl">
+                    <RotateCcw className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-purple-950 uppercase tracking-wide">
+                      Overpayment & Refund Settlement
+                    </h4>
+                    <p className="text-[11px] text-purple-800 font-medium">
+                      Total released (₱{calculatedTotalReleased.toLocaleString(undefined, { minimumFractionDigits: 2 })}) exceeds Mark Up (₱{Number(record.subAgentMarkup).toLocaleString(undefined, { minimumFractionDigits: 2 })}) by <strong className="text-rose-700">₱{overpaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                {overpaidAmount > 0 && parsedRefundAmount === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRefundAmount(String(overpaidAmount));
+                      if (!refundDate) {
+                        setRefundDate(new Date().toISOString().split('T')[0]);
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white font-bold text-[10.5px] rounded-lg transition shadow-2xs cursor-pointer flex items-center gap-1 self-start sm:self-auto"
+                  >
+                    <RotateCcw className="h-3 w-3" /> Auto-fill Refund (₱{overpaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })})
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-purple-200/60">
+                <div>
+                  <label className="block text-[10px] font-bold text-purple-900 mb-1">
+                    REFUND / RETURN DATE
+                  </label>
+                  <input
+                    type="date"
+                    value={refundDate}
+                    onChange={(e) => setRefundDate(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-purple-900 mb-1">
+                    REFUND AMOUNT (₱)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white border border-purple-200 rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-purple-900 mb-1">
+                  REFUND NOTES & REMARKS
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Returned excess release via GCash / Bank Deposit"
+                  value={refundNotes}
+                  onChange={(e) => setRefundNotes(e.target.value)}
+                  className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+                />
+              </div>
+
+              {/* Refund Proof Attachment */}
+              <div className="pt-2 border-t border-purple-200/60 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-purple-900 uppercase tracking-wider">
+                  <Paperclip className="h-3.5 w-3.5 text-purple-600 shrink-0" /> Refund Proof Attachment
+                </div>
+
+                {getRefundProofAttachment() ? (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-[10px] font-semibold text-purple-900 bg-white border border-purple-200 px-2 py-0.5 rounded-lg truncate max-w-[120px]" title={getRefundProofAttachment()?.file_name}>
+                      {getRefundProofAttachment()?.file_name}
+                    </span>
+                    <div className="flex items-center gap-0.5 bg-white border border-purple-200 rounded-lg p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPreview(getRefundProofAttachment()!)}
+                        className="p-1 hover:bg-purple-100 rounded text-purple-800 transition cursor-pointer"
+                        title="Preview Refund Proof"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadAttachment(getRefundProofAttachment()!.id, getRefundProofAttachment()!.file_name)}
+                        className="p-1 hover:bg-purple-100 rounded text-emerald-700 transition cursor-pointer"
+                        title="Download Refund Proof"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+                      {isAccountingOrAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTargetId(getRefundProofAttachment()!.id)}
+                          className="p-1 hover:bg-purple-100 rounded text-rose-600 transition cursor-pointer"
+                          title="Delete Refund Proof"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : isAccountingOrAdmin ? (
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-purple-100/70 text-purple-900 border border-purple-300 rounded-xl text-[11px] font-bold cursor-pointer transition shadow-2xs">
+                    {uploadingRefundProof ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-purple-700" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5 text-purple-700" />
+                    )}
+                    <span>{uploadingRefundProof ? 'Uploading...' : 'Upload Refund Proof'}</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) handleUploadRefundProof(e.target.files[0]);
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <span className="text-[10px] text-slate-400 italic">No refund proof attached</span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Account Details Section */}
           <div className="space-y-3">
