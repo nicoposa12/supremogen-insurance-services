@@ -84,19 +84,36 @@ class Invoice extends Model
 
         $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $concatExpr = ($driver === 'pgsql' || $driver === 'sqlite')
+            ? "(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''))"
+            : "CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, ''))";
 
         $cleanTerm = trim($term);
         $cleanTermNoHyphen = str_replace('-', '', $cleanTerm);
+        $words = array_filter(explode(' ', $cleanTerm));
 
-        return $query->where(function ($q) use ($cleanTerm, $cleanTermNoHyphen, $likeOperator) {
+        return $query->where(function ($q) use ($cleanTerm, $cleanTermNoHyphen, $likeOperator, $concatExpr, $words) {
             $q->where('invoice_number', $likeOperator, "%{$cleanTerm}%")
-              ->orWhereHas('customer', function ($cq) use ($cleanTerm, $likeOperator) {
+              ->orWhereHas('customer', function ($cq) use ($cleanTerm, $likeOperator, $concatExpr, $words) {
                   $cq->where('first_name', $likeOperator, "%{$cleanTerm}%")
                      ->orWhere('last_name', $likeOperator, "%{$cleanTerm}%")
+                     ->orWhereRaw("{$concatExpr} {$likeOperator} ?", ["%{$cleanTerm}%"])
                      ->orWhere('agent', $likeOperator, "%{$cleanTerm}%")
                      ->orWhere('customer_code', $likeOperator, "%{$cleanTerm}%")
                      ->orWhere('policy_no', $likeOperator, "%{$cleanTerm}%")
                      ->orWhere('plate_no', $likeOperator, "%{$cleanTerm}%");
+
+                  if (count($words) > 1) {
+                      $cq->orWhere(function ($sub) use ($words, $likeOperator) {
+                          foreach ($words as $w) {
+                              $sub->where(function ($wQ) use ($w, $likeOperator) {
+                                  $wQ->where('first_name', $likeOperator, "%{$w}%")
+                                     ->orWhere('last_name', $likeOperator, "%{$w}%")
+                                     ->orWhere('company_name', $likeOperator, "%{$w}%");
+                              });
+                          }
+                      });
+                  }
               })
               ->orWhereHas('createdBy', function ($uq) use ($cleanTerm, $likeOperator) {
                   $uq->where('name', $likeOperator, "%{$cleanTerm}%");

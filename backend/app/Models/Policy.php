@@ -92,17 +92,36 @@ class Policy extends Model
     {
         if (!$term) return $query;
 
+        $term = trim($term);
         $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $concatExpr = ($driver === 'pgsql' || $driver === 'sqlite')
+            ? "(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''))"
+            : "CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, ''))";
 
-        return $query->where(function ($q) use ($term, $likeOperator) {
+        $words = array_filter(explode(' ', $term));
+
+        return $query->where(function ($q) use ($term, $likeOperator, $concatExpr, $words) {
             $q->where('policy_number', $likeOperator, "%{$term}%")
-              ->orWhereHas('customer', function ($cq) use ($term, $likeOperator) {
+              ->orWhereHas('customer', function ($cq) use ($term, $likeOperator, $concatExpr, $words) {
                   $cq->where('first_name', $likeOperator, "%{$term}%")
                      ->orWhere('last_name', $likeOperator, "%{$term}%")
+                     ->orWhereRaw("{$concatExpr} {$likeOperator} ?", ["%{$term}%"])
                      ->orWhere('customer_code', $likeOperator, "%{$term}%")
                      ->orWhere('policy_no', $likeOperator, "%{$term}%")
                      ->orWhere('plate_no', $likeOperator, "%{$term}%");
+
+                  if (count($words) > 1) {
+                      $cq->orWhere(function ($sub) use ($words, $likeOperator) {
+                          foreach ($words as $w) {
+                              $sub->where(function ($wQ) use ($w, $likeOperator) {
+                                  $wQ->where('first_name', $likeOperator, "%{$w}%")
+                                     ->orWhere('last_name', $likeOperator, "%{$w}%")
+                                     ->orWhere('company_name', $likeOperator, "%{$w}%");
+                              });
+                          }
+                      });
+                  }
               });
         });
     }
