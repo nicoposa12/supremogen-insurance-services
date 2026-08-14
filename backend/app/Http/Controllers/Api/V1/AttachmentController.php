@@ -373,7 +373,7 @@ class AttachmentController extends Controller
         $attachment = Attachment::find($id);
 
         if (!$attachment) {
-            abort(404, 'Attachment not found.');
+            return response()->json(['message' => 'Attachment not found.'], 404);
         }
 
         $disk = $this->resolveAttachmentDisk($attachment);
@@ -385,7 +385,7 @@ class AttachmentController extends Controller
                     'message' => 'This file was uploaded before cloud storage was configured and is no longer available. Please re-upload the document.',
                 ], 410); // 410 Gone
             }
-            abort(404, 'File not found on storage.');
+            return response()->json(['message' => 'File not found on storage.'], 404);
         }
 
         return Storage::disk($disk)->download($attachment->file_path, $attachment->file_name);
@@ -399,7 +399,7 @@ class AttachmentController extends Controller
         $attachment = Attachment::find($id);
 
         if (!$attachment) {
-            abort(404, 'Attachment not found.');
+            return response()->json(['message' => 'Attachment not found.'], 404);
         }
 
         $disk = $this->resolveAttachmentDisk($attachment);
@@ -410,7 +410,7 @@ class AttachmentController extends Controller
                     'message' => 'This file was uploaded before cloud storage was configured and is no longer available. Please re-upload the document.',
                 ], 410); // 410 Gone
             }
-            abort(404, 'File not found on storage.');
+            return response()->json(['message' => 'File not found on storage.'], 404);
         }
 
         $mime = $attachment->mime_type ?: (Storage::disk($disk)->mimeType($attachment->file_path) ?: 'application/octet-stream');

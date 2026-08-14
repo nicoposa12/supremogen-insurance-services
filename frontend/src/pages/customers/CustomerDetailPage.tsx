@@ -28,6 +28,7 @@ import {
   uploadCustomerDocument,
   deleteCustomerDocument,
 } from '../../services/customerApi';
+import { downloadAttachment } from '../../services/attachmentApi';
 import type { CustomerDocument } from '../../types/CustomerTypes';
 
 // Document type labels
@@ -361,15 +362,14 @@ export default function CustomerDetailPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <a
-                        href={`/storage/${doc.file_path}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                      <button
+                        type="button"
+                        onClick={() => downloadAttachment(doc.id, doc.file_name)}
+                        className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
                         title="Download"
                       >
                         <Download className="h-4 w-4" />
-                      </a>
+                      </button>
                       <button
                         onClick={() => setDeleteDoc(doc)}
                         className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"

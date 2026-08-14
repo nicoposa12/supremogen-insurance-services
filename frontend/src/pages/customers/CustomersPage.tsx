@@ -29,10 +29,9 @@ import { useAuth } from '../../context/AuthContext';
 import { getCustomers, deleteCustomer, createCustomer, updateCustomer } from '../../services/customerApi';
 import { getPayments } from '../../services/paymentApi';
 import { getClaims } from '../../services/claimApi';
-import { uploadAttachment, getAttachments } from '../../services/attachmentApi';
+import { uploadAttachment, getAttachments, downloadAttachment } from '../../services/attachmentApi';
 import type { Customer, CustomerListParams, CustomerFormData } from '../../types/CustomerTypes';
 import AttachmentPanel from '../../components/ui/AttachmentPanel';
-import { getDownloadUrl } from '../../utils/url';
 
 export function parseFullName(fullName: string) {
   const name = (fullName || '').trim();
@@ -1161,14 +1160,13 @@ export default function CustomersPage() {
                                           <span className="text-[10px] text-slate-500 block truncate" title={file.file_name}>{file.file_name}</span>
                                         </div>
                                       </div>
-                                      <a 
-                                        href={getDownloadUrl(file.id, token)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline shrink-0 bg-[#4A0E17]/5 px-2.5 py-1 rounded-lg"
+                                      <button 
+                                        type="button"
+                                        onClick={() => downloadAttachment(file.id, file.file_name)}
+                                        className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline shrink-0 bg-[#4A0E17]/5 px-2.5 py-1 rounded-lg cursor-pointer"
                                       >
                                         Download File
-                                      </a>
+                                      </button>
                                     </div>
                                   );
                                 }
@@ -1191,14 +1189,13 @@ export default function CustomersPage() {
                                             <span className="text-[10px] font-mono font-bold text-slate-400">#{index + 1}</span>
                                             <span className="text-xs font-semibold text-slate-700 truncate" title={file.file_name}>{file.file_name}</span>
                                           </div>
-                                          <a 
-                                            href={getDownloadUrl(file.id, token)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline shrink-0 bg-[#4A0E17]/5 px-2 py-0.5 rounded"
+                                          <button 
+                                            type="button"
+                                            onClick={() => downloadAttachment(file.id, file.file_name)}
+                                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A0E17] hover:underline shrink-0 bg-[#4A0E17]/5 px-2 py-0.5 rounded cursor-pointer"
                                           >
                                             Download
-                                          </a>
+                                          </button>
                                         </div>
                                       ))}
                                     </div>

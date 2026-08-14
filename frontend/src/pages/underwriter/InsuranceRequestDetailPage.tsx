@@ -9,10 +9,9 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import { useToast } from '../../components/ui/Toast';
 import { getQuotation, reviewQuotation, reviewQuotationCancellation, updateQuotationMetadata } from '../../services/quotationApi';
 import { updateCustomer } from '../../services/customerApi';
-import { getAttachments, uploadAttachment } from '../../services/attachmentApi';
+import { getAttachments, uploadAttachment, downloadAttachment } from '../../services/attachmentApi';
 import { getClaims } from '../../services/claimApi';
 import { useAuth } from '../../context/AuthContext';
-import { getDownloadUrl } from '../../utils/url';
 
 const roundToTwoDecimals = (num: number): number => {
   return Math.round(num * 100 + 1e-9) / 100;
@@ -681,9 +680,13 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                               </p>
                             </div>
                           </div>
-                          <a href={getDownloadUrl(file.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3">
+                          <button 
+                            type="button"
+                            onClick={() => downloadAttachment(file.id, file.file_name)}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4A0E17] hover:underline bg-[#4A0E17]/5 px-3 py-2 rounded-xl shrink-0 transition hover:bg-[#4A0E17]/10 ml-3 cursor-pointer"
+                          >
                             <Download className="h-3.5 w-3.5" /> Download
-                          </a>
+                          </button>
                         </div>
                       );
                     }
@@ -712,9 +715,13 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                                   {file.file_name}
                                 </p>
                               </div>
-                              <a href={getDownloadUrl(file.id, token)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4A0E17] hover:underline bg-white border border-slate-200 px-2.5 py-1 rounded-lg shrink-0 transition hover:bg-[#4A0E17]/5 shadow-2xs">
+                              <button 
+                                type="button"
+                                onClick={() => downloadAttachment(file.id, file.file_name)}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4A0E17] hover:underline bg-white border border-slate-200 px-2.5 py-1 rounded-lg shrink-0 transition hover:bg-[#4A0E17]/5 shadow-2xs cursor-pointer"
+                              >
                                 <Download className="h-3 w-3" /> Download
-                              </a>
+                              </button>
                             </div>
                           ))}
                         </div>

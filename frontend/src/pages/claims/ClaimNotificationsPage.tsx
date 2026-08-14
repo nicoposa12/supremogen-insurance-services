@@ -25,7 +25,7 @@ import {
   updateClaimNotification,
   sendEmailToInsuranceProvider,
 } from '../../services/claimNotificationApi';
-import { uploadAttachment } from '../../services/attachmentApi';
+import { uploadAttachment, downloadAttachment, getAttachmentPreview } from '../../services/attachmentApi';
 import type {
   ClaimNotification,
   ClaimNotificationFormData,
@@ -244,6 +244,8 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
   const [requirementNotes, setRequirementNotes] = useState<Record<string, string>>({});
   const [customAttachments, setCustomAttachments] = useState<CustomAttachmentInput[]>([]);
   const [viewAttachment, setViewAttachment] = useState<any | null>(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ClaimNotification | null>(null);
 
@@ -255,6 +257,32 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
   const [selectedTo, setSelectedTo] = useState<string[]>([]);
   const [selectedCc, setSelectedCc] = useState<string[]>([]);
 
+  const handleViewAttachment = async (att: any) => {
+    try {
+      setViewAttachment(att);
+      setIsLoadingPreview(true);
+      if (previewBlobUrl) {
+        URL.revokeObjectURL(previewBlobUrl);
+        setPreviewBlobUrl(null);
+      }
+      const blob = await getAttachmentPreview(att.id);
+      const url = URL.createObjectURL(blob);
+      setPreviewBlobUrl(url);
+    } catch {
+      showToast('Failed to load file preview.', 'error');
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleCloseViewAttachment = () => {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setViewAttachment(null);
+  };
+
   // Listen to Escape key to close modals
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -262,7 +290,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
         setIsEmailModalOpen(false);
         setReturnTarget(null);
         setAcknowledgeTarget(null);
-        setViewAttachment(null);
+        handleCloseViewAttachment();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -892,21 +920,20 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
-                      onClick={() => setViewAttachment(att)}
+                      onClick={() => handleViewAttachment(att)}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-white transition cursor-pointer border border-transparent hover:border-slate-200"
                       title="View Attachment"
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </button>
-                    <a
-                      href={`/api/v1/attachments/${att.id}/download?token=${token}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition border border-transparent hover:border-slate-200"
+                    <button
+                      type="button"
+                      onClick={() => downloadAttachment(att.id, att.file_name)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition border border-transparent hover:border-slate-200 cursor-pointer"
                       title="Download"
                     >
                       <Download className="h-3.5 w-3.5" />
-                    </a>
+                    </button>
                   </div>
                 </div>
 
@@ -1002,21 +1029,20 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                       </span>
                       <button
                         type="button"
-                        onClick={() => setViewAttachment(att)}
+                        onClick={() => handleViewAttachment(att)}
                         className="p-1 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-white transition cursor-pointer"
                         title="View Attachment"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </button>
-                      <a
-                        href={`/api/v1/attachments/${att.id}/download?token=${token}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition"
+                      <button
+                        type="button"
+                        onClick={() => downloadAttachment(att.id, att.file_name)}
+                        className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition cursor-pointer"
                         title="Download"
                       >
                         <Download className="h-3.5 w-3.5" />
-                      </a>
+                      </button>
                     </div>
                   </div>
                 );
@@ -1993,66 +2019,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
           </div>
         )}
 
-        {viewAttachment && (() => {
-          const [docTitle, docNote] = viewAttachment.document_type ? viewAttachment.document_type.split(' | Note: ') : [viewAttachment.file_name, ''];
-          return (
-            <div
-              onClick={() => setViewAttachment(null)}
-              className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print cursor-pointer"
-            >
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl border border-slate-205 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh] cursor-default"
-              >
-                <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
-                  <div>
-                    <h3 className="text-white font-bold text-base">{docTitle}</h3>
-                    <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[550px]">
-                      {viewAttachment.file_name} ({(viewAttachment.file_size / 1024).toFixed(1)} KB) | Uploaded: {new Date(viewAttachment.created_at).toLocaleDateString()} {new Date(viewAttachment.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })} {docNote ? ` | Note: ${docNote}` : ''}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setViewAttachment(null)}
-                    className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
-                  {viewAttachment.mime_type.startsWith('image/') ? (
-                    <img
-                      src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
-                      alt={docTitle}
-                      className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
-                    />
-                  ) : viewAttachment.mime_type === 'application/pdf' ? (
-                    <iframe
-                      src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
-                      title={docTitle}
-                      className="w-full h-[60vh] rounded-lg border border-slate-200"
-                    />
-                  ) : (
-                    <div className="text-center space-y-4 p-8">
-                      <FileText className="h-16 w-16 text-slate-400 mx-auto" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
-                        <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
-                      </div>
-                      <a
-                        href={`/api/v1/attachments/${viewAttachment.id}/download?token=${token}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition"
-                      >
-                        <Download className="h-4 w-4" /> Download File
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+
       </div>
     );
   }
@@ -3324,7 +3291,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
         const [docTitle, docNote] = viewAttachment.document_type ? viewAttachment.document_type.split(' | Note: ') : [viewAttachment.file_name, ''];
         return (
           <div
-            onClick={() => setViewAttachment(null)}
+            onClick={handleCloseViewAttachment}
             className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print cursor-pointer"
           >
             <div
@@ -3339,22 +3306,27 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   </p>
                 </div>
                 <button
-                  onClick={() => setViewAttachment(null)}
-                  className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition"
+                  onClick={handleCloseViewAttachment}
+                  className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
               <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
-                {viewAttachment.mime_type.startsWith('image/') ? (
+                {isLoadingPreview ? (
+                  <div className="flex flex-col items-center justify-center p-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#4A0E17] mb-2" />
+                    <p className="text-xs text-slate-500 font-medium">Loading preview...</p>
+                  </div>
+                ) : previewBlobUrl && viewAttachment.mime_type.startsWith('image/') ? (
                   <img
-                    src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                    src={previewBlobUrl}
                     alt={docTitle}
                     className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
                   />
-                ) : viewAttachment.mime_type === 'application/pdf' ? (
+                ) : previewBlobUrl && viewAttachment.mime_type === 'application/pdf' ? (
                   <iframe
-                    src={`/api/v1/attachments/${viewAttachment.id}/preview?token=${token}`}
+                    src={previewBlobUrl}
                     title={docTitle}
                     className="w-full h-[60vh] rounded-lg border border-slate-200"
                   />
@@ -3365,14 +3337,13 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                       <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
                       <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
                     </div>
-                    <a
-                      href={`/api/v1/attachments/${viewAttachment.id}/download?token=${token}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition"
+                    <button
+                      type="button"
+                      onClick={() => downloadAttachment(viewAttachment.id, viewAttachment.file_name)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition cursor-pointer"
                     >
                       <Download className="h-4 w-4" /> Download File
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>

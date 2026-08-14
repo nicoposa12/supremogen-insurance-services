@@ -13,8 +13,13 @@ class QueryParameterTokenAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->filled('token')) {
-            $request->headers->set('Authorization', 'Bearer ' . $request->query('token'));
+        $token = $request->query('token') ?: $request->input('token');
+
+        if ($token && is_string($token) && $token !== 'null' && $token !== 'undefined' && trim($token) !== '') {
+            $token = trim($token);
+            $bearer = str_starts_with($token, 'Bearer ') ? $token : 'Bearer ' . $token;
+            $request->headers->set('Authorization', $bearer);
+            $request->server->set('HTTP_AUTHORIZATION', $bearer);
         }
 
         return $next($request);
