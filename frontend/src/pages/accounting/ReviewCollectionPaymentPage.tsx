@@ -22,7 +22,8 @@ import {
   Gift,
   Eye,
   Hash,
-  Trash2
+  Trash2,
+  Edit3
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -335,12 +336,21 @@ export default function ReviewCollectionPaymentPage() {
       label: 'Date & Collector',
       render: (p: Payment) => {
         const collectorName = typeof p.received_by === 'object' ? p.received_by?.name : 'Collection Officer';
+        const dateStr = p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : '—');
+        const timeStr = p.created_at ? new Date(p.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }) : null;
+
         return (
           <div>
-            <p className="text-xs font-medium text-slate-700">
-              {p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}
+            <p className="text-xs font-bold text-slate-800 flex items-center gap-1">
+              <Calendar className="h-3 w-3 text-slate-500" />
+              {dateStr}
             </p>
-            <p className="text-[11px] text-slate-400 font-normal">By: {collectorName}</p>
+            {timeStr && (
+              <p className="text-[11px] font-mono font-medium text-slate-600 mt-0.5">
+                {timeStr}
+              </p>
+            )}
+            <p className="text-[10px] text-slate-400 font-normal mt-0.5">By: {collectorName}</p>
           </div>
         );
       },
@@ -475,12 +485,43 @@ export default function ReviewCollectionPaymentPage() {
         );
       },
     },
+    {
+      key: 'verified_at',
+      label: 'Verified Date & Time',
+      render: (p: Payment) => {
+        if (!p.verified_at) {
+          return <span className="text-xs text-slate-300 font-medium">—</span>;
+        }
+
+        const d = new Date(p.verified_at);
+        const dateStr = d.toLocaleDateString();
+        const timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        const verifierName = typeof p.verified_by === 'object' && p.verified_by ? (p.verified_by as any).name : (p as any).verified_by_user?.name || (p as any).verifiedBy?.name;
+
+        return (
+          <div>
+            <p className="text-xs font-bold text-slate-800 flex items-center gap-1">
+              <Calendar className="h-3 w-3 text-emerald-600" />
+              {dateStr}
+            </p>
+            <p className="text-[11px] font-mono font-bold text-emerald-700 mt-0.5">
+              {timeStr}
+            </p>
+            {verifierName && (
+              <p className="text-[10px] text-slate-400 font-normal mt-0.5">
+                By: {verifierName}
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
     ...(isAccountingOrAdmin
       ? [
           {
             key: 'action',
             label: 'Action',
-            headerClassName: 'text-right',
+            headerClassName: 'text-right w-28 whitespace-nowrap',
             render: (p: Payment) => {
               const status = (p.verification_status || 'pending_verification').toUpperCase();
               const isVerified =
@@ -501,10 +542,10 @@ export default function ReviewCollectionPaymentPage() {
                 return (
                   <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
                     <span
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-rose-800 border border-rose-200 text-xs font-bold rounded-lg cursor-not-allowed shadow-2xs opacity-80"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-rose-700 border border-rose-200/60 text-[10px] font-bold rounded-md cursor-not-allowed opacity-80"
                       title="Cannot verify payment for a cancelled policy or voided invoice"
                     >
-                      <XCircle className="h-3.5 w-3.5 text-rose-600" /> Cannot Verify (Cancelled)
+                      <XCircle className="h-3 w-3 text-rose-500" /> Cancelled
                     </span>
                   </div>
                 );
@@ -512,34 +553,34 @@ export default function ReviewCollectionPaymentPage() {
 
               if (isVerified) {
                 return (
-                  <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => openVerifyModal(p, 'verified')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#4A0E17]/10 hover:bg-[#4A0E17]/20 text-[#4A0E17] font-bold text-xs rounded-xl border border-[#4A0E17]/20 transition cursor-pointer shadow-2xs"
-                      title="Update or change verification status"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-[#4A0E17] text-slate-600 hover:text-white font-bold text-[11px] rounded-lg border border-slate-200/80 transition cursor-pointer shadow-2xs"
+                      title="Edit verification status"
                     >
-                      <Check className="h-3.5 w-3.5" /> Edit Status
+                      <Edit3 className="h-3 w-3" /> Edit
                     </button>
                   </div>
                 );
               }
 
               return (
-                <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => openVerifyModal(p, 'verified')}
-                    className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-2xs transition cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] rounded-lg shadow-2xs transition cursor-pointer"
                     title="Verify and approve payment"
                   >
-                    <Check className="h-3.5 w-3.5" /> Approve
+                    <Check className="h-3 w-3" /> Approve
                   </button>
                   {!isRejected && (
                     <button
                       onClick={() => openVerifyModal(p, 'rejected')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition cursor-pointer"
-                      title="Reject or flag payment"
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded-lg border border-rose-200 transition cursor-pointer"
+                      title="Reject payment"
                     >
-                      <X className="h-3.5 w-3.5" /> Reject
+                      <X className="h-3 w-3" /> Reject
                     </button>
                   )}
                 </div>
@@ -770,6 +811,14 @@ export default function ReviewCollectionPaymentPage() {
                   ₱{Number(selectedPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
+              {selectedPayment.verified_at && (
+                <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Verified At</span>
+                  <span className="font-mono font-bold text-emerald-700 text-xs">
+                    {new Date(selectedPayment.verified_at).toLocaleDateString()} • {new Date(selectedPayment.verified_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
+                  </span>
+                </div>
+              )}
             </div>
 
             {actionType === 'verified' && (
