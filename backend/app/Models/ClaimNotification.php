@@ -54,18 +54,34 @@ class ClaimNotification extends Model
         return $this->belongsTo(Policy::class, 'policy_number', 'policy_number');
     }
 
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class, 'policy_number', 'quotation_number');
+    }
+
     // ─── Scopes ───────────────────────────────────
 
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
         if (!$term) return $query;
 
-        return $query->where(function (Builder $q) use ($term) {
-            $q->where('reference_number', 'LIKE', "%{$term}%")
-              ->orWhere('assured_name', 'LIKE', "%{$term}%")
-              ->orWhere('policy_number', 'LIKE', "%{$term}%")
-              ->orWhere('plate_number', 'LIKE', "%{$term}%")
-              ->orWhere('insurance_provider', 'LIKE', "%{$term}%");
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+
+        return $query->where(function (Builder $q) use ($term, $likeOperator) {
+            $q->where('reference_number', $likeOperator, "%{$term}%")
+              ->orWhere('assured_name', $likeOperator, "%{$term}%")
+              ->orWhere('policy_number', $likeOperator, "%{$term}%")
+              ->orWhere('plate_number', $likeOperator, "%{$term}%")
+              ->orWhere('insurance_provider', $likeOperator, "%{$term}%")
+              ->orWhereHas('policy.quotation', function ($qq) use ($term, $likeOperator) {
+                  $qq->where('quotation_number', $likeOperator, "%{$term}%")
+                     ->orWhere('ir_number', $likeOperator, "%{$term}%");
+              })
+              ->orWhereHas('quotation', function ($qq) use ($term, $likeOperator) {
+                  $qq->where('quotation_number', $likeOperator, "%{$term}%")
+                     ->orWhere('ir_number', $likeOperator, "%{$term}%");
+              });
         });
     }
 

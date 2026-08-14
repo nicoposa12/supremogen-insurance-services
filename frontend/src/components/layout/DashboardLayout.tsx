@@ -922,11 +922,31 @@ export default function DashboardLayout() {
                               const matchAssured = message.match(/Assured\s+([A-Za-z0-9\s]+?)(?=\s+is|\s+\(|\s+has|\s+with|$)/i);
 
                               // Roles checks
+                              const isClaimsOfficer = roles.includes('Claims Officer');
                               const isAccounting = roles.includes('Accounting Officer') || roles.includes('Accounting');
                               const isCollection = roles.includes('Collection') || roles.includes('Collection Officer') || roles.includes('Collector');
 
-                              // Cancellation Request Notices
-                              if (isCancellationNotice) {
+                              // Remittance Status notifications
+                              const isRemittance = title.toLowerCase().includes('remittance') || message.toLowerCase().includes('remitted');
+                              if (isRemittance) {
+                                const code = matchQuotation?.[0] || matchPolicy?.[1] || matchPolicy?.[0] || (message.match(/\(([^)]+)\)/)?.[1] || '').trim();
+                                const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
+                                if (isClaimsOfficer) {
+                                  navigate(`/dashboard/claim-notifications${searchQ}`);
+                                } else if (isAccounting) {
+                                  navigate(`/dashboard/policy-statements${searchQ}`);
+                                } else if (isCollection) {
+                                  navigate(`/dashboard/collection/ledger${searchQ}`);
+                                } else {
+                                  navigate(`/dashboard/claim-notifications${searchQ}`);
+                                }
+                              } else if (isClaimsOfficer) {
+                                // Claims Officers are routed to claim-notifications for any policy, claim, or customer notice
+                                const assuredMatch = message.match(/\(([^)]+)\)/) || matchAssured;
+                                const searchCode = matchClaimNotification?.[0] || matchClaim?.[0] || (assuredMatch ? (assuredMatch[1] || assuredMatch[0]).trim() : (matchPolicy?.[1] || matchPolicy?.[0] || matchQuotation?.[0] || ''));
+                                const searchQ = searchCode ? `?search=${encodeURIComponent(searchCode)}` : '';
+                                navigate(`/dashboard/claim-notifications${searchQ}`);
+                              } else if (isCancellationNotice) {
                                 const code = matchPolicy?.[1] || matchPolicy?.[0] || matchQuotation?.[0] || (matchAssured ? matchAssured[1].trim() : '');
                                 const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
                                 if (isCollection) {
@@ -968,7 +988,7 @@ export default function DashboardLayout() {
                                 navigate(`/dashboard/claim-notifications?search=${encodeURIComponent(code)}`);
                               } else if (matchClaim) {
                                 const code = matchClaim[0];
-                                navigate(`/dashboard/claims?search=${encodeURIComponent(code)}`);
+                                navigate(`/dashboard/claim-notifications?search=${encodeURIComponent(code)}`);
                               } else if (matchPolicy) {
                                 const code = matchPolicy[1] || matchPolicy[0];
                                 if (isAccounting) {
@@ -1005,10 +1025,8 @@ export default function DashboardLayout() {
                                 } else {
                                   navigate('/dashboard/quotations');
                                 }
-                              } else if (title.toLowerCase().includes('claim notification')) {
+                              } else if (title.toLowerCase().includes('claim notification') || title.toLowerCase().includes('claim')) {
                                 navigate('/dashboard/claim-notifications');
-                              } else if (title.toLowerCase().includes('claim')) {
-                                navigate('/dashboard/claims');
                               } else if (title.toLowerCase().includes('invoice')) {
                                 if (isCollection) {
                                   navigate('/dashboard/collection/ledger');

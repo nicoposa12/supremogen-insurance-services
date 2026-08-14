@@ -130,6 +130,13 @@ export interface ClaimNotification {
       remitted_at?: string;
     };
   };
+  quotation?: {
+    id: number;
+    quotation_number: string;
+    ir_number?: string;
+    is_remitted: boolean;
+    remitted_at?: string;
+  };
   created_at: string;
   updated_at: string;
 }

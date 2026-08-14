@@ -574,23 +574,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
   const detailRecord = detailResponse?.data ?? selectedRecord;
 
-  // Auto-open record when search parameter matches a claim notification (e.g. from notification clicks)
-  useEffect(() => {
-    if (querySearch && rawRecords.length > 0 && !selectedRecord) {
-      const qLower = querySearch.trim().toLowerCase();
-      const match = rawRecords.find((r: any) =>
-        (r.reference_number && r.reference_number.toLowerCase() === qLower) ||
-        (r.ir_number && r.ir_number.toLowerCase() === qLower) ||
-        (r.id && r.id.toString() === qLower) ||
-        (rawRecords.length === 1 && (r.reference_number?.toLowerCase().includes(qLower) || r.ir_number?.toLowerCase().includes(qLower)))
-      );
-
-      if (match) {
-        setSelectedRecord(match);
-        setActiveView('detail');
-      }
-    }
-  }, [querySearch, rawRecords, selectedRecord]);
 
   const submitMut = useMutation({
     mutationFn: (data: ClaimNotificationFormData) =>
@@ -1760,16 +1743,24 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   { label: 'Insurance Provider', value: selectedRecord.insurance_provider },
                   { label: 'Plate Number', value: selectedRecord.plate_number || '—' },
                   { label: 'Policy Number', value: selectedRecord.policy_number },
-                  ...(selectedRecord.policy?.quotation ? [{
+                  ...((selectedRecord.policy?.quotation || selectedRecord.quotation) ? [{
+                    label: 'Quotation Ref',
+                    value: (
+                      <span className="font-mono font-bold text-slate-700">
+                        {(selectedRecord.policy?.quotation || selectedRecord.quotation)?.quotation_number || (selectedRecord.policy?.quotation || selectedRecord.quotation)?.ir_number}
+                      </span>
+                    ) as any
+                  }] : []),
+                  ...((selectedRecord.policy?.quotation || selectedRecord.quotation) ? [{
                     label: 'Remittance Status',
                     value: (
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold border ${
-                        selectedRecord.policy.quotation.is_remitted
+                        (selectedRecord.policy?.quotation || selectedRecord.quotation)?.is_remitted
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                           : 'bg-amber-50 text-amber-800 border-amber-300'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${selectedRecord.policy.quotation.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                        {selectedRecord.policy.quotation.is_remitted ? 'Remitted to Provider' : 'Unremitted'}
+                        <span className={`w-1.5 h-1.5 rounded-full ${(selectedRecord.policy?.quotation || selectedRecord.quotation)?.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        {(selectedRecord.policy?.quotation || selectedRecord.quotation)?.is_remitted ? 'Remitted to Provider' : 'Unremitted'}
                       </span>
                     ) as any
                   }] : []),
@@ -1883,21 +1874,26 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
               <Printer className="h-4 w-4" />
               <span>Print Notification</span>
             </button>
-            {selectedRecord.policy?.quotation && (
+            {(selectedRecord.policy?.quotation || selectedRecord.quotation) && (
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border shadow-xs ${
-                  selectedRecord.policy.quotation.is_remitted
+                  (selectedRecord.policy?.quotation || selectedRecord.quotation)?.is_remitted
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                     : 'bg-amber-50 text-amber-800 border-amber-300'
                 }`}
                 title={
-                  selectedRecord.policy.quotation.is_remitted
-                    ? `Remitted ${selectedRecord.policy.quotation.remitted_at ? 'on ' + new Date(selectedRecord.policy.quotation.remitted_at).toLocaleDateString() : ''}`
+                  (selectedRecord.policy?.quotation || selectedRecord.quotation)?.is_remitted
+                    ? `Remitted ${(selectedRecord.policy?.quotation || selectedRecord.quotation)?.remitted_at ? 'on ' + new Date((selectedRecord.policy?.quotation || selectedRecord.quotation)!.remitted_at!).toLocaleDateString() : ''}`
                     : 'Premium has not yet been remitted to provider'
                 }
               >
-                <span className={`w-2 h-2 rounded-full ${selectedRecord.policy.quotation.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                <span>{selectedRecord.policy.quotation.is_remitted ? 'Remitted' : 'Unremitted'}</span>
+                <span className={`w-2 h-2 rounded-full ${(selectedRecord.policy?.quotation || selectedRecord.quotation)?.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span>{(selectedRecord.policy?.quotation || selectedRecord.quotation)?.is_remitted ? 'Remitted' : 'Unremitted'}</span>
+                {((selectedRecord.policy?.quotation || selectedRecord.quotation)?.quotation_number) && (
+                  <span className="text-[10px] font-mono text-slate-500 ml-1">
+                    ({(selectedRecord.policy?.quotation || selectedRecord.quotation)?.quotation_number})
+                  </span>
+                )}
               </span>
             )}
             <StatusBadge status={selectedRecord.status} />
@@ -2985,30 +2981,46 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     },
     {
       key: 'assured_name', label: 'Assured Name', sortable: true,
-      render: (r: ClaimNotification) => (
-        <div>
-          <p className="font-medium text-slate-800 uppercase">{r.assured_name}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-xs text-slate-500 uppercase">{r.policy_number}</span>
-            {r.policy?.quotation && (
-              <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold border ${
-                r.policy.quotation.is_remitted
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                  : 'bg-amber-50 text-amber-800 border-amber-300'
-              }`}>
-                <span className={`w-1 h-1 rounded-full ${r.policy.quotation.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                {r.policy.quotation.is_remitted ? 'Remitted' : 'Unremitted'}
-              </span>
-            )}
+      render: (r: ClaimNotification) => {
+        const quo = r.policy?.quotation || r.quotation;
+        const quotationCode = quo?.quotation_number || quo?.ir_number;
+        return (
+          <div>
+            <p className="font-medium text-slate-800 uppercase">{r.assured_name}</p>
+            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+              <span className="text-xs text-slate-500 uppercase">{r.policy_number}</span>
+              {quotationCode && (
+                <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-1.5 py-0.2 rounded border border-slate-200 tracking-tight">
+                  {quotationCode}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: 'insurance_provider', label: 'Provider', className: 'hidden lg:table-cell',
       render: (r: ClaimNotification) => (
         <span className="text-sm text-slate-600 uppercase">{r.insurance_provider}</span>
       ),
+    },
+    {
+      key: 'remittance_status', label: 'Remittance', className: 'whitespace-nowrap',
+      render: (r: ClaimNotification) => {
+        const quo = r.policy?.quotation || r.quotation;
+        if (!quo) return <span className="text-xs text-slate-400">—</span>;
+        return (
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+            quo.is_remitted
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+              : 'bg-amber-50 text-amber-800 border-amber-300'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${quo.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            {quo.is_remitted ? 'Remitted' : 'Unremitted'}
+          </span>
+        );
+      },
     },
     {
       key: 'claim_count', label: 'Claim Count', className: 'hidden xl:table-cell',

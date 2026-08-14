@@ -27,6 +27,7 @@ class ClaimNotificationController extends Controller
             'acknowledgedBy:id,name',
             'attachments',
             'policy.quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
+            'quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
         ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'));
@@ -212,6 +213,7 @@ class ClaimNotificationController extends Controller
             'acknowledgedBy:id,name,email',
             'attachments.uploadedBy:id,name',
             'policy.quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
+            'quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
         ])->find($id);
 
         if (!$record) {
