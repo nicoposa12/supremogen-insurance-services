@@ -62,6 +62,14 @@ export default function SummaryCommissionPage() {
   const [perPage, setPerPage] = useState(25);
   const [freebieModalTarget, setFreebieModalTarget] = useState<any | null>(null);
   const [editingSubagentRecord, setEditingSubagentRecord] = useState<any | null>(null);
+  const [selectedNotesModal, setSelectedNotesModal] = useState<{
+    title: string;
+    author?: string;
+    notes: string;
+    quotationNotes?: string;
+    underwriterRemarks?: string;
+    customerNotes?: string;
+  } | null>(null);
 
   const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -329,11 +337,24 @@ export default function SummaryCommissionPage() {
       const estComm = agentMarkup;
       const estIncentive = Number((cust as any)?.incentive || 1000);
 
-      let rawNotes = (inv as any)?.notes || cust?.notes || '';
-      if (rawNotes.includes('Automatically generated invoice')) {
-        rawNotes = cust?.notes || '';
-      }
-      const remarksNotes = rawNotes.trim() ? rawNotes : '—';
+      const quotationNotes = (inv.policy as any)?.quotation?.notes || (inv as any).quotation?.notes || '';
+      const underwriterRemarks = (inv.policy as any)?.quotation?.reviewer_remarks || (inv as any).quotation?.reviewer_remarks || '';
+      const customerNotes = cust?.notes || '';
+      const policyNotes = (inv.policy as any)?.notes || '';
+      const invoiceNotes = (inv as any)?.notes && !(inv as any).notes.includes('Automatically generated invoice') ? (inv as any).notes : '';
+
+      // Prioritize notes entered by Sales Agent / Team Renewal when preparing the quotation or customer record
+      const notesCandidates = [
+        quotationNotes,
+        customerNotes,
+        policyNotes,
+        invoiceNotes,
+        underwriterRemarks
+      ].filter((n) => Boolean(n && typeof n === 'string' && n.trim() && n.trim() !== '—' && !n.includes('Automatically generated invoice')));
+
+      const rawNotes = notesCandidates.length > 0 ? notesCandidates[0].trim() : '';
+      const remarksNotes = rawNotes ? rawNotes : '—';
+      const preparedByName = (inv.policy as any)?.quotation?.preparedBy?.name || (cust as any)?.createdBy?.name || agentName || '';
 
       // Find proof attachments from invoice attachments
       const allAtts: Attachment[] = (inv as any).attachments || [];
@@ -362,6 +383,11 @@ export default function SummaryCommissionPage() {
         totalPremium,
         terms,
         remarksNotes,
+        quotationNotes,
+        underwriterRemarks,
+        customerNotes,
+        policyNotes,
+        preparedByName,
         incentive: estIncentive,
         comm: estComm,
         subAgentMarkup,
@@ -625,10 +651,32 @@ export default function SummaryCommissionPage() {
     {
       key: 'remarksNotes',
       label: 'NOTES',
-      className: 'max-w-[60px] truncate',
-      render: (row: any) => (
-        <span className="text-slate-400 text-[10px] italic truncate block" title={row.remarksNotes}>{row.remarksNotes}</span>
-      ),
+      className: 'text-center whitespace-nowrap w-12',
+      render: (row: any) => {
+        if (!row.remarksNotes || row.remarksNotes === '—') {
+          return <span className="text-slate-350 text-[10px]">—</span>;
+        }
+
+        return (
+          <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setSelectedNotesModal({
+                title: `${row.assuredName} (${row.plateNumber || 'No Plate'})`,
+                author: row.preparedByName,
+                notes: row.remarksNotes,
+                quotationNotes: row.quotationNotes,
+                underwriterRemarks: row.underwriterRemarks,
+                customerNotes: row.customerNotes,
+              })}
+              className="p-1 text-[#4A0E17] hover:bg-[#4A0E17]/10 rounded-lg transition cursor-pointer hover:scale-110"
+              title={`View Notes: ${row.remarksNotes}`}
+            >
+              <FileText className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        );
+      },
     },
     {
       key: 'incentive',
@@ -788,6 +836,36 @@ export default function SummaryCommissionPage() {
           {row.terms}
         </span>
       ),
+    },
+    {
+      key: 'remarksNotes',
+      label: 'NOTES',
+      className: 'text-center whitespace-nowrap w-12',
+      render: (row: any) => {
+        if (!row.remarksNotes || row.remarksNotes === '—') {
+          return <span className="text-slate-350 text-[10px]">—</span>;
+        }
+
+        return (
+          <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setSelectedNotesModal({
+                title: `${row.assuredName} (${row.plateNumber || 'No Plate'})`,
+                author: row.preparedByName,
+                notes: row.remarksNotes,
+                quotationNotes: row.quotationNotes,
+                underwriterRemarks: row.underwriterRemarks,
+                customerNotes: row.customerNotes,
+              })}
+              className="p-1 text-[#4A0E17] hover:bg-[#4A0E17]/10 rounded-lg transition cursor-pointer hover:scale-110"
+              title={`View Notes: ${row.remarksNotes}`}
+            >
+              <FileText className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        );
+      },
     },
     {
       key: 'transac',
@@ -1316,6 +1394,101 @@ export default function SummaryCommissionPage() {
               refetch();
             }}
           />
+        )}
+
+        {/* Notes Viewer Modal */}
+        {selectedNotesModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in"
+            onClick={() => setSelectedNotesModal(null)}
+          >
+            <div
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#4A0E17] to-[#5A121D] text-white">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-white/10 rounded-xl">
+                    <FileText className="h-5 w-5 text-amber-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm">Policy Notes & Remarks</h3>
+                    <p className="text-xs text-amber-100/80 font-medium">{selectedNotesModal.title}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedNotesModal(null)}
+                  className="p-1.5 rounded-full hover:bg-white/10 text-white transition cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                {selectedNotesModal.author && (
+                  <div className="flex items-center justify-between text-xs pb-3 border-b border-slate-100">
+                    <span className="text-slate-400 font-bold uppercase text-[10px]">Prepared By:</span>
+                    <span className="font-bold text-slate-800 uppercase">{selectedNotesModal.author}</span>
+                  </div>
+                )}
+
+                {selectedNotesModal.quotationNotes && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold text-[#4A0E17] uppercase tracking-wider block">
+                      Sales / Renewal Notes
+                    </span>
+                    <p className="text-xs text-slate-700 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 whitespace-pre-wrap leading-relaxed">
+                      {selectedNotesModal.quotationNotes}
+                    </p>
+                  </div>
+                )}
+
+                {selectedNotesModal.customerNotes && selectedNotesModal.customerNotes !== selectedNotesModal.quotationNotes && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">
+                      Customer Profile Notes
+                    </span>
+                    <p className="text-xs text-slate-700 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 whitespace-pre-wrap leading-relaxed">
+                      {selectedNotesModal.customerNotes}
+                    </p>
+                  </div>
+                )}
+
+                {selectedNotesModal.underwriterRemarks && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider block">
+                      Underwriter Review Remarks
+                    </span>
+                    <p className="text-xs text-blue-900 bg-blue-50/70 p-3.5 rounded-2xl border border-blue-200/80 whitespace-pre-wrap leading-relaxed">
+                      {selectedNotesModal.underwriterRemarks}
+                    </p>
+                  </div>
+                )}
+
+                {!selectedNotesModal.quotationNotes && !selectedNotesModal.customerNotes && !selectedNotesModal.underwriterRemarks && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">
+                      Notes
+                    </span>
+                    <p className="text-xs text-slate-700 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 whitespace-pre-wrap leading-relaxed">
+                      {selectedNotesModal.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedNotesModal(null)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Document Preview Modal */}

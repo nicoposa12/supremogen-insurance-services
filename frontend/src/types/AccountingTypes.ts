@@ -29,6 +29,9 @@ export interface SubagentCommissionData {
   amount_3?: number;
   released_date_4?: string;
   amount_4?: number;
+  refund_date?: string;
+  refund_amount?: number;
+  refund_notes?: string;
   notes?: string;
 }
 
@@ -49,7 +52,15 @@ export interface Invoice {
   created_at: string;
   updated_at: string;
   customer?: Customer;
-  policy?: { id: number; policy_number: string; status?: string } | null;
+  policy?: {
+    id: number;
+    policy_number: string;
+    status?: string;
+    notes?: string;
+    terms_and_conditions?: string;
+    quotation?: any;
+    issuedBy?: any;
+  } | null;
   items?: InvoiceItem[];
   payments?: Payment[];
   subagent_commission?: SubagentCommissionData;
