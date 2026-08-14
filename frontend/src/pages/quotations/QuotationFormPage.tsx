@@ -1602,25 +1602,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
               <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Policy Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className={labelClass}>Policy No.#</label>
-                  {canEditPolicyNo ? (
-                    <input
-                      type="text"
-                      value={policyNo}
-                      onChange={(e) => setPolicyNo(e.target.value)}
-                      className={inputClass}
-                      placeholder="Enter policy number..."
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      value={policyNo || ''}
-                      readOnly
-                      disabled
-                      className={`${inputClass} bg-slate-100/80 text-slate-400 cursor-not-allowed`}
-                      placeholder="To be assigned by Underwriter"
-                    />
-                  )}
+                  <label className={labelClass}>Sub-Agent's Name</label>
+                  <input
+                    type="text"
+                    value={subAgentName}
+                    onChange={(e) => setSubAgentName(e.target.value)}
+                    className={inputClass}
+                    placeholder="Enter sub-agent name..."
+                  />
                 </div>
                 <div>
                   <label className={labelClass}>Agent</label>

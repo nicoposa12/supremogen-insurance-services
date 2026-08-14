@@ -293,17 +293,13 @@ export default function SummaryCommissionPage() {
         0
       );
 
-      const subAgentMarkup = Number(
-        (cust as any)?.sub_agent_markup ||
-        cov.sub_agent_markup ||
-        cov.calculator?.sub_agent_markup ||
-        agentMarkup
-      );
+      const rawSubAgentMarkupVal = (cust as any)?.sub_agent_markup ?? cov.sub_agent_markup ?? cov.calculator?.sub_agent_markup;
+      const subAgentMarkup = rawSubAgentMarkupVal !== undefined && rawSubAgentMarkupVal !== null && rawSubAgentMarkupVal !== ''
+        ? Number(rawSubAgentMarkupVal)
+        : 0;
 
-      const subAgentName = (
-        (cust as any)?.sub_agent_name ||
-        agentName
-      ).toUpperCase();
+      const rawSubAgentName = ((cust as any)?.sub_agent_name || cov.sub_agent_name || (cov as any)?.subAgentName || '').trim();
+      const subAgentName = rawSubAgentName ? rawSubAgentName.toUpperCase() : (agentName ? agentName.toUpperCase() : '—');
 
       const subComm = inv.subagent_commission || (inv as any).subagentCommission || {};
 
@@ -351,6 +347,7 @@ export default function SummaryCommissionPage() {
         id: inv.id,
         invoiceNumber: inv.invoice_number,
         agentName,
+        rawSubAgentName,
         subAgentName,
         dateRequestRaw,
         dateRequest,
@@ -403,6 +400,17 @@ export default function SummaryCommissionPage() {
   // Filter rows by user selections
   const filteredRows = useMemo(() => {
     return commissionRows.filter((row) => {
+      // In Sub-Agent tab: only include records that have a sub-agent name OR a sub-agent mark up inputted (> 0) OR recorded releases
+      if (activeTab === 'subagent') {
+        const hasSubAgentName = Boolean(row.rawSubAgentName && row.rawSubAgentName.trim());
+        const hasSubAgentMarkup = Boolean(row.subAgentMarkup && row.subAgentMarkup > 0);
+        const hasSubAgentReleases = Boolean(row.totalReleased && row.totalReleased > 0);
+
+        if (!hasSubAgentName && !hasSubAgentMarkup && !hasSubAgentReleases) {
+          return false;
+        }
+      }
+
       if (selectedMonth && !searchQuery && selectedAgent === 'all' && row.dateRequestRaw) {
         if (row.dateRequestRaw !== selectedMonth) {
           return false;
@@ -469,7 +477,7 @@ export default function SummaryCommissionPage() {
       }
       return true;
     });
-  }, [commissionRows, selectedMonth, selectedAgent, selectedProvider, selectedStatus, selectedBalanceStatus, searchQuery]);
+  }, [commissionRows, selectedMonth, selectedAgent, selectedProvider, selectedStatus, selectedBalanceStatus, searchQuery, activeTab]);
 
   // Calculate totals
   const totalPremiumSum = useMemo(
@@ -716,12 +724,19 @@ export default function SummaryCommissionPage() {
     },
     {
       key: 'subAgentName',
-      label: 'AGENT',
-      className: 'whitespace-nowrap max-w-[90px] truncate',
+      label: 'SUB-AGENT',
+      className: 'whitespace-nowrap max-w-[95px] truncate',
       render: (row: any) => (
-        <span className="font-bold text-slate-800 uppercase text-[9.5px] truncate block" title={row.subAgentName}>
-          {row.subAgentName}
-        </span>
+        <div>
+          <span className="font-bold text-slate-800 uppercase text-[9.5px] truncate block" title={row.rawSubAgentName || row.subAgentName}>
+            {row.rawSubAgentName ? row.rawSubAgentName.toUpperCase() : row.agentName}
+          </span>
+          {row.rawSubAgentName && row.agentName && (
+            <span className="text-[8px] text-slate-400 font-medium block truncate" title={`Agent: ${row.agentName}`}>
+              By: {row.agentName}
+            </span>
+          )}
+        </div>
       ),
     },
     {
