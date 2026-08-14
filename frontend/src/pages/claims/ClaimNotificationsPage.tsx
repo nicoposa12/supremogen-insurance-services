@@ -156,13 +156,6 @@ const THEFT_AND_LOSS_REQUIREMENTS = [
   { key: 'tal_7', label: '7. CCTV or proof na ninakaw' },
 ];
 
-const CNC_REQUIREMENTS = [
-  { key: 'cnc_1', label: '1. READABLE ORCR of both parties.' },
-  { key: 'cnc_2', label: '2. READABLE DRIVERS LICENSE of both parties. (FRONT & BACK).' },
-  { key: 'cnc_3', label: '3. Pictures of vehicle showing plate no and damages parts' },
-  { key: 'cnc_4', label: '4. Affidavit or Police Report.' },
-];
-
 const COMPLETED_REQUIREMENTS = [
   { key: 'comp_1', label: 'EVALUATION LETTER' },
   { key: 'comp_2', label: 'LOA' },
@@ -395,9 +388,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     if (upper.includes('THEFT AND LOSS CLAIM') || upper.includes('[THEFT AND LOSS CLAIM]')) {
       return 'THEFT AND LOSS';
     }
-    if (upper.includes('CNC (CERTIFICATE OF NO CLAIM)') || upper.includes('[CNC (CERTIFICATE OF NO CLAIM)]')) {
-      return 'CNC (CERTIFICATE OF NO CLAIM)';
-    }
     return '';
   };
 
@@ -420,8 +410,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
         return '[ACT OF NATURE CLAIM]\n\n';
       case 'THEFT AND LOSS':
         return '[THEFT AND LOSS CLAIM]\n\n';
-      case 'CNC (CERTIFICATE OF NO CLAIM)':
-        return '[CNC (CERTIFICATE OF NO CLAIM)]\n\n';
       default:
         return '';
     }
@@ -431,7 +419,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     if (!text) return '';
 
     // 1. Clean up new bracketed headers
-    const bracketRegex = /^\[(OWN DAMAGE CLAIM REQUIREMENTS & THIRD PARTY \(TTPD\) CLAIM - REQUIREMENTS|OWN DAMAGE CLAIM REQUIREMENTS|THIRD PARTY \(TTPD\) CLAIM - REQUIREMENTS|ACT OF NATURE CLAIM|THEFT AND LOSS CLAIM|CNC \(CERTIFICATE OF NO CLAIM\))\]\n?\n?/;
+    const bracketRegex = /^\[(OWN DAMAGE CLAIM REQUIREMENTS & THIRD PARTY \(TTPD\) CLAIM - REQUIREMENTS|OWN DAMAGE CLAIM REQUIREMENTS|THIRD PARTY \(TTPD\) CLAIM - REQUIREMENTS|ACT OF NATURE CLAIM|THEFT AND LOSS CLAIM)\]\n?\n?/;
     if (bracketRegex.test(text)) {
       return text.replace(bracketRegex, '').trim();
     }
@@ -462,7 +450,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     // Old simple ones
     if (text.trim() === 'ACT OF NATURE CLAIM') return '';
     if (text.trim() === 'THEFT AND LOSS CLAIM') return '';
-    if (text.trim() === 'CNC (CERTIFICATE OF NO CLAIM)') return '';
 
     return text;
   };
@@ -711,9 +698,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
               } else if (key.startsWith('tal_')) {
                 const req = THEFT_AND_LOSS_REQUIREMENTS.find((r) => r.key === key);
                 label = req ? req.label : 'Requirement Document';
-              } else if (key.startsWith('cnc_')) {
-                const req = CNC_REQUIREMENTS.find((r) => r.key === key);
-                label = req ? req.label : 'Requirement Document';
               } else if (key.startsWith('comp_')) {
                 const req = COMPLETED_REQUIREMENTS.find((r) => r.key === key);
                 label = req ? req.label : 'Requirement Document';
@@ -858,9 +842,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
             label = req ? req.label : 'Requirement Document';
           } else if (key.startsWith('tal_')) {
             const req = THEFT_AND_LOSS_REQUIREMENTS.find((r) => r.key === key);
-            label = req ? req.label : 'Requirement Document';
-          } else if (key.startsWith('cnc_')) {
-            const req = CNC_REQUIREMENTS.find((r) => r.key === key);
             label = req ? req.label : 'Requirement Document';
           } else if (key.startsWith('comp_')) {
             const req = COMPLETED_REQUIREMENTS.find((r) => r.key === key);
@@ -1532,91 +1513,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
             </div>
           )}
 
-          {/* CNC Requirements */}
-          {!completedOnly && (selectedRecord.status as string) !== 'completed' && detailClaimType === 'CNC (CERTIFICATE OF NO CLAIM)' && (
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">CNC Requirements (Upload Attachments)</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {CNC_REQUIREMENTS.map((req) => (
-                  <div key={req.key} className="space-y-1">
-                    <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="file"
-                          id={`detail-file-${req.key}`}
-                          multiple
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files || []);
-                            if (files.length > 0) {
-                              setRequirementFiles((prev) => ({
-                                ...prev,
-                                [req.key]: [...(prev[req.key] || []), ...files],
-                              }));
-                            }
-                          }}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor={`detail-file-${req.key}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                        >
-                          <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                          <span>Choose File</span>
-                        </label>
-                        {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
-                          <span className="text-xs text-slate-400 italic">No files selected</span>
-                        )}
-                      </div>
-
-                      {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {requirementFiles[req.key].map((file, idx) => (
-                            <div key={idx} className="inline-flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 px-2 py-1 rounded-lg text-xs text-slate-700">
-                              <Paperclip className="h-3 w-3 text-slate-400 shrink-0" />
-                              <span className="truncate max-w-[120px]">{file.name}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRequirementFiles((prev) => {
-                                    const list = (prev[req.key] || []).filter((_, i) => i !== idx);
-                                    const copy = { ...prev };
-                                    if (list.length === 0) {
-                                      delete copy[req.key];
-                                    } else {
-                                      copy[req.key] = list;
-                                    }
-                                    return copy;
-                                  });
-                                }}
-                                className="text-slate-455 hover:text-red-500 transition cursor-pointer"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                      <div className="mt-1">
-                        <input
-                          type="text"
-                          placeholder="Add a brief note for this file..."
-                          value={requirementNotes[req.key] || ''}
-                          onChange={(e) => {
-                            setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
-                          }}
-                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
-                        />
-                      </div>
-                    )}
-                    {renderUploadedRequirementFiles(req.label)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Completed Claim Requirements (Evaluation Letter, LOA, Offer Letter, Denied Claim) */}
           {((selectedRecord.status as string) === 'completed' || completedOnly) && (
@@ -2408,7 +2304,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                       <option value="OWN DAMAGE & TTPD">OWN DAMAGE & TTPD</option>
                       <option value="ACT OF NATURE">ACT OF NATURE</option>
                       <option value="THEFT AND LOSS">THEFT AND LOSS</option>
-                      <option value="CNC (CERTIFICATE OF NO CLAIM)">CNC (CERTIFICATE OF NO CLAIM)</option>
                     </select>
                   </div>
                 </div>
@@ -2771,92 +2666,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                       </div>
                     )}
 
-                    {/* CNC Requirements */}
-                    {claimType === 'CNC (CERTIFICATE OF NO CLAIM)' && (
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                        <p className="text-xs font-bold text-[#4A0E17] uppercase tracking-wider">
-                          CNC Requirements (Upload Attachments)
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {CNC_REQUIREMENTS.map((req) => (
-                            <div key={req.key} className="space-y-1">
-                              <span className="block text-[11px] font-semibold text-slate-500 leading-tight">{req.label}</span>
-                              <div className="flex flex-col gap-1.5">
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="file"
-                                    id={`form-file-${req.key}`}
-                                    multiple
-                                    onChange={(e) => {
-                                      const files = Array.from(e.target.files || []);
-                                      if (files.length > 0) {
-                                        setRequirementFiles((prev) => ({
-                                          ...prev,
-                                          [req.key]: [...(prev[req.key] || []), ...files],
-                                        }));
-                                      }
-                                    }}
-                                    className="hidden"
-                                  />
-                                  <label
-                                    htmlFor={`form-file-${req.key}`}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                                  >
-                                    <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                                    <span>Choose File</span>
-                                  </label>
-                                  {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
-                                    <span className="text-xs text-slate-400 italic">No files selected</span>
-                                  )}
-                                </div>
 
-                                {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {requirementFiles[req.key].map((file, idx) => (
-                                      <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900 shadow-2xs">
-                                        <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
-                                        <span className="truncate max-w-[120px]">{file.name}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setRequirementFiles((prev) => {
-                                              const list = (prev[req.key] || []).filter((_, i) => i !== idx);
-                                              const copy = { ...prev };
-                                              if (list.length === 0) {
-                                                delete copy[req.key];
-                                              } else {
-                                                copy[req.key] = list;
-                                              }
-                                              return copy;
-                                            });
-                                          }}
-                                          className="text-emerald-700 hover:text-red-500 transition cursor-pointer"
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                                <div className="mt-1">
-                                  <input
-                                    type="text"
-                                    placeholder="Add a brief note for this file..."
-                                    value={requirementNotes[req.key] || ''}
-                                    onChange={(e) => {
-                                      setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
-                                    }}
-                                    className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Additional Custom Attachments */}
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
