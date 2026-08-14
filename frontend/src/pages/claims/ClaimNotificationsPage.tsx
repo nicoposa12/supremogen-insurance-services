@@ -283,6 +283,75 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     setViewAttachment(null);
   };
 
+  const renderAttachmentPreviewModal = () => {
+    if (!viewAttachment) return null;
+    const [docTitle, docNote] = viewAttachment.document_type
+      ? viewAttachment.document_type.split(' | Note: ')
+      : [viewAttachment.file_name, ''];
+
+    return (
+      <div
+        onClick={handleCloseViewAttachment}
+        className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print cursor-pointer"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh] cursor-default"
+        >
+          <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
+            <div>
+              <h3 className="text-white font-bold text-base">{docTitle}</h3>
+              <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[550px]">
+                {viewAttachment.file_name} ({(viewAttachment.file_size / 1024).toFixed(1)} KB) | Uploaded: {new Date(viewAttachment.created_at).toLocaleDateString()} {new Date(viewAttachment.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })} {docNote ? ` | Note: ${docNote}` : ''}
+              </p>
+            </div>
+            <button
+              onClick={handleCloseViewAttachment}
+              className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
+            {isLoadingPreview ? (
+              <div className="flex flex-col items-center justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-[#4A0E17] mb-2" />
+                <p className="text-xs text-slate-500 font-medium">Loading preview...</p>
+              </div>
+            ) : previewBlobUrl && viewAttachment.mime_type.startsWith('image/') ? (
+              <img
+                src={previewBlobUrl}
+                alt={docTitle}
+                className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
+              />
+            ) : previewBlobUrl && viewAttachment.mime_type === 'application/pdf' ? (
+              <iframe
+                src={previewBlobUrl}
+                title={docTitle}
+                className="w-full h-[60vh] rounded-lg border border-slate-200"
+              />
+            ) : (
+              <div className="text-center space-y-4 p-8">
+                <FileText className="h-16 w-16 text-slate-400 mx-auto" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
+                  <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => downloadAttachment(viewAttachment.id, viewAttachment.file_name)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+                >
+                  <Download className="h-4 w-4" /> Download File
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Listen to Escape key to close modals
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2019,6 +2088,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
           </div>
         )}
 
+        {renderAttachmentPreviewModal()}
 
       </div>
     );
@@ -3287,70 +3357,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
         </div>
       )}
 
-      {viewAttachment && (() => {
-        const [docTitle, docNote] = viewAttachment.document_type ? viewAttachment.document_type.split(' | Note: ') : [viewAttachment.file_name, ''];
-        return (
-          <div
-            onClick={handleCloseViewAttachment}
-            className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print cursor-pointer"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full overflow-hidden animate-scale-in flex flex-col max-h-[85vh] cursor-default"
-            >
-              <div className="bg-[#4A0E17] px-6 py-4 flex items-center justify-between shrink-0">
-                <div>
-                  <h3 className="text-white font-bold text-base">{docTitle}</h3>
-                  <p className="text-[11px] text-white/70 mt-0.5 truncate max-w-[550px]">
-                    {viewAttachment.file_name} ({(viewAttachment.file_size / 1024).toFixed(1)} KB) | Uploaded: {new Date(viewAttachment.created_at).toLocaleDateString()} {new Date(viewAttachment.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })} {docNote ? ` | Note: ${docNote}` : ''}
-                  </p>
-                </div>
-                <button
-                  onClick={handleCloseViewAttachment}
-                  className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="p-6 overflow-y-auto flex-1 bg-slate-50 flex items-center justify-center min-h-[300px]">
-                {isLoadingPreview ? (
-                  <div className="flex flex-col items-center justify-center p-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#4A0E17] mb-2" />
-                    <p className="text-xs text-slate-500 font-medium">Loading preview...</p>
-                  </div>
-                ) : previewBlobUrl && viewAttachment.mime_type.startsWith('image/') ? (
-                  <img
-                    src={previewBlobUrl}
-                    alt={docTitle}
-                    className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
-                  />
-                ) : previewBlobUrl && viewAttachment.mime_type === 'application/pdf' ? (
-                  <iframe
-                    src={previewBlobUrl}
-                    title={docTitle}
-                    className="w-full h-[60vh] rounded-lg border border-slate-200"
-                  />
-                ) : (
-                  <div className="text-center space-y-4 p-8">
-                    <FileText className="h-16 w-16 text-slate-400 mx-auto" />
-                    <div>
-                      <p className="text-sm font-semibold text-slate-700">Preview not available for this file type</p>
-                      <p className="text-xs text-slate-500 mt-1">This file can be downloaded for viewing.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => downloadAttachment(viewAttachment.id, viewAttachment.file_name)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition cursor-pointer"
-                    >
-                      <Download className="h-4 w-4" /> Download File
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {renderAttachmentPreviewModal()}
 
     </div>
   );
