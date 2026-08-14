@@ -84,6 +84,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/invoices/{invoice}/main-agent-commission', [InvoiceController::class, 'updateMainAgentCommission']);
 
         // Payments
+        Route::get('/payments/check-ref-no', [PaymentController::class, 'checkRefNo']);
         Route::get('/payments', [PaymentController::class, 'index']);
         Route::post('/payments', [PaymentController::class, 'store']);
         Route::get('/payments/{payment}', [PaymentController::class, 'show']);

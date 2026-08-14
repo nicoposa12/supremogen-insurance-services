@@ -31,7 +31,7 @@ import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
 import FreebieAttachmentModal from '../../components/modals/FreebieAttachmentModal';
-import { getPayments, verifyPayment } from '../../services/paymentApi';
+import { getPayments, verifyPayment, checkPaymentRefNo } from '../../services/paymentApi';
 import { PAYMENT_METHOD_LABELS } from '../../types/AccountingTypes';
 import type { Payment, PaymentListParams } from '../../types/AccountingTypes';
 import { getDownloadUrl } from '../../utils/url';
@@ -69,6 +69,10 @@ export default function ReviewCollectionPaymentPage() {
   const [specialFiles, setSpecialFiles] = useState<File[]>([]);
   const [deletingAttId, setDeletingAttId] = useState<number | null>(null);
   const [freebieModalTarget, setFreebieModalTarget] = useState<Payment | null>(null);
+
+  // Duplicate Reference Number Validation States
+  const [duplicateRefPaymentNumber, setDuplicateRefPaymentNumber] = useState<string | null>(null);
+  const [isCheckingRef, setIsCheckingRef] = useState<boolean>(false);
 
   const hasAutoOpenedRef = useRef(false);
 
@@ -144,6 +148,51 @@ export default function ReviewCollectionPaymentPage() {
 
   const pagination = response?.data;
   const payments = pagination?.data ?? [];
+
+  // Real-time Duplicate Reference Number validation effect
+  useEffect(() => {
+    const trimmed = verificationRefNo.trim();
+    if (!trimmed || !selectedPayment) {
+      setDuplicateRefPaymentNumber(null);
+      return;
+    }
+
+    // Fast local dataset check first
+    const localDup = payments.find(
+      (p) =>
+        p.id !== selectedPayment.id &&
+        ((p.accounting_ref_no && p.accounting_ref_no.trim().toLowerCase() === trimmed.toLowerCase()) ||
+          (p.reference_number && p.reference_number.trim().toLowerCase() === trimmed.toLowerCase()))
+    );
+
+    if (localDup) {
+      setDuplicateRefPaymentNumber(localDup.payment_number);
+    }
+
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      try {
+        setIsCheckingRef(true);
+        const res = await checkPaymentRefNo(trimmed, selectedPayment.id);
+        if (isMounted) {
+          if (res.is_duplicate && res.duplicate_payment) {
+            setDuplicateRefPaymentNumber(res.duplicate_payment.payment_number);
+          } else if (!localDup) {
+            setDuplicateRefPaymentNumber(null);
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (isMounted) setIsCheckingRef(false);
+      }
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [verificationRefNo, selectedPayment, payments]);
 
   // Auto-open verify modal when coming from notification link (only once per query search)
   useEffect(() => {
@@ -244,6 +293,8 @@ export default function ReviewCollectionPaymentPage() {
     setActionType(action);
     setVerificationNotes(payment.verification_notes || '');
     setVerificationRefNo(payment.accounting_ref_no || '');
+    setDuplicateRefPaymentNumber(null);
+    setIsCheckingRef(false);
     const currentStatus = (payment.verification_status as string) || '';
     setSelectedVerificationStatus(
       currentStatus &&
@@ -269,25 +320,28 @@ export default function ReviewCollectionPaymentPage() {
   const columns = [
     {
       key: 'payment_number',
-      label: 'Payment No.',
+      label: 'PAY NO.',
+      className: 'whitespace-nowrap',
       render: (p: Payment) => (
-        <span className="font-mono text-xs font-bold text-[#4A0E17]">
+        <span className="font-mono text-[10.5px] font-bold text-[#4A0E17]">
           {p.payment_number}
         </span>
       ),
     },
     {
       key: 'reference_number',
-      label: 'Ref / Check / Tracking No.',
+      label: 'REF / CHECK NO.',
+      className: 'whitespace-nowrap max-w-[90px] truncate',
       render: (p: Payment) => (
-        <span className="font-mono text-xs font-medium text-slate-600">
+        <span className="font-mono text-[10.5px] text-slate-600 truncate block" title={p.reference_number || undefined}>
           {p.reference_number || '—'}
         </span>
       ),
     },
     {
       key: 'client',
-      label: 'Client & Policy',
+      label: 'CLIENT & POLICY',
+      className: 'max-w-[135px] truncate',
       render: (p: Payment) => {
         const cust = p.invoice?.customer;
         const clientName = cust
@@ -296,44 +350,45 @@ export default function ReviewCollectionPaymentPage() {
         const policyNo = cust?.policy_no || (p.invoice as any)?.policy?.policy_number || p.invoice?.invoice_number || '—';
         const reqNo = (p.invoice as any)?.policy?.quotation?.quotation_number || (p.invoice as any)?.policy?.quotation?.ir_number;
 
-        const isCancelled =
-          (p.invoice as any)?.status === 'cancelled' ||
-          (p.invoice as any)?.status === 'voided' ||
-          (p.invoice as any)?.policy?.status?.toLowerCase() === 'cancelled' ||
-          (p.invoice as any)?.policy?.quotation?.status?.toLowerCase() === 'cancelled' ||
-          (cust as any)?.policy_status?.toUpperCase() === 'CANCELLED';
-
         return (
-          <div>
-            <p className="font-bold text-slate-800 text-xs uppercase tracking-tight">{clientName}</p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              Policy: {policyNo} {reqNo && <span className="text-slate-350 font-normal"> • </span>} {reqNo && <span className="text-blue-700 font-semibold">{reqNo}</span>}
+          <div className="flex flex-col">
+            <p className="font-bold text-slate-800 text-[11px] uppercase tracking-tight truncate" title={clientName}>{clientName}</p>
+            <p className="text-[9.5px] font-mono text-slate-500 truncate" title={`Policy: ${policyNo}`}>
+              {policyNo}
             </p>
+            {reqNo && (
+              <p className="text-[9.5px] font-mono font-semibold text-blue-700 truncate" title={`Quotation: ${reqNo}`}>
+                {reqNo}
+              </p>
+            )}
           </div>
         );
       },
     },
     {
       key: 'payment_method',
-      label: 'Method',
+      label: 'METHOD',
+      className: 'whitespace-nowrap',
       render: (p: Payment) => (
-        <span className="inline-flex items-center px-2.5 py-1 bg-slate-100 text-slate-700 text-[11px] font-medium rounded-md border border-slate-200/60">
+        <span className="inline-flex items-center px-1.5 py-0.5 bg-slate-100 text-slate-700 text-[9.5px] font-bold rounded border border-slate-200/60 uppercase">
           {PAYMENT_METHOD_LABELS[p.payment_method] || p.payment_method}
         </span>
       ),
     },
     {
       key: 'amount',
-      label: 'Amount Collected',
+      label: 'AMOUNT',
+      className: 'whitespace-nowrap',
       render: (p: Payment) => (
-        <span className="font-mono text-xs font-bold text-emerald-700">
+        <span className="font-mono text-[11px] font-black text-emerald-700">
           ₱{Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </span>
       ),
     },
     {
       key: 'payment_date',
-      label: 'Date & Collector',
+      label: 'COLLECTED',
+      className: 'whitespace-nowrap',
       render: (p: Payment) => {
         const collectorName = typeof p.received_by === 'object' ? p.received_by?.name : 'Collection Officer';
         const dateStr = p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : '—');
@@ -341,43 +396,44 @@ export default function ReviewCollectionPaymentPage() {
 
         return (
           <div>
-            <p className="text-xs font-bold text-slate-800 flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-slate-500" />
+            <p className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
+              <Calendar className="h-2.5 w-2.5 text-slate-400" />
               {dateStr}
             </p>
             {timeStr && (
-              <p className="text-[11px] font-mono font-medium text-slate-600 mt-0.5">
+              <p className="text-[9px] font-mono font-medium text-slate-500">
                 {timeStr}
               </p>
             )}
-            <p className="text-[10px] text-slate-400 font-normal mt-0.5">By: {collectorName}</p>
+            <p className="text-[8.5px] text-slate-400 truncate max-w-[85px]" title={collectorName}>By: {collectorName}</p>
           </div>
         );
       },
     },
     {
       key: 'proof',
-      label: 'Proof & Special Attachment',
+      label: 'ATTACHMENT',
+      className: 'whitespace-nowrap',
       render: (p: Payment) => {
         const atts = p.attachments?.filter((a) => a.document_type !== 'special_attachment' && !a.file_name?.toLowerCase().includes('special attachment')) || [];
         const specialAtts = p.attachments?.filter((a) => a.document_type === 'special_attachment' || a.file_name?.toLowerCase().includes('special attachment')) || [];
 
         if (atts.length === 0 && specialAtts.length === 0) {
-          return <span className="text-xs text-slate-300 font-medium">—</span>;
+          return <span className="text-[10px] text-slate-300 font-medium">—</span>;
         }
 
         return (
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-col items-start gap-1">
             {atts.length === 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleViewProof(atts[0], atts);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[9.5px] rounded border border-slate-200 transition cursor-pointer shadow-2xs"
                 title={`View Proof (${atts[0].file_name})`}
               >
-                <Paperclip className="h-3 w-3 text-slate-500" /> Proof
+                <Paperclip className="h-2.5 w-2.5 text-slate-500" /> Proof
               </button>
             )}
             {atts.length > 1 && (
@@ -386,10 +442,10 @@ export default function ReviewCollectionPaymentPage() {
                   e.stopPropagation();
                   handleViewProof(atts[0], atts);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[9.5px] rounded border border-slate-200 transition cursor-pointer shadow-2xs"
                 title={`View all ${atts.length} proof attachments`}
               >
-                <Paperclip className="h-3 w-3 text-slate-500" /> Proofs ({atts.length})
+                <Paperclip className="h-2.5 w-2.5 text-slate-500" /> Proofs ({atts.length})
               </button>
             )}
             {specialAtts.length === 1 && (
@@ -398,10 +454,10 @@ export default function ReviewCollectionPaymentPage() {
                   e.stopPropagation();
                   handleViewProof(specialAtts[0], specialAtts);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[11px] rounded-lg border border-amber-300 transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[9.5px] rounded border border-amber-300 transition cursor-pointer shadow-2xs"
                 title={`View Special Attachment (${specialAtts[0].file_name})`}
               >
-                <Paperclip className="h-3 w-3 text-amber-600" /> Special File
+                <Paperclip className="h-2.5 w-2.5 text-amber-600" /> Special
               </button>
             )}
             {specialAtts.length > 1 && (
@@ -410,10 +466,10 @@ export default function ReviewCollectionPaymentPage() {
                   e.stopPropagation();
                   handleViewProof(specialAtts[0], specialAtts);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[11px] rounded-lg border border-amber-300 transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-[9.5px] rounded border border-amber-300 transition cursor-pointer shadow-2xs"
                 title={`View all ${specialAtts.length} special attachments`}
               >
-                <Paperclip className="h-3 w-3 text-amber-600" /> Special Files ({specialAtts.length})
+                <Paperclip className="h-2.5 w-2.5 text-amber-600" /> Special ({specialAtts.length})
               </button>
             )}
           </div>
@@ -422,96 +478,149 @@ export default function ReviewCollectionPaymentPage() {
     },
     {
       key: 'accounting_ref_no',
-      label: 'Ref No',
+      label: 'REF NO',
+      className: 'whitespace-nowrap',
       render: (p: Payment) => (
-        <span className="font-mono text-xs font-bold text-slate-800">
+        <span className="font-mono text-[10.5px] font-bold text-slate-800">
           {p.accounting_ref_no || '—'}
         </span>
       ),
     },
     {
       key: 'verification_status',
-      label: 'Verification Status',
+      label: 'STATUS',
+      className: 'whitespace-nowrap',
       render: (p: Payment) => {
         const rawStatus = (p.verification_status || 'pending_verification').trim();
         const upperStatus = rawStatus.toUpperCase();
 
         if (upperStatus === 'REFLECTED PBCOM' || upperStatus === 'REFLECTED_PBCOM') {
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-900 border border-emerald-300/80 text-[10px] font-black rounded-md uppercase tracking-wider">
-              <Building2 className="h-3.5 w-3.5 text-emerald-700" /> REFLECTED PBCOM
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-900 border border-emerald-300/80 text-[8.5px] font-black rounded uppercase tracking-tight">
+              <Building2 className="h-2.5 w-2.5 text-emerald-700" /> PBCOM
             </span>
           );
         }
         if (upperStatus === 'REFLECTED SECURITY BANK' || upperStatus === 'REFLECTED_SECURITY_BANK') {
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-900 border border-teal-300/80 text-[10px] font-black rounded-md uppercase tracking-wider">
-              <Building2 className="h-3.5 w-3.5 text-teal-700" /> REFLECTED SECURITY BANK
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-teal-50 text-teal-900 border border-teal-300/80 text-[8.5px] font-black rounded uppercase tracking-tight">
+              <Building2 className="h-2.5 w-2.5 text-teal-700" /> SECURITY BANK
             </span>
           );
         }
         if (upperStatus === 'JNT SOA' || upperStatus === 'JNT_SOA') {
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-900 border border-blue-300/80 text-[10px] font-black rounded-md uppercase tracking-wider">
-              <Truck className="h-3.5 w-3.5 text-blue-700" /> JNT SOA
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-900 border border-blue-300/80 text-[8.5px] font-black rounded uppercase tracking-tight">
+              <Truck className="h-2.5 w-2.5 text-blue-700" /> JNT SOA
             </span>
           );
         }
         if (upperStatus === 'CLEARED CHECK' || upperStatus === 'CLEARED_CHECK') {
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-900 border border-purple-300/80 text-[10px] font-black rounded-md uppercase tracking-wider">
-              <CheckCircle2 className="h-3.5 w-3.5 text-purple-700" /> CLEARED CHECK
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-50 text-purple-900 border border-purple-300/80 text-[8.5px] font-black rounded uppercase tracking-tight">
+              <CheckCircle2 className="h-2.5 w-2.5 text-purple-700" /> CLEARED
             </span>
           );
         }
         if (upperStatus === 'VERIFIED') {
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-900 border border-emerald-300/80 text-[10px] font-extrabold rounded-md uppercase tracking-wider">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> VERIFIED
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-900 border border-emerald-300/80 text-[8.5px] font-extrabold rounded uppercase tracking-tight">
+              <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" /> VERIFIED
             </span>
           );
         }
         if (upperStatus === 'REJECTED') {
           return (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-900 border border-rose-300/80 text-[10px] font-extrabold rounded-md uppercase tracking-wider">
-              <XCircle className="h-3.5 w-3.5 text-rose-600" /> REJECTED
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 text-rose-900 border border-rose-300/80 text-[8.5px] font-extrabold rounded uppercase tracking-tight">
+              <XCircle className="h-2.5 w-2.5 text-rose-600" /> REJECTED
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300/80 text-[10px] font-extrabold rounded-md uppercase tracking-wider">
-            <Clock className="h-3.5 w-3.5 text-amber-600" /> PENDING FOR VERIFICATION
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-900 border border-amber-300/80 text-[8.5px] font-extrabold rounded uppercase tracking-tight">
+            <Clock className="h-2.5 w-2.5 text-amber-600" /> PENDING
           </span>
         );
       },
     },
     {
       key: 'verified_at',
-      label: 'Verified Date & Time',
+      label: 'VERIFIED',
+      className: 'whitespace-nowrap',
       render: (p: Payment) => {
         if (!p.verified_at) {
-          return <span className="text-xs text-slate-300 font-medium">—</span>;
+          return <span className="text-[10px] text-slate-300 font-medium">—</span>;
         }
 
         const d = new Date(p.verified_at);
         const dateStr = d.toLocaleDateString();
-        const timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        const timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
         const verifierName = typeof p.verified_by === 'object' && p.verified_by ? (p.verified_by as any).name : (p as any).verified_by_user?.name || (p as any).verifiedBy?.name;
 
         return (
           <div>
-            <p className="text-xs font-bold text-slate-800 flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-emerald-600" />
+            <p className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
+              <Calendar className="h-2.5 w-2.5 text-emerald-600" />
               {dateStr}
             </p>
-            <p className="text-[11px] font-mono font-bold text-emerald-700 mt-0.5">
+            <p className="text-[9px] font-mono font-bold text-emerald-700">
               {timeStr}
             </p>
             {verifierName && (
-              <p className="text-[10px] text-slate-400 font-normal mt-0.5">
+              <p className="text-[8.5px] text-slate-400 truncate max-w-[80px]" title={verifierName}>
                 By: {verifierName}
               </p>
             )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'remaining_balance',
+      label: 'REMAINING BAL',
+      className: 'whitespace-nowrap',
+      render: (p: Payment) => {
+        if (!p.invoice || p.invoice.balance === undefined || p.invoice.balance === null) {
+          return <span className="text-[10px] text-slate-300 font-medium">—</span>;
+        }
+
+        const bal = Number(p.invoice.balance);
+        const isCancelled =
+          (p.invoice as any)?.status === 'cancelled' ||
+          (p.invoice as any)?.status === 'voided' ||
+          (p.invoice as any)?.policy?.status?.toLowerCase() === 'cancelled' ||
+          (p.invoice as any)?.policy?.quotation?.status?.toLowerCase() === 'cancelled' ||
+          (p.invoice as any)?.customer?.policy_status?.toUpperCase() === 'CANCELLED';
+
+        if (isCancelled) {
+          return (
+            <span className="text-[10px] font-bold text-rose-600 uppercase font-mono">
+              ₱0.00
+            </span>
+          );
+        }
+
+        if (bal <= 0) {
+          return (
+            <div className="flex flex-col">
+              <span className="text-[10.5px] font-black font-mono text-emerald-700">
+                ₱0.00
+              </span>
+              <span className="text-[8.5px] font-extrabold text-emerald-600 uppercase">
+                Fully Paid
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex flex-col">
+            <span className="text-[10.5px] font-black font-mono text-[#4A0E17]">
+              ₱{bal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-[8.5px] font-bold text-slate-400 uppercase">
+              Pending Bal
+            </span>
           </div>
         );
       },
@@ -520,8 +629,9 @@ export default function ReviewCollectionPaymentPage() {
       ? [
           {
             key: 'action',
-            label: 'Action',
-            headerClassName: 'text-right w-28 whitespace-nowrap',
+            label: 'ACTION',
+            headerClassName: 'text-right whitespace-nowrap',
+            className: 'whitespace-nowrap text-right',
             render: (p: Payment) => {
               const status = (p.verification_status || 'pending_verification').toUpperCase();
               const isVerified =
@@ -542,10 +652,10 @@ export default function ReviewCollectionPaymentPage() {
                 return (
                   <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
                     <span
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-rose-700 border border-rose-200/60 text-[10px] font-bold rounded-md cursor-not-allowed opacity-80"
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 text-rose-700 border border-rose-200/60 text-[9px] font-bold rounded cursor-not-allowed opacity-80"
                       title="Cannot verify payment for a cancelled policy or voided invoice"
                     >
-                      <XCircle className="h-3 w-3 text-rose-500" /> Cancelled
+                      <XCircle className="h-2.5 w-2.5 text-rose-500" /> Cancelled
                     </span>
                   </div>
                 );
@@ -556,10 +666,10 @@ export default function ReviewCollectionPaymentPage() {
                   <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => openVerifyModal(p, 'verified')}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-[#4A0E17] text-slate-600 hover:text-white font-bold text-[11px] rounded-lg border border-slate-200/80 transition cursor-pointer shadow-2xs"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 hover:bg-[#4A0E17] text-slate-600 hover:text-white font-bold text-[10px] rounded-md border border-slate-200/80 transition cursor-pointer shadow-2xs"
                       title="Edit verification status"
                     >
-                      <Edit3 className="h-3 w-3" /> Edit
+                      <Edit3 className="h-2.5 w-2.5" /> Edit
                     </button>
                   </div>
                 );
@@ -569,18 +679,18 @@ export default function ReviewCollectionPaymentPage() {
                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => openVerifyModal(p, 'verified')}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] rounded-lg shadow-2xs transition cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] rounded-md shadow-2xs transition cursor-pointer"
                     title="Verify and approve payment"
                   >
-                    <Check className="h-3 w-3" /> Approve
+                    <Check className="h-2.5 w-2.5" /> Approve
                   </button>
                   {!isRejected && (
                     <button
                       onClick={() => openVerifyModal(p, 'rejected')}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded-lg border border-rose-200 transition cursor-pointer"
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[10px] rounded-md border border-rose-200 transition cursor-pointer"
                       title="Reject payment"
                     >
-                      <X className="h-3 w-3" /> Reject
+                      <X className="h-2.5 w-2.5" /> Reject
                     </button>
                   )}
                 </div>
@@ -753,7 +863,7 @@ export default function ReviewCollectionPaymentPage() {
           />
         ) : (
           <>
-            <DataTable data={payments} columns={columns} />
+            <DataTable data={payments} columns={columns} dense={true} />
             {pagination && (
               <Pagination
                 currentPage={pagination.current_page}
@@ -963,14 +1073,37 @@ export default function ReviewCollectionPaymentPage() {
                     <Hash className="h-3.5 w-3.5 text-[#4A0E17]" />
                     Reference Number (Optional)
                   </span>
+                  {isCheckingRef && (
+                    <span className="text-[10px] text-slate-400 font-normal flex items-center gap-1">
+                      <Loader2 className="h-2.5 w-2.5 animate-spin text-[#4A0E17]" /> Checking...
+                    </span>
+                  )}
                 </label>
-                <input
-                  type="text"
-                  value={verificationRefNo}
-                  onChange={(e) => setVerificationRefNo(e.target.value)}
-                  placeholder="Enter OR # or transaction reference..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={verificationRefNo}
+                    onChange={(e) => setVerificationRefNo(e.target.value)}
+                    placeholder="Enter OR # or transaction reference..."
+                    className={`w-full p-2.5 rounded-xl text-xs font-bold transition focus:outline-none focus:ring-2 ${
+                      duplicateRefPaymentNumber
+                        ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:ring-rose-500/20 focus:border-rose-600 pr-10'
+                        : 'bg-slate-50 border border-slate-200/90 text-slate-800 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17]'
+                    }`}
+                  />
+                  {duplicateRefPaymentNumber && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <AlertTriangle className="h-4 w-4 text-rose-600 animate-pulse" />
+                    </div>
+                  )}
+                </div>
+
+                {duplicateRefPaymentNumber && (
+                  <div className="flex items-center gap-2 p-2.5 bg-rose-50 border border-rose-200/90 rounded-xl text-rose-700 text-xs font-bold mt-1.5">
+                    <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span>Duplicate Ref No: Already used in Payment #{duplicateRefPaymentNumber}</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1004,12 +1137,24 @@ export default function ReviewCollectionPaymentPage() {
                     specialAttachment: specialFiles.length > 0 ? specialFiles : null,
                   })
                 }
-                disabled={verifyMut.isPending}
+                disabled={verifyMut.isPending || Boolean(duplicateRefPaymentNumber)}
                 className={`px-5 py-2 font-bold text-xs rounded-xl transition cursor-pointer text-white shadow-xs flex items-center gap-1.5 ${
-                  actionType === 'verified' ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-rose-600 hover:bg-rose-700'
+                  Boolean(duplicateRefPaymentNumber)
+                    ? 'bg-rose-300 cursor-not-allowed opacity-60'
+                    : actionType === 'verified'
+                    ? 'bg-emerald-700 hover:bg-emerald-800'
+                    : 'bg-rose-600 hover:bg-rose-700'
                 }`}
               >
-                {verifyMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : actionType === 'verified' ? 'Confirm Verification' : 'Confirm Rejection'}
+                {verifyMut.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : duplicateRefPaymentNumber ? (
+                  'Duplicate Ref No'
+                ) : actionType === 'verified' ? (
+                  'Confirm Verification'
+                ) : (
+                  'Confirm Rejection'
+                )}
               </button>
             </div>
           </div>

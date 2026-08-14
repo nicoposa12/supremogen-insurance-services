@@ -403,6 +403,27 @@ class PaymentController extends Controller
         $status = $request->input('status');
         $notes = $request->input('notes');
 
+        // Check for duplicate Reference Number
+        $refNo = trim($request->input('accounting_ref_no') ?? $request->input('reference_number') ?? '');
+        if ($refNo !== '') {
+            $duplicate = Payment::where('id', '!=', $payment->id)
+                ->where(function ($q) use ($refNo) {
+                    $q->where('accounting_ref_no', $refNo)
+                      ->orWhere('reference_number', $refNo);
+                })
+                ->first();
+
+            if ($duplicate) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Duplicate Reference Number. Ref No "' . $refNo . '" is already used in Payment #' . $duplicate->payment_number . '.',
+                    'errors'  => [
+                        'accounting_ref_no' => ['Duplicate Ref No: Already used in Payment #' . $duplicate->payment_number]
+                    ]
+                ], 422);
+            }
+        }
+
         // Prevent verification for cancelled policies or voided invoices
         $invoice = $payment->invoice;
         if ($invoice) {
@@ -582,6 +603,35 @@ class PaymentController extends Controller
             'success' => true,
             'message' => $isVerifiedResp ? "Payment successfully verified ({$status})." : 'Payment marked as rejected.',
             'data'    => $payment->fresh(['invoice.customer', 'receivedBy', 'verifiedBy', 'attachments']),
+        ]);
+    }
+
+    /**
+     * Check if a reference number is already used in another payment.
+     */
+    public function checkRefNo(Request $request)
+    {
+        $refNo = trim($request->input('ref_no', ''));
+        $excludeId = $request->input('exclude_id');
+
+        if ($refNo === '') {
+            return response()->json(['is_duplicate' => false]);
+        }
+
+        $query = Payment::where(function ($q) use ($refNo) {
+            $q->where('accounting_ref_no', $refNo)
+              ->orWhere('reference_number', $refNo);
+        });
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $duplicate = $query->first(['id', 'payment_number', 'accounting_ref_no', 'reference_number']);
+
+        return response()->json([
+            'is_duplicate' => (bool) $duplicate,
+            'duplicate_payment' => $duplicate,
         ]);
     }
 }

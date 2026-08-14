@@ -102,3 +102,13 @@ export async function verifyPayment(
   });
   return data;
 }
+
+export async function checkPaymentRefNo(
+  ref_no: string,
+  exclude_id?: number
+): Promise<{ is_duplicate: boolean; duplicate_payment?: { id: number; payment_number: string } }> {
+  const { data } = await axios.get(`${BASE}/check-ref-no`, {
+    params: { ref_no, exclude_id },
+  });
+  return data;
+}
