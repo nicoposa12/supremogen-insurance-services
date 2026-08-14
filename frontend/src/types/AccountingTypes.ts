@@ -65,6 +65,8 @@ export interface Invoice {
   payments?: Payment[];
   subagent_commission?: SubagentCommissionData;
   subagentCommission?: SubagentCommissionData;
+  main_agent_commission?: SubagentCommissionData;
+  mainAgentCommission?: SubagentCommissionData;
 }
 
 // ─── Payment ──────────────────────────────────

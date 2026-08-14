@@ -58,3 +58,8 @@ export async function updateSubagentCommission(id: number, payload: any): Promis
   const { data } = await axios.put<SingleResponse<any>>(`${BASE}/${id}/subagent-commission`, payload);
   return data;
 }
+
+export async function updateMainAgentCommission(id: number, payload: any): Promise<SingleResponse<any>> {
+  const { data } = await axios.put<SingleResponse<any>>(`${BASE}/${id}/main-agent-commission`, payload);
+  return data;
+}

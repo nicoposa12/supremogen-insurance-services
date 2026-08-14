@@ -126,6 +126,7 @@ class InvoiceController extends Controller
                 'attachments',
                 'attachments.uploadedBy:id,name',
                 'subagentCommission',
+                'mainAgentCommission',
             ])
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
@@ -611,6 +612,43 @@ class InvoiceController extends Controller
             'success' => true,
             'message' => 'Sub-agent commission record updated successfully.',
             'data' => $subagentCommission,
+        ]);
+    }
+
+    /**
+     * Create or update main agent commission details for an invoice.
+     */
+    public function updateMainAgentCommission(Request $request, $id)
+    {
+        $invoice = Invoice::findOrFail($id);
+
+        $validated = $request->validate([
+            'transac' => 'nullable|string|max:100',
+            'released_to' => 'nullable|string|max:255',
+            'account_number' => 'nullable|string|max:100',
+            'released_date_1' => 'nullable|date',
+            'amount_1' => 'nullable|numeric',
+            'released_date_2' => 'nullable|date',
+            'amount_2' => 'nullable|numeric',
+            'released_date_3' => 'nullable|date',
+            'amount_3' => 'nullable|numeric',
+            'released_date_4' => 'nullable|date',
+            'amount_4' => 'nullable|numeric',
+            'refund_date' => 'nullable|date',
+            'refund_amount' => 'nullable|numeric|min:0',
+            'refund_notes' => 'nullable|string|max:1000',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $mainAgentCommission = \App\Models\MainAgentCommission::updateOrCreate(
+            ['invoice_id' => $invoice->id],
+            $validated
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Main agent commission record updated successfully.',
+            'data' => $mainAgentCommission,
         ]);
     }
 

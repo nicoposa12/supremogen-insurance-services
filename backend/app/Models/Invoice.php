@@ -63,6 +63,11 @@ class Invoice extends Model
         return $this->hasOne(SubagentCommission::class);
     }
 
+    public function mainAgentCommission(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(MainAgentCommission::class);
+    }
+
     /**
      * Get all of the invoice's attachments.
      */

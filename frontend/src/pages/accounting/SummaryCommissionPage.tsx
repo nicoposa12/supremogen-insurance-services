@@ -28,8 +28,9 @@ import {
   FileText,
   RotateCcw,
   AlertTriangle,
+  SlidersHorizontal,
 } from 'lucide-react';
-import { getInvoices, updateSubagentCommission } from '../../services/invoiceApi';
+import { getInvoices, updateSubagentCommission, updateMainAgentCommission } from '../../services/invoiceApi';
 import { getAttachments, uploadAttachment, deleteAttachment, downloadAttachment, getAttachmentPreview, type Attachment } from '../../services/attachmentApi';
 import type { Invoice } from '../../types/AccountingTypes';
 import DataTable from '../../components/ui/DataTable';
@@ -60,6 +61,7 @@ export default function SummaryCommissionPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
+  const [showManageCommissionMain, setShowManageCommissionMain] = useState(false);
   const [freebieModalTarget, setFreebieModalTarget] = useState<any | null>(null);
   const [editingSubagentRecord, setEditingSubagentRecord] = useState<any | null>(null);
   const [selectedNotesModal, setSelectedNotesModal] = useState<{
@@ -270,29 +272,6 @@ export default function SummaryCommissionPage() {
         cust?.policy_status?.toLowerCase() === 'cancelled' ||
         (cust as any)?.status?.toLowerCase() === 'cancelled';
 
-      let paymentStatus = 'UNPAID';
-      let remarks = '—';
-
-      if (isCancelled) {
-        paymentStatus = 'CANCELLED';
-        remarks = 'CANCELLED POLICY';
-      } else if (Number(inv.balance) <= 0 || inv.status === 'paid') {
-        paymentStatus = 'FULLY PAID';
-        remarks = 'ALREADY RELEASED ONE TIME PAYMENT COMM';
-      } else if (verifiedPaymentsCount === 1) {
-        paymentStatus = '1ST PAYMENT';
-        remarks = '1st Installment Verified';
-      } else if (verifiedPaymentsCount === 2) {
-        paymentStatus = '2ND PAYMENT';
-        remarks = '2nd Installment Verified';
-      } else if (verifiedPaymentsCount === 3) {
-        paymentStatus = '3RD PAYMENT';
-        remarks = '3rd Installment Verified';
-      } else if (verifiedPaymentsCount > 3) {
-        paymentStatus = `${verifiedPaymentsCount}TH PAYMENT`;
-        remarks = `${verifiedPaymentsCount}th Installment Verified`;
-      }
-
       const agentMarkup = Number(
         cov.calculator?.agent_markup ||
         cov.agent_markup ||
@@ -309,30 +288,125 @@ export default function SummaryCommissionPage() {
       const rawSubAgentName = ((cust as any)?.sub_agent_name || cov.sub_agent_name || (cov as any)?.subAgentName || '').trim();
       const subAgentName = rawSubAgentName ? rawSubAgentName.toUpperCase() : (agentName ? agentName.toUpperCase() : '—');
 
-      const subComm = inv.subagent_commission || (inv as any).subagentCommission || {};
+      // ── Main Agent Commission Data & Releases ──
+      const mainComm = (inv as any).main_agent_commission || (inv as any).mainAgentCommission || {};
+      const mainTransac = mainComm.transac || '—';
+      const mainReleasedTo = mainComm.released_to || agentName || '—';
+      const mainAccountNumber = mainComm.account_number || '—';
+      const mainRelDate1 = mainComm.released_date_1 || null;
+      const mainAmt1 = Number(mainComm.amount_1 || 0);
+      const mainRelDate2 = mainComm.released_date_2 || null;
+      const mainAmt2 = Number(mainComm.amount_2 || 0);
+      const mainRelDate3 = mainComm.released_date_3 || null;
+      const mainAmt3 = Number(mainComm.amount_3 || 0);
+      const mainRelDate4 = mainComm.released_date_4 || null;
+      const mainAmt4 = Number(mainComm.amount_4 || 0);
+      const mainRefundDate = mainComm.refund_date || null;
+      const mainRefundAmount = Number(mainComm.refund_amount || 0);
+      const mainRefundNotes = mainComm.refund_notes || '';
+      const mainTotalReleased = mainAmt1 + mainAmt2 + mainAmt3 + mainAmt4;
+      const mainNetReleased = mainTotalReleased - mainRefundAmount;
+      const mainRemaining = Math.max(0, agentMarkup - mainNetReleased);
+      const mainIsOverpaid = mainTotalReleased > agentMarkup && agentMarkup > 0;
+      const mainOverpaidAmount = Math.max(0, mainTotalReleased - agentMarkup);
+      const mainActiveReleasesCount = [mainAmt1 > 0, mainAmt2 > 0, mainAmt3 > 0, mainAmt4 > 0].filter(Boolean).length;
 
-      const transac = subComm.transac || '—';
-      const releasedTo = subComm.released_to || '—';
-      const accountNumber = subComm.account_number || '—';
+      let mainPaymentStatus = 'UNPAID';
+      let mainRemarks = '—';
 
-      const relDate1 = subComm.released_date_1 || null;
-      const amt1 = Number(subComm.amount_1 || 0);
-      const relDate2 = subComm.released_date_2 || null;
-      const amt2 = Number(subComm.amount_2 || 0);
-      const relDate3 = subComm.released_date_3 || null;
-      const amt3 = Number(subComm.amount_3 || 0);
-      const relDate4 = subComm.released_date_4 || null;
-      const amt4 = Number(subComm.amount_4 || 0);
+      if (isCancelled) {
+        mainPaymentStatus = 'CANCELLED';
+        mainRemarks = 'CANCELLED POLICY';
+      } else if (mainTotalReleased > 0) {
+        if (mainIsOverpaid && mainRefundAmount < mainOverpaidAmount) {
+          mainPaymentStatus = 'OVERPAID';
+          mainRemarks = `Overpaid ₱${mainOverpaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} (Refund Due)`;
+        } else if (mainRefundAmount > 0) {
+          mainPaymentStatus = 'REFUNDED';
+          mainRemarks = `Refunded ₱${mainRefundAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        } else if (mainNetReleased >= agentMarkup && agentMarkup > 0) {
+          mainPaymentStatus = 'FULLY RELEASED';
+          mainRemarks = 'ALREADY RELEASED TOTAL COMM';
+        } else {
+          mainPaymentStatus = mainActiveReleasesCount === 1 ? '1ST REL' : mainActiveReleasesCount === 2 ? '2ND REL' : mainActiveReleasesCount === 3 ? '3RD REL' : `${mainActiveReleasesCount}TH REL`;
+          mainRemarks = `Released ₱${mainNetReleased.toLocaleString(undefined, { minimumFractionDigits: 2 })} (₱${mainRemaining.toLocaleString(undefined, { minimumFractionDigits: 2 })} rem)`;
+        }
+      } else if (Number(inv.balance) <= 0 || inv.status === 'paid') {
+        mainPaymentStatus = 'FULLY PAID';
+        mainRemarks = 'Fully Paid • Ready for Release';
+      } else if (verifiedPaymentsCount === 1) {
+        mainPaymentStatus = '1ST PAYMENT';
+        mainRemarks = '1st Installment Verified';
+      } else if (verifiedPaymentsCount === 2) {
+        mainPaymentStatus = '2ND PAYMENT';
+        mainRemarks = '2nd Installment Verified';
+      } else if (verifiedPaymentsCount === 3) {
+        mainPaymentStatus = '3RD PAYMENT';
+        mainRemarks = '3rd Installment Verified';
+      } else if (verifiedPaymentsCount > 3) {
+        mainPaymentStatus = `${verifiedPaymentsCount}TH PAYMENT`;
+        mainRemarks = `${verifiedPaymentsCount}th Installment Verified`;
+      }
 
-      const refundDate = subComm.refund_date || null;
-      const refundAmount = Number(subComm.refund_amount || 0);
-      const refundNotes = subComm.refund_notes || '';
+      // ── Sub Agent Commission Data & Releases ──
+      const subComm = (inv as any).subagent_commission || (inv as any).subagentCommission || {};
+      const subTransac = subComm.transac || '—';
+      const subReleasedTo = subComm.released_to || rawSubAgentName || '—';
+      const subAccountNumber = subComm.account_number || '—';
+      const subRelDate1 = subComm.released_date_1 || null;
+      const subAmt1 = Number(subComm.amount_1 || 0);
+      const subRelDate2 = subComm.released_date_2 || null;
+      const subAmt2 = Number(subComm.amount_2 || 0);
+      const subRelDate3 = subComm.released_date_3 || null;
+      const subAmt3 = Number(subComm.amount_3 || 0);
+      const subRelDate4 = subComm.released_date_4 || null;
+      const subAmt4 = Number(subComm.amount_4 || 0);
+      const subRefundDate = subComm.refund_date || null;
+      const subRefundAmount = Number(subComm.refund_amount || 0);
+      const subRefundNotes = subComm.refund_notes || '';
+      const subTotalReleased = subAmt1 + subAmt2 + subAmt3 + subAmt4;
+      const subNetReleased = subTotalReleased - subRefundAmount;
+      const subRemaining = Math.max(0, subAgentMarkup - subNetReleased);
+      const subIsOverpaid = subTotalReleased > subAgentMarkup && subAgentMarkup > 0;
+      const subOverpaidAmount = Math.max(0, subTotalReleased - subAgentMarkup);
+      const subActiveReleasesCount = [subAmt1 > 0, subAmt2 > 0, subAmt3 > 0, subAmt4 > 0].filter(Boolean).length;
 
-      const totalReleased = amt1 + amt2 + amt3 + amt4;
-      const netReleased = totalReleased - refundAmount;
-      const remaining = Math.max(0, subAgentMarkup - netReleased);
-      const isOverpaid = totalReleased > subAgentMarkup;
-      const overpaidAmount = Math.max(0, totalReleased - subAgentMarkup);
+      let subPaymentStatus = 'UNPAID';
+      let subRemarks = '—';
+
+      if (isCancelled) {
+        subPaymentStatus = 'CANCELLED';
+        subRemarks = 'CANCELLED POLICY';
+      } else if (subTotalReleased > 0) {
+        if (subIsOverpaid && subRefundAmount < subOverpaidAmount) {
+          subPaymentStatus = 'OVERPAID';
+          subRemarks = `Overpaid ₱${subOverpaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} (Refund Due)`;
+        } else if (subRefundAmount > 0) {
+          subPaymentStatus = 'REFUNDED';
+          subRemarks = `Refunded ₱${subRefundAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        } else if (subNetReleased >= subAgentMarkup && subAgentMarkup > 0) {
+          subPaymentStatus = 'FULLY RELEASED';
+          subRemarks = 'ALREADY RELEASED TOTAL COMM';
+        } else {
+          subPaymentStatus = subActiveReleasesCount === 1 ? '1ST REL' : subActiveReleasesCount === 2 ? '2ND REL' : subActiveReleasesCount === 3 ? '3RD REL' : `${subActiveReleasesCount}TH REL`;
+          subRemarks = `Released ₱${subNetReleased.toLocaleString(undefined, { minimumFractionDigits: 2 })} (₱${subRemaining.toLocaleString(undefined, { minimumFractionDigits: 2 })} rem)`;
+        }
+      } else if (Number(inv.balance) <= 0 || inv.status === 'paid') {
+        subPaymentStatus = 'FULLY PAID';
+        subRemarks = 'Fully Paid • Ready for Release';
+      } else if (verifiedPaymentsCount === 1) {
+        subPaymentStatus = '1ST PAYMENT';
+        subRemarks = '1st Installment Verified';
+      } else if (verifiedPaymentsCount === 2) {
+        subPaymentStatus = '2ND PAYMENT';
+        subRemarks = '2nd Installment Verified';
+      } else if (verifiedPaymentsCount === 3) {
+        subPaymentStatus = '3RD PAYMENT';
+        subRemarks = '3rd Installment Verified';
+      } else if (verifiedPaymentsCount > 3) {
+        subPaymentStatus = `${verifiedPaymentsCount}TH PAYMENT`;
+        subRemarks = `${verifiedPaymentsCount}th Installment Verified`;
+      }
 
       const estComm = agentMarkup;
       const estIncentive = Number((cust as any)?.incentive || 1000);
@@ -358,11 +432,17 @@ export default function SummaryCommissionPage() {
 
       // Find proof attachments from invoice attachments
       const allAtts: Attachment[] = (inv as any).attachments || [];
-      const proofAtt1 = allAtts.find((att) => att.document_type === 'subagent_release_proof_1');
-      const proofAtt2 = allAtts.find((att) => att.document_type === 'subagent_release_proof_2');
-      const proofAtt3 = allAtts.find((att) => att.document_type === 'subagent_release_proof_3');
-      const proofAtt4 = allAtts.find((att) => att.document_type === 'subagent_release_proof_4');
-      const proofRefund = allAtts.find((att) => att.document_type === 'subagent_refund_proof');
+      const mainProofAtt1 = allAtts.find((att) => att.document_type === 'main_agent_release_proof_1');
+      const mainProofAtt2 = allAtts.find((att) => att.document_type === 'main_agent_release_proof_2');
+      const mainProofAtt3 = allAtts.find((att) => att.document_type === 'main_agent_release_proof_3');
+      const mainProofAtt4 = allAtts.find((att) => att.document_type === 'main_agent_release_proof_4');
+      const mainProofRefund = allAtts.find((att) => att.document_type === 'main_agent_refund_proof');
+
+      const subProofAtt1 = allAtts.find((att) => att.document_type === 'subagent_release_proof_1');
+      const subProofAtt2 = allAtts.find((att) => att.document_type === 'subagent_release_proof_2');
+      const subProofAtt3 = allAtts.find((att) => att.document_type === 'subagent_release_proof_3');
+      const subProofAtt4 = allAtts.find((att) => att.document_type === 'subagent_release_proof_4');
+      const subProofRefund = allAtts.find((att) => att.document_type === 'subagent_refund_proof');
 
       return {
         id: inv.id,
@@ -391,33 +471,66 @@ export default function SummaryCommissionPage() {
         incentive: estIncentive,
         comm: estComm,
         subAgentMarkup,
-        paymentStatus,
-        remarks,
         isCancelled,
-        transac,
-        releasedTo,
-        accountNumber,
-        relDate1,
-        amt1,
-        relDate2,
-        amt2,
-        relDate3,
-        amt3,
-        relDate4,
-        amt4,
-        refundDate,
-        refundAmount,
-        refundNotes,
-        proofAtt1,
-        proofAtt2,
-        proofAtt3,
-        proofAtt4,
-        proofRefund,
-        totalReleased,
-        netReleased,
-        remaining,
-        isOverpaid,
-        overpaidAmount,
+
+        // Main agent specific properties
+        paymentStatus: mainPaymentStatus,
+        remarks: mainRemarks,
+        mainPaymentStatus,
+        mainRemarks,
+        mainTransac,
+        mainReleasedTo,
+        mainAccountNumber,
+        mainRelDate1,
+        mainAmt1,
+        mainRelDate2,
+        mainAmt2,
+        mainRelDate3,
+        mainAmt3,
+        mainRelDate4,
+        mainAmt4,
+        mainRefundDate,
+        mainRefundAmount,
+        mainRefundNotes,
+        mainProofAtt1,
+        mainProofAtt2,
+        mainProofAtt3,
+        mainProofAtt4,
+        mainProofRefund,
+        mainTotalReleased,
+        mainNetReleased,
+        mainRemaining,
+        mainIsOverpaid,
+        mainOverpaidAmount,
+        mainCommData: mainComm,
+
+        // Sub agent specific properties
+        subPaymentStatus,
+        subRemarks,
+        subTransac,
+        subReleasedTo,
+        subAccountNumber,
+        subRelDate1,
+        subAmt1,
+        subRelDate2,
+        subAmt2,
+        subRelDate3,
+        subAmt3,
+        subRelDate4,
+        subAmt4,
+        subRefundDate,
+        subRefundAmount,
+        subRefundNotes,
+        subProofAtt1,
+        subProofAtt2,
+        subProofAtt3,
+        subProofAtt4,
+        subProofRefund,
+        subTotalReleased,
+        subNetReleased,
+        subRemaining,
+        subIsOverpaid,
+        subOverpaidAmount,
         subCommData: subComm,
       };
     });
@@ -430,7 +543,7 @@ export default function SummaryCommissionPage() {
       if (activeTab === 'subagent') {
         const hasSubAgentName = Boolean(row.rawSubAgentName && row.rawSubAgentName.trim());
         const hasSubAgentMarkup = Boolean(row.subAgentMarkup && row.subAgentMarkup > 0);
-        const hasSubAgentReleases = Boolean(row.totalReleased && row.totalReleased > 0);
+        const hasSubAgentReleases = Boolean(row.subTotalReleased && row.subTotalReleased > 0);
 
         if (!hasSubAgentName && !hasSubAgentMarkup && !hasSubAgentReleases) {
           return false;
@@ -461,18 +574,25 @@ export default function SummaryCommissionPage() {
       ) {
         return false;
       }
+      const currentStatus = activeTab === 'main' ? row.mainPaymentStatus : row.subPaymentStatus;
       if (
         selectedStatus !== 'all' &&
-        row.paymentStatus.toUpperCase() !== selectedStatus.toUpperCase()
+        currentStatus.toUpperCase() !== selectedStatus.toUpperCase()
       ) {
         return false;
       }
       if (selectedBalanceStatus !== 'all') {
-        const isExcessOverpaid = row.totalReleased > row.subAgentMarkup && (row.refundAmount || 0) < (row.totalReleased - row.subAgentMarkup);
-        const hasRefund = Boolean(row.refundAmount && row.refundAmount > 0);
-        const hasPendingBalance = !isExcessOverpaid && row.remaining > 0;
-        const isSettled = !isExcessOverpaid && row.remaining === 0 && row.totalReleased > 0;
-        const isUnreleased = row.totalReleased === 0;
+        const isMain = activeTab === 'main';
+        const targetVal = isMain ? row.comm : row.subAgentMarkup;
+        const totalRel = isMain ? row.mainTotalReleased : row.subTotalReleased;
+        const refAmt = isMain ? (row.mainRefundAmount || 0) : (row.subRefundAmount || 0);
+        const remVal = isMain ? row.mainRemaining : row.subRemaining;
+
+        const isExcessOverpaid = totalRel > targetVal && refAmt < (totalRel - targetVal);
+        const hasRefund = refAmt > 0;
+        const hasPendingBalance = !isExcessOverpaid && remVal > 0;
+        const isSettled = !isExcessOverpaid && remVal === 0 && totalRel > 0;
+        const isUnreleased = totalRel === 0;
 
         if (selectedBalanceStatus === 'overpaid' && !isExcessOverpaid) {
           return false;
@@ -516,13 +636,18 @@ export default function SummaryCommissionPage() {
     [filteredRows]
   );
 
+  const totalMainAgentReleasedSum = useMemo(
+    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.mainTotalReleased), 0),
+    [filteredRows]
+  );
+
   const totalSubAgentMarkupSum = useMemo(
     () => filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.subAgentMarkup), 0),
     [filteredRows]
   );
 
   const totalSubAgentReleasedSum = useMemo(
-    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.totalReleased), 0),
+    () => filteredRows.reduce((acc, r) => acc + (r.isCancelled ? 0 : r.subTotalReleased), 0),
     [filteredRows]
   );
 
@@ -709,20 +834,41 @@ export default function SummaryCommissionPage() {
       render: (row: any) => {
         if (row.isCancelled) {
           return (
-            <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-rose-100 text-rose-800 border border-rose-200 uppercase">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-rose-100 text-rose-800 border border-rose-200 uppercase">
               CANCELLED
             </span>
           );
         }
-        if (row.paymentStatus === 'FULLY PAID') {
+        if (row.paymentStatus === 'OVERPAID') {
           return (
-            <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
-              FULLY PAID
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 uppercase">
+              🚨 OVERPAID
+            </span>
+          );
+        }
+        if (row.paymentStatus === 'REFUNDED') {
+          return (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200 uppercase">
+              💜 REFUNDED
+            </span>
+          );
+        }
+        if (row.paymentStatus === 'FULLY RELEASED' || row.paymentStatus === 'FULLY PAID') {
+          return (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+              {row.paymentStatus}
+            </span>
+          );
+        }
+        if (row.paymentStatus.includes('REL')) {
+          return (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-blue-50 text-blue-800 border border-blue-200 uppercase">
+              {row.paymentStatus}
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center px-1 py-0.5 rounded text-[8.5px] font-bold bg-amber-50 text-amber-900 border border-amber-200 uppercase">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-amber-50 text-amber-900 border border-amber-200 uppercase">
             {row.paymentStatus}
           </span>
         );
@@ -731,18 +877,24 @@ export default function SummaryCommissionPage() {
     {
       key: 'remarks',
       label: 'REMARKS',
-      className: 'max-w-[90px] truncate',
+      className: 'max-w-[120px] truncate',
       render: (row: any) => {
-        const isHighlight = row.remarks.includes('ALREADY RELEASED');
+        const isHighlight = row.remarks.includes('ALREADY RELEASED') || row.remarks.includes('Total Comm');
+        const isOverpaid = row.remarks.includes('Overpaid');
+        const isRefund = row.remarks.includes('Refund');
         return (
           <span
             title={row.remarks}
-            className={`text-[9.5px] font-medium px-1 py-0.5 rounded truncate block ${
+            className={`text-[9.5px] font-medium px-1.5 py-0.5 rounded truncate block ${
               isHighlight
                 ? 'bg-amber-100 text-amber-950 font-bold border border-amber-200'
+                : isOverpaid
+                ? 'bg-rose-50 text-rose-700 font-bold border border-rose-200'
+                : isRefund
+                ? 'bg-purple-50 text-purple-700 font-bold border border-purple-200'
                 : row.isCancelled
                 ? 'text-rose-700 font-bold'
-                : 'text-slate-500'
+                : 'text-slate-600'
             }`}
           >
             {row.remarks}
@@ -750,6 +902,349 @@ export default function SummaryCommissionPage() {
         );
       },
     },
+  ];
+
+  // Main Agent Manage Commission Table Columns (mirrors Sub-Agent structure for releases & management)
+  const mainManageColumns = [
+    {
+      key: 'dateRequest',
+      label: 'REQUEST',
+      className: 'whitespace-nowrap',
+      render: (row: any) => (
+        <span className="text-slate-600 text-[9.5px] font-mono">{row.dateRequest}</span>
+      ),
+    },
+    {
+      key: 'monthName',
+      label: 'MONTH',
+      className: 'whitespace-nowrap',
+      render: (row: any) => (
+        <span className="text-slate-700 text-[9.5px] font-semibold">{row.monthName}</span>
+      ),
+    },
+    {
+      key: 'agentName',
+      label: 'AGENT',
+      className: 'whitespace-nowrap max-w-[95px] truncate',
+      render: (row: any) => (
+        <span className="font-bold text-slate-800 uppercase text-[9.5px] truncate block" title={row.agentName}>
+          {row.agentName}
+        </span>
+      ),
+    },
+    {
+      key: 'assuredName',
+      label: 'ASSURED NAME',
+      className: 'max-w-[110px] truncate',
+      render: (row: any) => (
+        <span className="font-bold text-slate-900 text-[9.5px] uppercase truncate block" title={row.assuredName}>
+          {row.assuredName}
+        </span>
+      ),
+    },
+    {
+      key: 'plateNumber',
+      label: 'PLATE NO.',
+      className: 'whitespace-nowrap',
+      render: (row: any) => (
+        <span className="font-mono text-[9.5px] font-semibold text-slate-700">
+          {row.plateNumber}
+        </span>
+      ),
+    },
+    {
+      key: 'comm',
+      label: 'COMMISSION',
+      className: 'whitespace-nowrap bg-amber-50/50',
+      render: (row: any) => (
+        <span className="font-mono text-[9.5px] font-extrabold text-[#4A0E17]">
+          ₱{formatAmount(row.comm)}
+        </span>
+      ),
+    },
+    {
+      key: 'totalPremium',
+      label: 'PREMIUM',
+      className: 'whitespace-nowrap',
+      render: (row: any) => (
+        <span className="font-mono text-[9.5px] font-bold text-emerald-700">
+          ₱{formatAmount(row.totalPremium)}
+        </span>
+      ),
+    },
+    {
+      key: 'terms',
+      label: 'TERMS',
+      className: 'text-center whitespace-nowrap',
+      render: (row: any) => (
+        <span className="font-mono text-[9.5px] font-bold text-slate-700">
+          {row.terms}
+        </span>
+      ),
+    },
+    {
+      key: 'remarksNotes',
+      label: 'NOTES',
+      className: 'text-center whitespace-nowrap w-12',
+      render: (row: any) => {
+        if (!row.remarksNotes || row.remarksNotes === '—') {
+          return <span className="text-slate-350 text-[10px]">—</span>;
+        }
+
+        return (
+          <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setSelectedNotesModal({
+                title: `${row.assuredName} (${row.plateNumber || 'No Plate'})`,
+                author: row.preparedByName,
+                notes: row.remarksNotes,
+                quotationNotes: row.quotationNotes,
+                underwriterRemarks: row.underwriterRemarks,
+                customerNotes: row.customerNotes,
+              })}
+              className="p-1 text-[#4A0E17] hover:bg-[#4A0E17]/10 rounded-lg transition cursor-pointer hover:scale-110"
+              title={`View Notes: ${row.remarksNotes}`}
+            >
+              <FileText className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'transac',
+      label: 'TRANSAC',
+      className: 'whitespace-nowrap',
+      render: (row: any) => (
+        <span className="font-bold text-[9px] text-slate-800 uppercase px-1 py-0.5 rounded bg-slate-100 border border-slate-200">
+          {row.mainTransac}
+        </span>
+      ),
+    },
+    {
+      key: 'releasedTo',
+      label: 'RELEASED TO',
+      className: 'max-w-[90px] truncate',
+      render: (row: any) => (
+        <span className="text-slate-800 text-[9.5px] font-semibold uppercase truncate block" title={row.mainReleasedTo}>
+          {row.mainReleasedTo}
+        </span>
+      ),
+    },
+    {
+      key: 'accountNumber',
+      label: 'ACCOUNT NO.',
+      className: 'whitespace-nowrap font-mono max-w-[85px] truncate',
+      render: (row: any) => (
+        <span className="text-slate-600 text-[9.5px] truncate block" title={row.mainAccountNumber}>{row.mainAccountNumber}</span>
+      ),
+    },
+    {
+      key: 'rel1',
+      label: 'REL 1',
+      className: 'whitespace-nowrap text-center',
+      render: (row: any) => (
+        <div className="flex flex-col items-center leading-tight">
+          {row.mainRelDate1 ? (
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.mainRelDate1).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          ) : (
+            <span className="text-[8.5px] text-slate-350">—</span>
+          )}
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`font-mono text-[9.5px] font-bold ${row.mainAmt1 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+              {row.mainAmt1 > 0 ? `₱${formatAmount(row.mainAmt1)}` : '—'}
+            </span>
+            {row.mainProofAtt1 && (
+              <button
+                type="button"
+                onClick={() => handleOpenPreview(row.mainProofAtt1)}
+                className="p-0.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
+                title="View Release 1 Proof Attachment"
+              >
+                <Upload className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'rel2',
+      label: 'REL 2',
+      className: 'whitespace-nowrap text-center',
+      render: (row: any) => (
+        <div className="flex flex-col items-center leading-tight">
+          {row.mainRelDate2 ? (
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.mainRelDate2).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          ) : (
+            <span className="text-[8.5px] text-slate-350">—</span>
+          )}
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`font-mono text-[9.5px] font-bold ${row.mainAmt2 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+              {row.mainAmt2 > 0 ? `₱${formatAmount(row.mainAmt2)}` : '—'}
+            </span>
+            {row.mainProofAtt2 && (
+              <button
+                type="button"
+                onClick={() => handleOpenPreview(row.mainProofAtt2)}
+                className="p-0.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
+                title="View Release 2 Proof Attachment"
+              >
+                <Upload className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'rel3',
+      label: 'REL 3',
+      className: 'whitespace-nowrap text-center',
+      render: (row: any) => (
+        <div className="flex flex-col items-center leading-tight">
+          {row.mainRelDate3 ? (
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.mainRelDate3).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          ) : (
+            <span className="text-[8.5px] text-slate-350">—</span>
+          )}
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`font-mono text-[9.5px] font-bold ${row.mainAmt3 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+              {row.mainAmt3 > 0 ? `₱${formatAmount(row.mainAmt3)}` : '—'}
+            </span>
+            {row.mainProofAtt3 && (
+              <button
+                type="button"
+                onClick={() => handleOpenPreview(row.mainProofAtt3)}
+                className="p-0.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
+                title="View Release 3 Proof Attachment"
+              >
+                <Upload className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'rel4',
+      label: 'REL 4',
+      className: 'whitespace-nowrap text-center',
+      render: (row: any) => (
+        <div className="flex flex-col items-center leading-tight">
+          {row.mainRelDate4 ? (
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.mainRelDate4).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          ) : (
+            <span className="text-[8.5px] text-slate-350">—</span>
+          )}
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`font-mono text-[9.5px] font-bold ${row.mainAmt4 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+              {row.mainAmt4 > 0 ? `₱${formatAmount(row.mainAmt4)}` : '—'}
+            </span>
+            {row.mainProofAtt4 && (
+              <button
+                type="button"
+                onClick={() => handleOpenPreview(row.mainProofAtt4)}
+                className="p-0.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
+                title="View Release 4 Proof Attachment"
+              >
+                <Upload className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'remaining',
+      label: 'REMAINING',
+      className: 'whitespace-nowrap font-mono',
+      render: (row: any) => {
+        const targetMarkup = row.comm || 0;
+        const netReleased = row.mainTotalReleased - (row.mainRefundAmount || 0);
+        const diff = targetMarkup - netReleased;
+        const isExcess = row.mainTotalReleased > targetMarkup;
+        const overpaidAmt = row.mainTotalReleased - targetMarkup;
+
+        if (row.mainRefundAmount > 0) {
+          const isFullySettled = netReleased <= targetMarkup;
+          return (
+            <div className="flex flex-col items-center leading-tight">
+              <span className={`text-[9.5px] font-black ${isFullySettled ? 'text-emerald-700' : 'text-rose-700'}`}>
+                {isFullySettled ? '₱0.00' : `OVER: ₱${formatAmount(Math.abs(diff))}`}
+              </span>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-[8px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 px-1 py-0.5 rounded" title={`Refunded: ₱${formatAmount(row.mainRefundAmount)} on ${row.mainRefundDate || 'N/A'}`}>
+                  ↩ ₱${formatAmount(row.mainRefundAmount)}
+                </span>
+                {row.mainProofRefund && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPreview(row.mainProofRefund)}
+                    className="p-0.5 text-purple-700 hover:text-purple-900 hover:bg-purple-100 rounded transition cursor-pointer"
+                    title="View Refund Proof Attachment"
+                  >
+                    <Upload className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        if (isExcess) {
+          return (
+            <div className="flex flex-col items-center leading-tight">
+              <span className="text-[9px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
+                OVERPAID ₱{formatAmount(overpaidAmt)}
+              </span>
+              <span className="text-[8px] font-extrabold text-rose-600 mt-0.5 flex items-center gap-0.5">
+                <RotateCcw className="h-2.5 w-2.5" /> Refund Due
+              </span>
+            </div>
+          );
+        }
+
+        const rem = Math.max(0, targetMarkup - row.mainTotalReleased);
+        return (
+          <span className={`text-[9.5px] font-black ${rem > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
+            {rem > 0 ? `₱${formatAmount(rem)}` : '—'}
+          </span>
+        );
+      },
+    },
+    ...(isAccountingOrAdmin
+      ? [
+          {
+            key: 'action',
+            label: 'ACTION',
+            className: 'whitespace-nowrap text-center no-print',
+            render: (row: any) => {
+              if (row.isCancelled) {
+                return (
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded text-[8.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200 cursor-not-allowed uppercase"
+                    title="Cancelled policy cannot manage commission"
+                  >
+                    Cancelled
+                  </span>
+                );
+              }
+              return (
+                <button
+                  type="button"
+                  onClick={() => setEditingSubagentRecord({ ...row, isMainAgent: true, targetComm: row.comm, titleLabel: 'Main Agent Commission' })}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[9px] font-bold transition cursor-pointer"
+                  title="Edit Release"
+                >
+                  <Edit2 className="h-2.5 w-2.5 text-amber-700" /> Edit
+                </button>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   // Sub-Agent Commission Table Columns with Proof attachment preview support
@@ -873,7 +1368,7 @@ export default function SummaryCommissionPage() {
       className: 'whitespace-nowrap',
       render: (row: any) => (
         <span className="font-bold text-[9px] text-slate-800 uppercase px-1 py-0.5 rounded bg-slate-100 border border-slate-200">
-          {row.transac}
+          {row.subTransac}
         </span>
       ),
     },
@@ -882,8 +1377,8 @@ export default function SummaryCommissionPage() {
       label: 'RELEASED TO',
       className: 'max-w-[90px] truncate',
       render: (row: any) => (
-        <span className="text-slate-800 text-[9.5px] font-semibold uppercase truncate block" title={row.releasedTo}>
-          {row.releasedTo}
+        <span className="text-slate-800 text-[9.5px] font-semibold uppercase truncate block" title={row.subReleasedTo}>
+          {row.subReleasedTo}
         </span>
       ),
     },
@@ -892,7 +1387,7 @@ export default function SummaryCommissionPage() {
       label: 'ACCOUNT NO.',
       className: 'whitespace-nowrap font-mono max-w-[85px] truncate',
       render: (row: any) => (
-        <span className="text-slate-600 text-[9.5px] truncate block" title={row.accountNumber}>{row.accountNumber}</span>
+        <span className="text-slate-600 text-[9.5px] truncate block" title={row.subAccountNumber}>{row.subAccountNumber}</span>
       ),
     },
     {
@@ -901,19 +1396,19 @@ export default function SummaryCommissionPage() {
       className: 'whitespace-nowrap text-center',
       render: (row: any) => (
         <div className="flex flex-col items-center leading-tight">
-          {row.relDate1 ? (
-            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.relDate1).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          {row.subRelDate1 ? (
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.subRelDate1).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           ) : (
             <span className="text-[8.5px] text-slate-350">—</span>
           )}
           <div className="flex items-center gap-1 mt-0.5">
-            <span className={`font-mono text-[9.5px] font-bold ${row.amt1 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
-              {row.amt1 > 0 ? `₱${formatAmount(row.amt1)}` : '—'}
+            <span className={`font-mono text-[9.5px] font-bold ${row.subAmt1 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+              {row.subAmt1 > 0 ? `₱${formatAmount(row.subAmt1)}` : '—'}
             </span>
-            {row.proofAtt1 && (
+            {row.subProofAtt1 && (
               <button
                 type="button"
-                onClick={() => handleOpenPreview(row.proofAtt1)}
+                onClick={() => handleOpenPreview(row.subProofAtt1)}
                 className="p-0.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
                 title="View Release 1 Proof Attachment"
               >
@@ -930,19 +1425,19 @@ export default function SummaryCommissionPage() {
       className: 'whitespace-nowrap text-center',
       render: (row: any) => (
         <div className="flex flex-col items-center leading-tight">
-          {row.relDate2 ? (
-            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.relDate2).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          {row.subRelDate2 ? (
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.subRelDate2).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           ) : (
             <span className="text-[8.5px] text-slate-350">—</span>
           )}
           <div className="flex items-center gap-1 mt-0.5">
-            <span className={`font-mono text-[9.5px] font-bold ${row.amt2 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
-              {row.amt2 > 0 ? `₱${formatAmount(row.amt2)}` : '—'}
+            <span className={`font-mono text-[9.5px] font-bold ${row.subAmt2 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+              {row.subAmt2 > 0 ? `₱${formatAmount(row.subAmt2)}` : '—'}
             </span>
-            {row.proofAtt2 && (
+            {row.subProofAtt2 && (
               <button
                 type="button"
-                onClick={() => handleOpenPreview(row.proofAtt2)}
+                onClick={() => handleOpenPreview(row.subProofAtt2)}
                 className="p-0.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
                 title="View Release 2 Proof Attachment"
               >
@@ -959,19 +1454,19 @@ export default function SummaryCommissionPage() {
       className: 'whitespace-nowrap text-center',
       render: (row: any) => (
         <div className="flex flex-col items-center leading-tight">
-          {row.relDate3 ? (
-            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.relDate3).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          {row.subRelDate3 ? (
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.subRelDate3).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           ) : (
             <span className="text-[8.5px] text-slate-350">—</span>
           )}
           <div className="flex items-center gap-1 mt-0.5">
-            <span className={`font-mono text-[9.5px] font-bold ${row.amt3 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
-              {row.amt3 > 0 ? `₱${formatAmount(row.amt3)}` : '—'}
+            <span className={`font-mono text-[9.5px] font-bold ${row.subAmt3 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+              {row.subAmt3 > 0 ? `₱${formatAmount(row.subAmt3)}` : '—'}
             </span>
-            {row.proofAtt3 && (
+            {row.subProofAtt3 && (
               <button
                 type="button"
-                onClick={() => handleOpenPreview(row.proofAtt3)}
+                onClick={() => handleOpenPreview(row.subProofAtt3)}
                 className="p-0.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
                 title="View Release 3 Proof Attachment"
               >
@@ -988,19 +1483,19 @@ export default function SummaryCommissionPage() {
       className: 'whitespace-nowrap text-center',
       render: (row: any) => (
         <div className="flex flex-col items-center leading-tight">
-          {row.relDate4 ? (
-            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.relDate4).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          {row.subRelDate4 ? (
+            <span className="text-[8.5px] text-slate-500 font-mono">{new Date(row.subRelDate4).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           ) : (
             <span className="text-[8.5px] text-slate-350">—</span>
           )}
           <div className="flex items-center gap-1 mt-0.5">
-            <span className={`font-mono text-[9.5px] font-bold ${row.amt4 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
-              {row.amt4 > 0 ? `₱${formatAmount(row.amt4)}` : '—'}
+            <span className={`font-mono text-[9.5px] font-bold ${row.subAmt4 > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+              {row.subAmt4 > 0 ? `₱${formatAmount(row.subAmt4)}` : '—'}
             </span>
-            {row.proofAtt4 && (
+            {row.subProofAtt4 && (
               <button
                 type="button"
-                onClick={() => handleOpenPreview(row.proofAtt4)}
+                onClick={() => handleOpenPreview(row.subProofAtt4)}
                 className="p-0.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
                 title="View Release 4 Proof Attachment"
               >
@@ -1016,12 +1511,12 @@ export default function SummaryCommissionPage() {
       label: 'REMAINING',
       className: 'whitespace-nowrap font-mono',
       render: (row: any) => {
-        const netReleased = row.totalReleased - (row.refundAmount || 0);
+        const netReleased = row.subTotalReleased - (row.subRefundAmount || 0);
         const diff = row.subAgentMarkup - netReleased;
-        const isExcess = row.totalReleased > row.subAgentMarkup;
-        const overpaidAmt = row.totalReleased - row.subAgentMarkup;
+        const isExcess = row.subTotalReleased > row.subAgentMarkup;
+        const overpaidAmt = row.subTotalReleased - row.subAgentMarkup;
 
-        if (row.refundAmount > 0) {
+        if (row.subRefundAmount > 0) {
           const isFullySettled = netReleased <= row.subAgentMarkup;
           return (
             <div className="flex flex-col items-center leading-tight">
@@ -1029,13 +1524,13 @@ export default function SummaryCommissionPage() {
                 {isFullySettled ? '₱0.00' : `OVER: ₱${formatAmount(Math.abs(diff))}`}
               </span>
               <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-[8px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 px-1 py-0.5 rounded" title={`Refunded: ₱${formatAmount(row.refundAmount)} on ${row.refundDate || 'N/A'}`}>
-                  ↩ ₱{formatAmount(row.refundAmount)}
+                <span className="text-[8px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 px-1 py-0.5 rounded" title={`Refunded: ₱${formatAmount(row.subRefundAmount)} on ${row.subRefundDate || 'N/A'}`}>
+                  ↩ ₱${formatAmount(row.subRefundAmount)}
                 </span>
-                {row.proofRefund && (
+                {row.subProofRefund && (
                   <button
                     type="button"
-                    onClick={() => handleOpenPreview(row.proofRefund)}
+                    onClick={() => handleOpenPreview(row.subProofRefund)}
                     className="p-0.5 text-purple-700 hover:text-purple-900 hover:bg-purple-100 rounded transition cursor-pointer"
                     title="View Refund Proof Attachment"
                   >
@@ -1061,8 +1556,8 @@ export default function SummaryCommissionPage() {
         }
 
         return (
-          <span className={`text-[9.5px] font-black ${row.remaining > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
-            {row.remaining > 0 ? `₱${formatAmount(row.remaining)}` : '—'}
+          <span className={`text-[9.5px] font-black ${row.subRemaining > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
+            {row.subRemaining > 0 ? `₱${formatAmount(row.subRemaining)}` : '—'}
           </span>
         );
       },
@@ -1073,16 +1568,28 @@ export default function SummaryCommissionPage() {
             key: 'action',
             label: 'ACTION',
             className: 'whitespace-nowrap text-center no-print',
-            render: (row: any) => (
-              <button
-                type="button"
-                onClick={() => setEditingSubagentRecord(row)}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[9px] font-bold transition cursor-pointer"
-                title="Edit Release"
-              >
-                <Edit2 className="h-2.5 w-2.5 text-amber-700" /> Edit
-              </button>
-            ),
+            render: (row: any) => {
+              if (row.isCancelled) {
+                return (
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded text-[8.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200 cursor-not-allowed uppercase"
+                    title="Cancelled policy cannot manage commission"
+                  >
+                    Cancelled
+                  </span>
+                );
+              }
+              return (
+                <button
+                  type="button"
+                  onClick={() => setEditingSubagentRecord({ ...row, isMainAgent: false, targetComm: row.subAgentMarkup, titleLabel: 'Sub-Agent & Referral Commission' })}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[9px] font-bold transition cursor-pointer"
+                  title="Edit Release"
+                >
+                  <Edit2 className="h-2.5 w-2.5 text-amber-700" /> Edit
+                </button>
+              );
+            },
           },
         ]
       : []),
@@ -1332,18 +1839,45 @@ export default function SummaryCommissionPage() {
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4 text-[#4A0E17]" />
             <span className="font-extrabold text-xs text-[#4A0E17] uppercase tracking-wider">
-              {activeTab === 'main' ? 'MAIN AGENT COMMISSION LEDGER' : 'SUB-AGENT COMMISSION AND REFERRAL STATEMENT'} — {selectedMonth ? new Date(selectedMonth + '-01').toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase() : 'ALL MONTHS'}
+              {activeTab === 'main' 
+                ? (showManageCommissionMain ? 'MAIN AGENT COMMISSION MANAGEMENT' : 'MAIN AGENT COMMISSION LEDGER') 
+                : 'SUB-AGENT COMMISSION AND REFERRAL STATEMENT'} — {selectedMonth ? new Date(selectedMonth + '-01').toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase() : 'ALL MONTHS'}
             </span>
           </div>
-          <span className="text-[11px] font-bold text-slate-500 font-mono">
-            {filteredRows.length} RECORDS
-          </span>
+
+          <div className="flex items-center gap-2.5">
+            {activeTab === 'main' && (
+              <button
+                type="button"
+                onClick={() => setShowManageCommissionMain(!showManageCommissionMain)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold transition cursor-pointer shadow-xs ${
+                  showManageCommissionMain
+                    ? 'bg-[#4A0E17] text-white hover:bg-[#5A121D] ring-2 ring-[#4A0E17]/30'
+                    : 'bg-white text-[#4A0E17] hover:bg-[#4A0E17]/10 border border-[#4A0E17]/30'
+                }`}
+                title={showManageCommissionMain ? 'Switch to Standard Overview' : 'Switch to Manage Commission Release View'}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>{showManageCommissionMain ? 'Standard Overview' : 'Manage Commission'}</span>
+              </button>
+            )}
+
+            <span className="text-[11px] font-bold text-slate-500 font-mono bg-white/80 border border-slate-200/80 px-2 py-0.5 rounded-lg">
+              {filteredRows.length} RECORDS
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto w-full">
           <DataTable
             dense
-            columns={activeTab === 'main' ? mainColumns : subAgentColumns}
+            columns={
+              activeTab === 'subagent'
+                ? subAgentColumns
+                : showManageCommissionMain
+                ? mainManageColumns
+                : mainColumns
+            }
             data={paginatedRows}
             loading={isLoading}
           />
@@ -1566,7 +2100,8 @@ interface SubagentCommissionModalProps {
 function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommissionModalProps) {
   const { roles } = useAuth();
   const { showToast } = useToast();
-  const subComm = record.subCommData || {};
+  const isMainAgent = Boolean(record.isMainAgent || record.titleLabel === 'Main Agent Commission');
+  const commData = isMainAgent ? (record.mainCommData || {}) : (record.subCommData || {});
 
   const isAccountingOrAdmin = useMemo(() => {
     return roles.some((r) =>
@@ -1574,28 +2109,30 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
     );
   }, [roles]);
 
-  const [transac, setTransac] = useState<string>(subComm.transac || 'CASH');
-  const [releasedTo, setReleasedTo] = useState<string>(subComm.released_to || record.subAgentName || '');
-  const [accountNumber, setAccountNumber] = useState<string>(subComm.account_number || '');
+  const [transac, setTransac] = useState<string>(commData.transac || 'CASH');
+  const [releasedTo, setReleasedTo] = useState<string>(
+    commData.released_to || (isMainAgent ? record.agentName : (record.rawSubAgentName || record.subAgentName)) || ''
+  );
+  const [accountNumber, setAccountNumber] = useState<string>(commData.account_number || '');
 
-  const [relDate1, setRelDate1] = useState<string>(subComm.released_date_1 || '');
-  const [amt1, setAmt1] = useState<string>(subComm.amount_1 !== undefined ? String(subComm.amount_1) : '');
+  const [relDate1, setRelDate1] = useState<string>(commData.released_date_1 || '');
+  const [amt1, setAmt1] = useState<string>(commData.amount_1 !== undefined ? String(commData.amount_1) : '');
 
-  const [relDate2, setRelDate2] = useState<string>(subComm.released_date_2 || '');
-  const [amt2, setAmt2] = useState<string>(subComm.amount_2 !== undefined ? String(subComm.amount_2) : '');
+  const [relDate2, setRelDate2] = useState<string>(commData.released_date_2 || '');
+  const [amt2, setAmt2] = useState<string>(commData.amount_2 !== undefined ? String(commData.amount_2) : '');
 
-  const [relDate3, setRelDate3] = useState<string>(subComm.released_date_3 || '');
-  const [amt3, setAmt3] = useState<string>(subComm.amount_3 !== undefined ? String(subComm.amount_3) : '');
+  const [relDate3, setRelDate3] = useState<string>(commData.released_date_3 || '');
+  const [amt3, setAmt3] = useState<string>(commData.amount_3 !== undefined ? String(commData.amount_3) : '');
 
-  const [relDate4, setRelDate4] = useState<string>(subComm.released_date_4 || '');
-  const [amt4, setAmt4] = useState<string>(subComm.amount_4 !== undefined ? String(subComm.amount_4) : '');
+  const [relDate4, setRelDate4] = useState<string>(commData.released_date_4 || '');
+  const [amt4, setAmt4] = useState<string>(commData.amount_4 !== undefined ? String(commData.amount_4) : '');
 
-  const [refundDate, setRefundDate] = useState<string>(subComm.refund_date || '');
-  const [refundAmount, setRefundAmount] = useState<string>(subComm.refund_amount !== undefined && Number(subComm.refund_amount) > 0 ? String(subComm.refund_amount) : '');
-  const [refundNotes, setRefundNotes] = useState<string>(subComm.refund_notes || '');
+  const [refundDate, setRefundDate] = useState<string>(commData.refund_date || '');
+  const [refundAmount, setRefundAmount] = useState<string>(commData.refund_amount !== undefined && Number(commData.refund_amount) > 0 ? String(commData.refund_amount) : '');
+  const [refundNotes, setRefundNotes] = useState<string>(commData.refund_notes || '');
   const [uploadingRefundProof, setUploadingRefundProof] = useState<boolean>(false);
 
-  const [notes, setNotes] = useState<string>(subComm.notes || '');
+  const [notes, setNotes] = useState<string>(commData.notes || '');
 
   const [uploadingReleaseNum, setUploadingReleaseNum] = useState<number | null>(null);
   const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
@@ -1630,29 +2167,31 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
 
   // Fetch attachments for this invoice
   const { data: attachmentsRes, refetch: refetchAttachments } = useQuery({
-    queryKey: ['attachments-invoice-subagent', record.id],
+    queryKey: ['attachments-invoice-comm', record.id],
     queryFn: () => getAttachments('invoice', record.id),
   });
 
   const attachments = attachmentsRes?.data || [];
 
   const getProofAttachment = (releaseNum: number) => {
-    const docTypeKey = `subagent_release_proof_${releaseNum}`;
+    const docTypeKey = isMainAgent ? `main_agent_release_proof_${releaseNum}` : `subagent_release_proof_${releaseNum}`;
     return attachments.find(
-      (att) => att.document_type === docTypeKey || att.file_name?.toLowerCase().includes(`release_${releaseNum}`)
+      (att) => att.document_type === docTypeKey || (!isMainAgent && att.file_name?.toLowerCase().includes(`release_${releaseNum}`))
     );
   };
 
   const getRefundProofAttachment = () => {
+    const docTypeKey = isMainAgent ? 'main_agent_refund_proof' : 'subagent_refund_proof';
     return attachments.find(
-      (att) => att.document_type === 'subagent_refund_proof' || att.file_name?.toLowerCase().includes('refund_proof')
+      (att) => att.document_type === docTypeKey || (!isMainAgent && att.file_name?.toLowerCase().includes('refund_proof'))
     );
   };
 
   const handleUploadProof = async (releaseNum: number, file: File) => {
     setUploadingReleaseNum(releaseNum);
+    const docTypeKey = isMainAgent ? `main_agent_release_proof_${releaseNum}` : `subagent_release_proof_${releaseNum}`;
     try {
-      await uploadAttachment('invoice', record.id, file, `subagent_release_proof_${releaseNum}`);
+      await uploadAttachment('invoice', record.id, file, docTypeKey);
       showToast(`Proof attachment for Release ${releaseNum} uploaded successfully.`, 'success');
       refetchAttachments();
     } catch (err: any) {
@@ -1664,8 +2203,9 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
 
   const handleUploadRefundProof = async (file: File) => {
     setUploadingRefundProof(true);
+    const docTypeKey = isMainAgent ? 'main_agent_refund_proof' : 'subagent_refund_proof';
     try {
-      await uploadAttachment('invoice', record.id, file, 'subagent_refund_proof');
+      await uploadAttachment('invoice', record.id, file, docTypeKey);
       showToast('Refund proof attachment uploaded successfully.', 'success');
       refetchAttachments();
     } catch (err: any) {
@@ -1695,7 +2235,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
 
   const updateMut = useMutation({
     mutationFn: async () => {
-      return await updateSubagentCommission(record.id, {
+      const payload = {
         transac,
         released_to: releasedTo,
         account_number: accountNumber,
@@ -1711,14 +2251,20 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
         refund_amount: refundAmount ? parseFloat(refundAmount) : 0,
         refund_notes: refundNotes || null,
         notes: notes || null,
-      });
+      };
+
+      if (isMainAgent) {
+        return await updateMainAgentCommission(record.id, payload);
+      } else {
+        return await updateSubagentCommission(record.id, payload);
+      }
     },
     onSuccess: () => {
-      showToast('Sub-agent commission details saved successfully.', 'success');
+      showToast(`${record.titleLabel || (isMainAgent ? 'Main Agent' : 'Sub-Agent')} commission details saved successfully.`, 'success');
       onSuccess();
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || 'Failed to update sub-agent commission details.', 'error');
+      showToast(err.response?.data?.message || 'Failed to update commission details.', 'error');
     },
   });
 
@@ -1733,11 +2279,12 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
     (parseFloat(amt3) || 0) +
     (parseFloat(amt4) || 0);
 
+  const targetMarkup = record.targetComm !== undefined ? Number(record.targetComm) : Number(record.subAgentMarkup || record.comm || 0);
   const parsedRefundAmount = parseFloat(refundAmount) || 0;
   const calculatedNetReleased = calculatedTotalReleased - parsedRefundAmount;
-  const isOverpaid = calculatedTotalReleased > record.subAgentMarkup;
-  const overpaidAmount = Math.max(0, calculatedTotalReleased - record.subAgentMarkup);
-  const remainingAfterRefund = record.subAgentMarkup - calculatedNetReleased;
+  const isOverpaid = calculatedTotalReleased > targetMarkup;
+  const overpaidAmount = Math.max(0, calculatedTotalReleased - targetMarkup);
+  const remainingAfterRefund = targetMarkup - calculatedNetReleased;
 
   const renderReleaseCard = (
     releaseNum: number,
@@ -1854,11 +2401,15 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#4A0E17] via-[#5A121D] to-[#4A0E17] text-white">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 shadow-inner">
-              <Users className="h-5 w-5 text-amber-300" />
+              {isMainAgent ? (
+                <Briefcase className="h-5 w-5 text-amber-300" />
+              ) : (
+                <Users className="h-5 w-5 text-amber-300" />
+              )}
             </div>
             <div>
               <h2 className="text-base font-extrabold tracking-tight">
-                Sub-Agent Commission & Referral Details
+                {record.titleLabel || (isMainAgent ? 'Main Agent Commission Settlement' : 'Sub-Agent Commission & Referral Details')}
               </h2>
               <p className="text-xs text-amber-100/85 font-medium">
                 {record.assuredName} • Plate: {record.plateNumber} • Invoice #{record.invoiceNumber || record.id}
@@ -1876,11 +2427,18 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
 
         {/* Modal Form Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {record.isCancelled && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2.5 text-rose-800 text-xs font-bold">
+              <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+              <span>This policy is CANCELLED. Commission releases cannot be recorded or edited.</span>
+            </div>
+          )}
+
           {/* Refined Financial KPI Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl">
             <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Mark Up / Referral</span>
-              <span className="text-sm font-black text-slate-900 font-mono">₱{Number(record.subAgentMarkup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{record.titleLabel || 'Mark Up / Referral'}</span>
+              <span className="text-sm font-black text-slate-900 font-mono">₱{targetMarkup.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             <div>
               <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Total Released</span>
@@ -1913,7 +2471,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
                       Overpayment & Refund Settlement
                     </h4>
                     <p className="text-[11px] text-purple-800 font-medium">
-                      Total released (₱{calculatedTotalReleased.toLocaleString(undefined, { minimumFractionDigits: 2 })}) exceeds Mark Up (₱{Number(record.subAgentMarkup).toLocaleString(undefined, { minimumFractionDigits: 2 })}) by <strong className="text-rose-700">₱{overpaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                      Total released (₱{calculatedTotalReleased.toLocaleString(undefined, { minimumFractionDigits: 2 })}) exceeds {record.titleLabel || 'Mark Up'} (₱{targetMarkup.toLocaleString(undefined, { minimumFractionDigits: 2 })}) by <strong className="text-rose-700">₱{overpaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
                     </p>
                   </div>
                 </div>
@@ -2114,8 +2672,8 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
             </button>
             <button
               type="submit"
-              disabled={updateMut.isPending}
-              className="px-5 py-2 bg-[#4A0E17] hover:bg-[#3A0A12] text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              disabled={updateMut.isPending || record.isCancelled}
+              className="px-5 py-2 bg-[#4A0E17] hover:bg-[#3A0A12] text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {updateMut.isPending ? (
                 <>
@@ -2123,7 +2681,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-amber-300" /> Save Sub-Agent Release
+                  <CheckCircle2 className="h-3.5 w-3.5 text-amber-300" /> {record.isCancelled ? 'Policy Cancelled' : (isMainAgent ? 'Save Main Agent Release' : 'Save Sub-Agent Release')}
                 </>
               )}
             </button>
