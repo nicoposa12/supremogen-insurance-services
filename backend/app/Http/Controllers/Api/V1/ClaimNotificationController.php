@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClaimNotification;
+use App\Models\Attachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -349,6 +350,134 @@ class ClaimNotificationController extends Controller
     }
 
     /**
+     * Return a specific uploaded document of a claim notification to agent.
+     */
+    public function returnDocument(Request $request, string $id)
+    {
+        $record = ClaimNotification::find($id);
+
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'Claim notification not found.'], 404);
+        }
+
+        $request->validate([
+            'attachment_id' => 'required|integer|exists:attachments,id',
+            'reason'        => 'required|string|max:1000',
+        ]);
+
+        $attachment = Attachment::where('attachable_id', $record->id)
+            ->where('id', $request->input('attachment_id'))
+            ->first();
+
+        if (!$attachment) {
+            return response()->json(['success' => false, 'message' => 'Document attachment not found.'], 404);
+        }
+
+        $reason = trim($request->input('reason'));
+
+        // Strip existing return tag if any, then append new return tag
+        $currentDocType = $attachment->document_type ?: $attachment->file_name;
+        if (str_contains($currentDocType, ' | Returned: ')) {
+            [$cleanDocType] = explode(' | Returned: ', $currentDocType);
+            $newDocType = $cleanDocType . ' | Returned: ' . $reason;
+        } else {
+            $newDocType = $currentDocType . ' | Returned: ' . $reason;
+        }
+
+        $attachment->update([
+            'document_type' => $newDocType,
+        ]);
+
+        // Update status to returned and append return note
+        if (in_array($record->status, ['pending', 'acknowledged', 'resubmitted', 'completed'])) {
+            $record->update([
+                'status' => 'returned',
+                'notes'  => trim(($record->notes ? $record->notes . "\n\n" : "") . "[RETURN NOTE - {$attachment->file_name}]:\n" . $reason),
+            ]);
+        }
+
+        // Notify uploader or submitter
+        $targetUserId = $attachment->uploaded_by ?: $record->submitted_by;
+        if ($targetUserId) {
+            try {
+                \App\Models\Notification::create([
+                    'user_id' => $targetUserId,
+                    'title'   => 'Claim Document Returned',
+                    'message' => "Claims Officer returned document \"{$attachment->file_name}\" for claim notification {$record->reference_number}. Reason: {$reason}",
+                    'type'    => 'warning',
+                    'read_at' => null,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to notify agent on document return: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document returned to agent successfully.',
+            'data'    => $record->fresh([
+                'submittedBy:id,name,email',
+                'acknowledgedBy:id,name,email',
+                'attachments.uploadedBy.roles:id,name',
+                'policy.quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
+                'policy.invoice:id,policy_id,invoice_number,status,total_amount,amount_paid,balance',
+                'quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
+                'quotation.policy.invoice:id,policy_id,invoice_number,status,total_amount,amount_paid,balance',
+            ]),
+        ]);
+    }
+
+    /**
+     * Resubmit a returned claim notification directly.
+     */
+    public function resubmit(Request $request, string $id)
+    {
+        $record = ClaimNotification::find($id);
+
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'Claim notification not found.'], 404);
+        }
+
+        if ($record->status !== 'returned') {
+            return response()->json(['success' => false, 'message' => 'Only returned notifications can be resubmitted.'], 422);
+        }
+
+        $record->update([
+            'status' => 'resubmitted',
+        ]);
+
+        // Notify all Claims Officers
+        try {
+            $officers = \App\Models\User::role('Claims Officer')->get();
+            foreach ($officers as $officer) {
+                \App\Models\Notification::create([
+                    'user_id' => $officer->id,
+                    'title'   => 'Claim Notification Resubmitted',
+                    'message' => "Claim notification {$record->reference_number} has been resubmitted by agent for assured \"{$record->assured_name}\" — Policy {$record->policy_number}.",
+                    'type'    => 'info',
+                    'read_at' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify claims officers on direct resubmit: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Claim notification resubmitted successfully.',
+            'data'    => $record->fresh([
+                'submittedBy:id,name,email',
+                'acknowledgedBy:id,name,email',
+                'attachments.uploadedBy.roles:id,name',
+                'policy.quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
+                'policy.invoice:id,policy_id,invoice_number,status,total_amount,amount_paid,balance',
+                'quotation:id,quotation_number,ir_number,is_remitted,remitted_at',
+                'quotation.policy.invoice:id,policy_id,invoice_number,status,total_amount,amount_paid,balance',
+            ]),
+        ]);
+    }
+
+    /**
      * Update/resubmit a returned claim notification.
      */
     public function update(Request $request, string $id)
@@ -370,11 +499,12 @@ class ClaimNotificationController extends Controller
             'email_address'      => 'nullable|email|max:255',
             'insurance_provider' => 'required|string|max:255',
             'plate_number'       => 'nullable|string|max:30',
+            'policy_number'      => 'nullable|string|max:50',
             'accident_date'      => 'required|date|before_or_equal:today',
             'accident_reason'    => 'nullable|string|max:5000',
             'nature_of_claims'   => 'nullable|string|max:5000',
             'notes'              => 'nullable|string|max:5000',
-            'claim_count'        => 'required|string|max:255',
+            'claim_count'        => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -391,13 +521,13 @@ class ClaimNotificationController extends Controller
             'email_address'      => $request->input('email_address'),
             'insurance_provider' => $request->input('insurance_provider'),
             'plate_number'       => $request->input('plate_number'),
-            'policy_number'      => $request->input('policy_number'),
+            'policy_number'      => $request->input('policy_number') ?: $record->policy_number,
             'inception_date'     => $request->input('inception_date'),
             'accident_date'      => $request->input('accident_date'),
             'accident_reason'    => $request->input('accident_reason'),
             'nature_of_claims'   => $request->input('nature_of_claims') ?? '',
             'notes'              => $request->input('notes'),
-            'claim_count'        => $request->input('claim_count'),
+            'claim_count'        => $request->input('claim_count') ?: ($record->claim_count ?: '1'),
             'status'             => 'resubmitted', // reset to resubmitted on resubmit
         ]);
 

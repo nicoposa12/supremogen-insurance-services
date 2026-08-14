@@ -58,11 +58,30 @@ export async function returnClaimNotification(
   return data;
 }
 
+export async function returnClaimDocument(
+  id: number,
+  attachmentId: number,
+  reason: string
+): Promise<SingleResponse<ClaimNotification>> {
+  const { data } = await axios.post<SingleResponse<ClaimNotification>>(
+    `${BASE}/${id}/return-document`,
+    { attachment_id: attachmentId, reason }
+  );
+  return data;
+}
+
 export async function updateClaimNotification(
   id: number,
   formData: ClaimNotificationFormData
 ): Promise<SingleResponse<ClaimNotification>> {
   const { data } = await axios.put<SingleResponse<ClaimNotification>>(`${BASE}/${id}`, formData);
+  return data;
+}
+
+export async function resubmitClaimNotification(
+  id: number
+): Promise<SingleResponse<ClaimNotification>> {
+  const { data } = await axios.post<SingleResponse<ClaimNotification>>(`${BASE}/${id}/resubmit`);
   return data;
 }
 
