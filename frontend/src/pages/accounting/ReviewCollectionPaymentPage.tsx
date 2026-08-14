@@ -43,7 +43,7 @@ export default function ReviewCollectionPaymentPage() {
   const autoOpenModal = searchParams.get('autoOpen') === 'true';
 
   const isAccountingOrAdmin = roles.some((r: string) =>
-    ['Accounting Officer', 'Administrator', 'Owner', 'Super Admin'].includes(r)
+    ['Accounting Officer', 'Team Support Operation', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
 
   const [params, setParams] = useState<PaymentListParams>({

@@ -181,7 +181,7 @@ class PolicyController extends Controller
             }
 
             // Also notify all Accounting Officers about the newly issued policy statement
-            $accountingOfficers = \App\Models\User::role('Accounting Officer')->get();
+            $accountingOfficers = \App\Models\User::role(['Accounting Officer', 'Team Support Operation'])->get();
             $customerName = $policy->customer ? trim($policy->customer->first_name . ' ' . $policy->customer->last_name) : 'Customer';
             foreach ($accountingOfficers as $officer) {
                 \App\Models\Notification::create([

@@ -178,7 +178,7 @@ class PaymentController extends Controller
             $collectorName = $request->user()?->name ?: 'Collection Officer';
 
             $accountingOfficers = \App\Models\User::whereHas('roles', function ($q) {
-                $q->whereIn('name', ['Accounting Officer', 'Accounting', 'Admin', 'Super Admin']);
+                $q->whereIn('name', ['Accounting Officer', 'Accounting', 'Team Support Operation', 'Admin', 'Super Admin']);
             })->get();
 
             if ($accountingOfficers->isEmpty()) {

@@ -43,7 +43,7 @@ export default function SummaryCommissionPage() {
 
   const isAccountingOrAdmin = useMemo(() => {
     return roles.some((r) =>
-      ['Accounting Officer', 'Accounting', 'Administrator', 'Owner', 'Super Admin'].includes(r)
+      ['Accounting Officer', 'Accounting', 'Team Support Operation', 'Administrator', 'Owner', 'Super Admin'].includes(r)
     );
   }, [roles]);
 
@@ -1277,7 +1277,7 @@ function SubagentCommissionModal({ record, onClose, onSuccess }: SubagentCommiss
 
   const isAccountingOrAdmin = useMemo(() => {
     return roles.some((r) =>
-      ['Accounting Officer', 'Accounting', 'Administrator', 'Owner', 'Super Admin'].includes(r)
+      ['Accounting Officer', 'Accounting', 'Team Support Operation', 'Administrator', 'Owner', 'Super Admin'].includes(r)
     );
   }, [roles]);
 

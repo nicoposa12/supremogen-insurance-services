@@ -70,7 +70,7 @@ export default function PolicyStatementsPage() {
   const [searchParams] = useSearchParams();
 
   const isAccountingOrAdmin = roles.some((r: string) =>
-    ['Accounting Officer', 'Administrator', 'Owner', 'Super Admin'].includes(r)
+    ['Accounting Officer', 'Team Support Operation', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
   const urlSearch = searchParams.get('search') || '';
   const [searchInput, setSearchInput] = useState(urlSearch);

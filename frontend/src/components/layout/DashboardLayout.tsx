@@ -209,12 +209,12 @@ function SidebarNavGroup({
   const currentParams = new URLSearchParams(location.search);
   const { roles = [] } = useAuth();
 
-  const isAdmin = roles.some((r: string) =>
+  const isExecutiveAdmin = roles.some((r: string) =>
     ['Administrator', 'Owner', 'Super Admin', 'Operational Manager', 'General Manager'].includes(r)
   );
 
   const userHasGroupRole = roles.some((r: string) => {
-    if (group.roleLabel === 'Accounting Officer' && (r === 'Accounting Officer' || r === 'Accounting')) return true;
+    if (group.roleLabel === 'Accounting Officer' && (r === 'Accounting Officer' || r === 'Accounting' || r === 'Team Support Operation')) return true;
     if (group.roleLabel === 'Underwriter' && r === 'Underwriter') return true;
     if (group.roleLabel === 'Collection' && r === 'Collection') return true;
     if (group.roleLabel === 'Claims Officer' && r === 'Claims Officer') return true;
@@ -223,7 +223,7 @@ function SidebarNavGroup({
     return false;
   });
 
-  const isViewOnly = !isAdmin && !userHasGroupRole;
+  const isViewOnly = !isExecutiveAdmin && !userHasGroupRole;
 
   const hasActiveChild = group.children.some((child) => {
     const cleanPath = child.path.split('?')[0];
@@ -689,7 +689,7 @@ export default function DashboardLayout() {
     navigate('/agentportal');
   };
 
-  const isAdmin = roles.includes('Administrator') || roles.includes('Owner') || roles.includes('General Manager') || roles.includes('Operational Manager');
+  const isAdmin = roles.includes('Administrator') || roles.includes('Owner') || roles.includes('General Manager') || roles.includes('Operational Manager') || roles.includes('Team Support Operation');
 
   // Get current page title from navigation
   const titleLookup = isAdmin ? allAdminNavItems : navItems;
@@ -838,9 +838,11 @@ export default function DashboardLayout() {
                         ? 'General Manager'
                         : (roles?.includes('Operational Manager')
                           ? 'Operational Manager'
-                          : (roles?.includes('Accounting Officer')
-                            ? 'Accounting Officer'
-                            : (roles?.[0] ?? 'Staff'))))}
+                          : (roles?.includes('Team Support Operation')
+                            ? 'Team Support Operation'
+                            : (roles?.includes('Accounting Officer')
+                              ? 'Accounting Officer'
+                              : (roles?.[0] ?? 'Staff')))))}
                   </span>
                 </div>
 
@@ -1078,9 +1080,11 @@ export default function DashboardLayout() {
                           ? 'General Manager'
                           : (roles?.includes('Operational Manager')
                             ? 'Operational Manager'
-                            : (roles?.includes('Accounting Officer')
-                              ? 'Accounting Officer'
-                              : (roles?.[0] ?? 'Staff'))))}
+                            : (roles?.includes('Team Support Operation')
+                              ? 'Team Support Operation'
+                              : (roles?.includes('Accounting Officer')
+                                ? 'Accounting Officer'
+                                : (roles?.[0] ?? 'Staff')))))}
                     </p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-slate-400 hidden sm:block" />

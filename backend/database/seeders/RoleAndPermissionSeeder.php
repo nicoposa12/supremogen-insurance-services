@@ -223,6 +223,18 @@ class RoleAndPermissionSeeder extends Seeder
         $omRole = Role::findOrCreate('Operational Manager');
         $omRole->givePermissionTo($viewPermissions);
 
+        // 11. Team Support Operation - Full View Access & Accounting Edit Access
+        $teamSupportRole = Role::findOrCreate('Team Support Operation');
+        $teamSupportRole->givePermissionTo(array_merge($viewPermissions, [
+            'invoices.create',
+            'invoices.update',
+            'invoices.delete',
+            'invoices.print',
+            'payments.create',
+            'payments.update',
+            'payments.delete',
+        ]));
+
         // Create the default administrator account only.
         // All other user accounts should be created through the application's Settings panel.
         $defaultUsers = [

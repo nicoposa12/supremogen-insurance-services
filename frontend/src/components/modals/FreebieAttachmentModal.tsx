@@ -45,7 +45,7 @@ export default function FreebieAttachmentModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isAccountingOrAdmin = roles.some(
-    (r) => r === 'Accounting Officer' || r === 'Accounting' || r === 'Admin' || r === 'Super Admin'
+    (r) => r === 'Accounting Officer' || r === 'Team Support Operation' || r === 'Accounting' || r === 'Admin' || r === 'Super Admin'
   );
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

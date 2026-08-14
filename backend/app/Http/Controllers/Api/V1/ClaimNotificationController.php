@@ -55,7 +55,7 @@ class ClaimNotificationController extends Controller
         $isClaimsOfficer = in_array('Claims Officer', $roles);
         $isAccounting    = in_array('Accounting Officer', $roles);
         $isUnderwriter   = in_array('Underwriter', $roles);
-        $isManager       = in_array('General Manager', $roles) || in_array('Operational Manager', $roles);
+        $isManager       = in_array('General Manager', $roles) || in_array('Operational Manager', $roles) || in_array('Team Support Operation', $roles);
 
         $canViewAll = $isAdmin || $isClaimsOfficer || $isAccounting || $isUnderwriter || $isManager;
 

@@ -402,6 +402,7 @@ export default function SettingsPage() {
     'Administrator': 'Administrator / Full Access',
     'General Manager': 'General Manager (Full Access / View Only)',
     'Operational Manager': 'Operational Manager (Full Access / View Only)',
+    'Team Support Operation': 'Team Support Operation (View All / Edit Accounting)',
     'Sales Agent': 'Sales Agent (Sales / Customer Records)',
     'Underwriter': 'Underwriter (Quotations / Policies)',
     'Accounting Officer': 'Accounting Officer (Billing / Payments)',
@@ -522,9 +523,15 @@ export default function SettingsPage() {
                     <span className="self-center sm:self-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-[#4A0E17]/10 text-[#4A0E17] border border-[#4A0E17]/20 uppercase tracking-wide">
                       {roles?.includes('Administrator')
                         ? 'Administrator'
-                        : (roles?.includes('Accounting Officer')
-                          ? 'Accounting Officer'
-                          : (roles?.[0] ?? 'Staff'))}
+                        : (roles?.includes('General Manager')
+                          ? 'General Manager'
+                          : (roles?.includes('Operational Manager')
+                            ? 'Operational Manager'
+                            : (roles?.includes('Team Support Operation')
+                              ? 'Team Support Operation'
+                              : (roles?.includes('Accounting Officer')
+                                ? 'Accounting Officer'
+                                : (roles?.[0] ?? 'Staff')))))}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 font-medium">PNG, JPG, or GIF. Max 2MB.</p>
@@ -828,6 +835,7 @@ export default function SettingsPage() {
                                 u.role_name === 'Administrator' ? 'bg-red-50 text-red-700' :
                                 u.role_name === 'General Manager' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
                                 u.role_name === 'Operational Manager' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' :
+                                u.role_name === 'Team Support Operation' ? 'bg-teal-50 text-teal-800 border border-teal-200' :
                                 u.role_name === 'Underwriter' ? 'bg-blue-50 text-blue-700' :
                                 u.role_name === 'Accounting Officer' ? 'bg-emerald-50 text-emerald-700' :
                                 u.role_name === 'Claims Officer' ? 'bg-purple-50 text-purple-700' :

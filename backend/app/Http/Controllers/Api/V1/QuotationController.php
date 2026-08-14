@@ -530,7 +530,7 @@ class QuotationController extends Controller
                     : 'Customer';
 
                 // 1. Notify all Accounting Officers about the newly approved policy statement
-                $accountingOfficers = \App\Models\User::role('Accounting Officer')->get();
+                $accountingOfficers = \App\Models\User::role(['Accounting Officer', 'Team Support Operation'])->get();
                 foreach ($accountingOfficers as $officer) {
                     \App\Models\Notification::create([
                         'user_id' => $officer->id,

@@ -64,10 +64,10 @@ const getTodayDateStr = () => {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user, roles } = useAuth();
-  const isExecutive = roles.includes('Administrator') || roles.includes('Owner') || roles.includes('Super Admin') || roles.includes('General Manager') || roles.includes('Operational Manager');
+  const isExecutive = roles.includes('Administrator') || roles.includes('Owner') || roles.includes('Super Admin') || roles.includes('General Manager') || roles.includes('Operational Manager') || roles.includes('Team Support Operation');
   const isClaimsOfficer = roles.includes('Claims Officer') && !isExecutive;
   const isAccountingOnly = roles.includes('Accounting Officer') && !isExecutive;
-  const showRevenue = isExecutive || roles.includes('Accounting Officer');
+  const showRevenue = isExecutive || roles.includes('Accounting Officer') || roles.includes('Team Support Operation');
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['dashboard', user?.id],
@@ -759,6 +759,8 @@ export default function DashboardPage() {
       ? 'General Manager Operations & Financial Dashboard'
       : roles.includes('Operational Manager')
       ? 'Operational Manager Dashboard & Financial Ledger'
+      : roles.includes('Team Support Operation')
+      ? 'Team Support Operation Dashboard & Financial Ledger'
       : 'Executive Financial & Operations Dashboard';
 
     return (

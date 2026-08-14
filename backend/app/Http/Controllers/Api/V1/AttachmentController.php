@@ -183,9 +183,10 @@ class AttachmentController extends Controller
         if ($docType === 'freebie_proof' || str_contains(strtolower($docType ?? ''), 'freebie')) {
             $user = $request->user();
             $isAccountingOrAdmin = $user && (
-                $user->hasAnyRole(['Accounting Officer', 'Accounting', 'Admin', 'Administrator', 'Super Admin', 'Collection', 'Collection Officer']) ||
-                in_array($user->role_name ?? '', ['Accounting Officer', 'Accounting', 'Admin', 'Administrator', 'Super Admin', 'Collection', 'Collection Officer']) ||
+                $user->hasAnyRole(['Accounting Officer', 'Accounting', 'Team Support Operation', 'Admin', 'Administrator', 'Super Admin', 'Collection', 'Collection Officer']) ||
+                in_array($user->role_name ?? '', ['Accounting Officer', 'Accounting', 'Team Support Operation', 'Admin', 'Administrator', 'Super Admin', 'Collection', 'Collection Officer']) ||
                 str_contains(strtolower($user->role_name ?? ''), 'accounting') ||
+                str_contains(strtolower($user->role_name ?? ''), 'support') ||
                 str_contains(strtolower($user->role_name ?? ''), 'admin') ||
                 str_contains(strtolower($user->role_name ?? ''), 'collection')
             );
@@ -435,9 +436,10 @@ class AttachmentController extends Controller
         if ($attachment->document_type === 'freebie_proof' || str_contains(strtolower($attachment->document_type ?? ''), 'freebie')) {
             $user = request()->user();
             $isAccountingOrAdmin = $user && (
-                $user->hasAnyRole(['Accounting Officer', 'Accounting', 'Admin', 'Administrator', 'Super Admin', 'Collection', 'Collection Officer']) ||
-                in_array($user->role_name ?? '', ['Accounting Officer', 'Accounting', 'Admin', 'Administrator', 'Super Admin', 'Collection', 'Collection Officer']) ||
+                $user->hasAnyRole(['Accounting Officer', 'Accounting', 'Team Support Operation', 'Admin', 'Administrator', 'Super Admin', 'Collection', 'Collection Officer']) ||
+                in_array($user->role_name ?? '', ['Accounting Officer', 'Accounting', 'Team Support Operation', 'Admin', 'Administrator', 'Super Admin', 'Collection', 'Collection Officer']) ||
                 str_contains(strtolower($user->role_name ?? ''), 'accounting') ||
+                str_contains(strtolower($user->role_name ?? ''), 'support') ||
                 str_contains(strtolower($user->role_name ?? ''), 'admin') ||
                 str_contains(strtolower($user->role_name ?? ''), 'collection')
             );
