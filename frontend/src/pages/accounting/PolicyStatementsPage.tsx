@@ -496,25 +496,25 @@ export default function PolicyStatementsPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       {/* Header & Minimalistic Timeframe Selector Bar */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs print:hidden no-print">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2.5 bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs print:hidden no-print">
         <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl font-bold text-slate-800">Policy Statements</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg font-bold text-slate-800">Policy Statements</h1>
             {!isAccountingOrAdmin && (
-              <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold rounded-lg inline-flex items-center gap-1">
+              <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/80 text-[10px] font-bold rounded-lg inline-flex items-center gap-1">
                 <Eye className="h-3 w-3 text-amber-600" /> Viewing Mode (Read-Only)
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">Auto-generated tariff, commission, remittance, and company income statements</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">Auto-generated tariff, commission, remittance, and company income statements</p>
         </div>
 
         {/* Minimalistic Timeframe Pill Switcher & Dynamic Date Selectors */}
         {!selectedQuotation && (
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 border border-slate-200">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-xl shrink-0 border border-slate-200">
               {(['daily', 'weekly', 'monthly', 'yearly', 'all'] as const).map((tf) => (
                 <button
                   key={tf}
@@ -522,7 +522,7 @@ export default function PolicyStatementsPage() {
                     setTimeframe(tf);
                     setCurrentPage(1);
                   }}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition uppercase cursor-pointer ${
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition uppercase cursor-pointer ${
                     timeframe === tf
                       ? 'bg-[#4A0E17] text-white shadow-xs'
                       : 'text-slate-600 hover:bg-slate-200'
@@ -534,9 +534,9 @@ export default function PolicyStatementsPage() {
             </div>
 
             {timeframe === 'daily' && (
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Day:</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shadow-2xs">
+                <Calendar className="h-3 w-3 text-[#4A0E17]" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Day:</span>
                 <input
                   type="date"
                   value={selectedDateStr}
@@ -547,9 +547,9 @@ export default function PolicyStatementsPage() {
             )}
 
             {timeframe === 'weekly' && (
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Week Of:</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shadow-2xs">
+                <Calendar className="h-3 w-3 text-[#4A0E17]" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Week Of:</span>
                 <input
                   type="date"
                   value={selectedDateStr}
@@ -560,9 +560,9 @@ export default function PolicyStatementsPage() {
             )}
 
             {timeframe === 'monthly' && (
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Month:</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shadow-2xs">
+                <Calendar className="h-3 w-3 text-[#4A0E17]" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Month:</span>
                 <select
                   value={selectedMonth}
                   onChange={(e) => { setSelectedMonth(Number(e.target.value)); setCurrentPage(1); }}
@@ -585,9 +585,9 @@ export default function PolicyStatementsPage() {
             )}
 
             {timeframe === 'yearly' && (
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-                <Calendar className="h-3.5 w-3.5 text-[#4A0E17]" />
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Year:</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shadow-2xs">
+                <Calendar className="h-3 w-3 text-[#4A0E17]" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Year:</span>
                 <select
                   value={selectedYear}
                   onChange={(e) => { setSelectedYear(Number(e.target.value)); setCurrentPage(1); }}
@@ -605,123 +605,123 @@ export default function PolicyStatementsPage() {
 
       {/* Minimalistic Financial Computation Flow & KPI Summary Cards */}
       {!selectedQuotation && (
-        <div className="space-y-3 print:hidden no-print">
+        <div className="space-y-2.5 print:hidden no-print">
           {/* Interactive Financial Computation Flow Bar */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 font-bold text-slate-700 shrink-0">
+          <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-slate-700 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[11px] uppercase tracking-wider font-extrabold text-slate-800">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-800">
                   Financial Computation Flow ({timeframeLabel}):
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 font-mono text-[11px] w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
-                <div className="bg-slate-50 hover:bg-blue-50/50 px-3 py-1.5 rounded-xl border border-slate-200 transition shrink-0">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2 font-mono text-[11px] w-full lg:w-auto overflow-x-auto pb-0.5 lg:pb-0">
+                <div className="bg-slate-50 hover:bg-blue-50/50 px-2.5 py-1 rounded-lg border border-slate-200 transition shrink-0">
                   <span className="text-slate-500 uppercase text-[9px] block font-sans font-medium">Total Premium</span>
-                  <span className="font-bold text-blue-700 text-xs sm:text-sm">₱{accountingMetrics.totalPrem.toLocaleString('en-US')}</span>
+                  <span className="font-bold text-blue-700 text-xs">₱{accountingMetrics.totalPrem.toLocaleString('en-US')}</span>
                 </div>
-                <span className="text-slate-400 font-sans font-bold text-xs sm:text-sm">−</span>
-                <div className="bg-slate-50 hover:bg-purple-50/50 px-3 py-1.5 rounded-xl border border-slate-200 transition shrink-0">
+                <span className="text-slate-400 font-sans font-bold text-xs">−</span>
+                <div className="bg-slate-50 hover:bg-purple-50/50 px-2.5 py-1 rounded-lg border border-slate-200 transition shrink-0">
                   <span className="text-slate-500 uppercase text-[9px] block font-sans font-medium">Provider Remittances</span>
-                  <span className="font-bold text-purple-700 text-xs sm:text-sm">₱{accountingMetrics.totalRemit.toLocaleString('en-US')}</span>
+                  <span className="font-bold text-purple-700 text-xs">₱{accountingMetrics.totalRemit.toLocaleString('en-US')}</span>
                 </div>
-                <span className="text-slate-400 font-sans font-bold text-xs sm:text-sm">=</span>
-                <div className="bg-slate-50 hover:bg-amber-50/50 px-3 py-1.5 rounded-xl border border-slate-200 transition shrink-0">
+                <span className="text-slate-400 font-sans font-bold text-xs">=</span>
+                <div className="bg-slate-50 hover:bg-amber-50/50 px-2.5 py-1 rounded-lg border border-slate-200 transition shrink-0">
                   <span className="text-slate-500 uppercase text-[9px] block font-sans font-medium">Company Income</span>
-                  <span className="font-bold text-amber-700 text-xs sm:text-sm">₱{accountingMetrics.totalCompInc.toLocaleString('en-US')}</span>
+                  <span className="font-bold text-amber-700 text-xs">₱{accountingMetrics.totalCompInc.toLocaleString('en-US')}</span>
                 </div>
-                <span className="text-slate-400 font-sans font-bold text-xs sm:text-sm">−</span>
-                <div className="bg-slate-50 hover:bg-rose-50/50 px-3 py-1.5 rounded-xl border border-slate-200 transition shrink-0">
+                <span className="text-slate-400 font-sans font-bold text-xs">−</span>
+                <div className="bg-slate-50 hover:bg-rose-50/50 px-2.5 py-1 rounded-lg border border-slate-200 transition shrink-0">
                   <span className="text-slate-500 uppercase text-[9px] block font-sans font-medium">Markups, Freebies & Cashback</span>
-                  <span className="font-bold text-rose-700 text-xs sm:text-sm">₱{accountingMetrics.totalDeductions.toLocaleString('en-US')}</span>
+                  <span className="font-bold text-rose-700 text-xs">₱{accountingMetrics.totalDeductions.toLocaleString('en-US')}</span>
                 </div>
-                <span className="text-slate-400 font-sans font-bold text-xs sm:text-sm">=</span>
-                <div className="bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-emerald-800 font-extrabold shadow-2xs shrink-0">
+                <span className="text-slate-400 font-sans font-bold text-xs">=</span>
+                <div className="bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-emerald-800 font-extrabold shadow-2xs shrink-0">
                   <span className="text-emerald-700 uppercase text-[9px] block font-sans font-medium">NET INCOME</span>
-                  <span className="text-xs sm:text-sm font-bold text-emerald-700">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</span>
+                  <span className="text-xs font-bold text-emerald-700">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 4 Minimalistic Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {/* Total Policy Premium */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-3 sm:p-3.5 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Policy Premium</span>
-                  <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Policy Premium</span>
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 tracking-tight">
                     ₱{accountingMetrics.totalPrem.toLocaleString('en-US')}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-                  <DollarSign className="h-5 w-5" />
+                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
-              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
-                <span className="text-emerald-600 font-bold inline-flex items-center gap-0.5">
+              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span className="text-emerald-600 font-bold inline-flex items-center gap-0.5 text-[11px]">
                   <TrendingUp className="h-3 w-3" /> {accountingMetrics.count} {accountingMetrics.count === 1 ? 'policy' : 'policies'}
                 </span>
-                <span className="text-[11px] text-slate-400 font-medium">({timeframe.toUpperCase()})</span>
+                <span className="text-[10px] text-slate-400 font-medium">({timeframe.toUpperCase()})</span>
               </div>
             </div>
 
             {/* Provider Remittances */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-3 sm:p-3.5 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Provider Remittances</span>
-                  <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Provider Remittances</span>
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 tracking-tight">
                     ₱{accountingMetrics.totalRemit.toLocaleString('en-US')}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
-                  <FileSpreadsheet className="h-5 w-5" />
+                <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
+                  <FileSpreadsheet className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
-              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
-                <span className="text-purple-700 font-semibold">
+              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span className="text-purple-700 font-semibold text-[11px]">
                   {selectedProvider === 'ALL' ? 'Alpha & CBIC' : selectedProvider === 'ALPHA' ? 'Alpha Insurance' : 'CBIC Insurance'}
                 </span>
-                <span className="text-[11px] text-slate-400">Net Remittance</span>
+                <span className="text-[10px] text-slate-400">Net Remittance</span>
               </div>
             </div>
 
             {/* Gross Company Income */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-3 sm:p-3.5 shadow-2xs hover:shadow-sm transition flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Gross Company Income</span>
-                  <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gross Company Income</span>
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 tracking-tight">
                     ₱{accountingMetrics.totalCompInc.toLocaleString('en-US')}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
-                  <TrendingUp className="h-5 w-5" />
+                <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
-              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
-                <span className="text-amber-700 font-bold">Margin {accountingMetrics.marginPct}%</span>
-                <span className="text-[11px] text-slate-400">Pre-deductions</span>
+              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span className="text-amber-700 font-bold text-[11px]">Margin {accountingMetrics.marginPct}%</span>
+                <span className="text-[10px] text-slate-400">Pre-deductions</span>
               </div>
             </div>
 
             {/* NET COMPANY INCOME (Emerald Theme Card) */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#022c22] to-[#065f46] rounded-2xl p-4 text-white border border-emerald-400/40 shadow-sm flex flex-col justify-between">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#022c22] to-[#065f46] rounded-2xl p-3 sm:p-3.5 text-white border border-emerald-400/40 shadow-sm flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/90 block">NET COMPANY INCOME</span>
-                  <h3 className="text-2xl font-black text-white mt-1">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</h3>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-300/90 block">NET COMPANY INCOME</span>
+                  <h3 className="text-xl sm:text-2xl font-black text-white mt-0.5">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</h3>
                 </div>
-                <div className="p-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-emerald-300">
-                  <Wallet className="h-5 w-5" />
+                <div className="p-1.5 sm:p-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-emerald-300">
+                  <Wallet className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
-              <div className="mt-3 pt-2.5 border-t border-emerald-800/60 flex items-center justify-between text-xs text-emerald-200 font-medium">
-                <span className="text-[11px] text-emerald-200/90">After Deductions</span>
-                <span className="inline-flex items-center gap-1 font-bold text-emerald-300 text-[11px]">
+              <div className="mt-2 pt-2 border-t border-emerald-800/60 flex items-center justify-between text-xs text-emerald-200 font-medium">
+                <span className="text-[10px] text-emerald-200/90">After Deductions</span>
+                <span className="inline-flex items-center gap-1 font-bold text-emerald-300 text-[10px]">
                   <TrendingUp className="h-3 w-3" /> Net Profit
                 </span>
               </div>
@@ -733,7 +733,7 @@ export default function PolicyStatementsPage() {
       {/* Refined Aligned Filter and Search Bar Container */}
       {!selectedQuotation && (
         <div className="space-y-2 print:hidden no-print">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 bg-white rounded-2xl border border-slate-200/80 p-3.5">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5 bg-white rounded-2xl border border-slate-200/80 p-2.5 sm:p-3">
             {/* Search Input */}
             <div className="relative flex-grow min-w-[240px]">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -859,20 +859,20 @@ export default function PolicyStatementsPage() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-600">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
+                <table className="w-full text-left text-xs text-slate-600">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
                     <tr>
-                      <th className="px-5 py-3.5">Ref / IR No.</th>
-                      <th className="px-5 py-3.5">Assured Name</th>
-                      <th className="px-5 py-3.5">Insurance Provider</th>
-                      <th className="px-5 py-3.5">Total Premium</th>
-                      <th className="px-5 py-3.5">Net Remittance</th>
-                      <th className="px-5 py-3.5">Company Income</th>
-                      <th className="px-5 py-3.5">Net Income</th>
-                      <th className="px-5 py-3.5">Remittance Status</th>
-                      <th className="px-5 py-3.5">Freebies & Delivery</th>
-                      <th className="px-5 py-3.5">Agent</th>
-                      <th className="px-5 py-3.5">Date & Time</th>
+                      <th className="px-2.5 py-2.5 whitespace-nowrap">Ref / IR No.</th>
+                      <th className="px-2.5 py-2.5 whitespace-nowrap">Assured Name</th>
+                      <th className="px-2 py-2.5 text-center whitespace-nowrap">Provider</th>
+                      <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Total Premium</th>
+                      <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Net Remittance</th>
+                      <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Company Income</th>
+                      <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Net Income</th>
+                      <th className="px-2 py-2.5 text-center whitespace-nowrap">Remittance</th>
+                      <th className="px-2 py-2.5 text-center whitespace-nowrap">Freebies & Delivery</th>
+                      <th className="px-2.5 py-2.5 whitespace-nowrap">Agent</th>
+                      <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Date & Time</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -895,43 +895,43 @@ export default function PolicyStatementsPage() {
                                 : 'hover:bg-slate-50'
                           }`}
                         >
-                          <td className="px-5 py-4 font-bold text-slate-800 group-hover:text-[#4A0E17] transition">
+                          <td className="px-2.5 py-2 font-bold text-slate-800 group-hover:text-[#4A0E17] transition whitespace-nowrap">
                             <div>{q.quotation_number || q.ir_number || `IR-${q.id}`}</div>
                             {q.status === 'cancelled' && (
-                              <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 uppercase tracking-wider">
+                              <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 uppercase tracking-wider">
                                 CANCELLED
                               </span>
                             )}
                           </td>
-                          <td className="px-5 py-4 font-semibold text-slate-700">
+                          <td className="px-2.5 py-2 font-semibold text-slate-700 max-w-[130px] truncate" title={getAssuredName(q)}>
                             {getAssuredName(q)}
                           </td>
-                          <td className="px-5 py-4 text-xs">
-                            <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg uppercase border ${fin.isCBIC
+                          <td className="px-2 py-2 text-center whitespace-nowrap">
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md uppercase border ${fin.isCBIC
                                 ? 'bg-amber-50 text-amber-800 border-amber-200/80'
                                 : 'bg-blue-50 text-blue-800 border-blue-200/80'
                               }`}>
                               {fin.provider}
                             </span>
                           </td>
-                          <td className="px-5 py-4 font-bold text-slate-800">
+                          <td className="px-2.5 py-2 font-bold text-slate-800 font-mono text-xs text-right whitespace-nowrap">
                             ₱{formatCurrency(fin.totalPolicyPremium)}
                           </td>
-                          <td className="px-5 py-4 font-medium text-slate-700 font-mono text-xs">
+                          <td className="px-2.5 py-2 font-medium text-slate-700 font-mono text-xs text-right whitespace-nowrap">
                             ₱{formatCurrency(fin.netRemittance)}
                           </td>
-                          <td className="px-5 py-4 font-bold text-amber-700 font-mono text-xs">
+                          <td className="px-2.5 py-2 font-bold text-amber-700 font-mono text-xs text-right whitespace-nowrap">
                             ₱{formatCurrency(fin.companyIncome)}
                           </td>
-                          <td className="px-5 py-4 font-extrabold text-emerald-700 font-mono text-xs">
+                          <td className="px-2.5 py-2 font-extrabold text-emerald-700 font-mono text-xs text-right whitespace-nowrap">
                             ₱{formatCurrency(fin.netIncome)}
                           </td>
-                          <td className="px-5 py-4 text-xs" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-2 py-2 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => remittanceMutation.mutate(q.id)}
                               disabled={remittanceMutation.isPending}
                               title="Click to toggle remittance status"
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide border transition-all active:scale-95 cursor-pointer ${
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide border transition-all active:scale-95 cursor-pointer ${
                                 q.is_remitted
                                     ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200 hover:bg-emerald-100/90'
                                     : 'bg-slate-50 text-slate-600 border-slate-200/90 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
@@ -941,7 +941,7 @@ export default function PolicyStatementsPage() {
                               <span>{q.is_remitted ? 'Remitted' : 'Unremitted'}</span>
                             </button>
                           </td>
-                          <td className="px-5 py-4 text-xs" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-2 py-2 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                             {(() => {
                               const custAny = (q.customer || {}) as any;
                               const invoice = q.policy?.invoice;
@@ -965,31 +965,31 @@ export default function PolicyStatementsPage() {
                               ).length;
 
                               if (!isFullyPaid) {
-                                return <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap italic">Pending Paid</span>;
+                                return <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap italic">Pending Paid</span>;
                               }
 
                               return (
                                 <button
                                   onClick={() => setFreebieModalTarget(q)}
                                   title={freebieAttCount > 0 ? `${freebieAttCount} Freebie Proof Attachment(s) Uploaded` : 'Upload Freebie Delivery Proof'}
-                                  className={`whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                                  className={`whitespace-nowrap inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all active:scale-95 cursor-pointer shadow-2xs ${
                                     freebieAttCount > 0
                                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100/80'
                                       : 'bg-amber-50/80 text-amber-800 border-amber-200/80 hover:bg-amber-100/80'
                                   }`}
                                 >
-                                  <Gift className={`h-3.5 w-3.5 shrink-0 ${freebieAttCount > 0 ? 'text-emerald-600' : 'text-amber-600'}`} />
+                                  <Gift className={`h-3 w-3 shrink-0 ${freebieAttCount > 0 ? 'text-emerald-600' : 'text-amber-600'}`} />
                                   <span>{freebieAttCount > 0 ? `Attached (${freebieAttCount})` : 'Upload Freebie'}</span>
                                 </button>
                               );
                             })()}
                           </td>
-                          <td className="px-5 py-4 font-medium text-slate-600 text-xs">
+                          <td className="px-2.5 py-2 font-medium text-slate-600 text-xs max-w-[100px] truncate" title={agentName}>
                             {agentName}
                           </td>
-                          <td className="px-5 py-4 text-xs font-medium text-slate-700 whitespace-nowrap">
-                            <span>{formattedDateStr}</span>
-                            <span className="text-[11px] font-mono text-slate-400 ml-1.5">{formattedTimeStr}</span>
+                          <td className="px-2.5 py-2 text-right text-xs whitespace-nowrap font-medium text-slate-700">
+                            <div className="font-semibold text-slate-800 leading-tight">{formattedDateStr}</div>
+                            <div className="text-[10px] font-mono text-slate-400 leading-tight">{formattedTimeStr}</div>
                           </td>
                         </tr>
                       );
