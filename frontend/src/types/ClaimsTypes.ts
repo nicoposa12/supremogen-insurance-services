@@ -137,6 +137,16 @@ export interface ClaimNotification {
     is_remitted: boolean;
     remitted_at?: string;
   };
+  collection_payment_status?: {
+    invoice_id?: number;
+    invoice_number?: string;
+    is_paid: boolean;
+    status_label: string;
+    raw_status?: string;
+    total_amount?: number;
+    amount_paid?: number;
+    balance?: number;
+  } | null;
   created_at: string;
   updated_at: string;
 }

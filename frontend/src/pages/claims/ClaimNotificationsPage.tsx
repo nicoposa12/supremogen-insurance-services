@@ -1827,6 +1827,28 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                       </span>
                     ) as any
                   }] : []),
+                  ...(selectedRecord.collection_payment_status ? [{
+                    label: 'Payment Status',
+                    value: (() => {
+                      const colStatus = selectedRecord.collection_payment_status;
+                      const isPaid = colStatus.is_paid;
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold border w-fit ${
+                            isPaid
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                              : 'bg-amber-50 text-amber-800 border-amber-300'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isPaid ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                            {isPaid ? 'Paid' : 'Unpaid'}
+                          </span>
+                          <span className="text-[11px] font-normal text-slate-500">
+                            Invoice: {colStatus.invoice_number || 'N/A'} | Total: ₱{Number(colStatus.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} | Paid: ₱{Number(colStatus.amount_paid || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} | Balance: ₱{Number(colStatus.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      );
+                    })() as any
+                  }] : []),
                   {
                     label: 'Inception Date',
                     value: selectedRecord.inception_date
@@ -2948,6 +2970,39 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${quo.is_remitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
             {quo.is_remitted ? 'Remitted' : 'Unremitted'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'payment_status', label: 'Payment Status', className: 'whitespace-nowrap',
+      render: (r: ClaimNotification) => {
+        const colStatus = r.collection_payment_status;
+        if (!colStatus) {
+          return <span className="text-xs text-slate-400">—</span>;
+        }
+
+        const isPaid = colStatus.is_paid;
+        const badgeClass = isPaid
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+          : colStatus.status_label === 'PARTIALLY PAID'
+            ? 'bg-blue-50 text-blue-700 border-blue-300'
+            : 'bg-amber-50 text-amber-800 border-amber-300';
+        const dotClass = isPaid
+          ? 'bg-emerald-500'
+          : colStatus.status_label === 'PARTIALLY PAID'
+            ? 'bg-blue-500'
+            : 'bg-amber-500';
+
+        const tooltip = `Invoice: ${colStatus.invoice_number || 'N/A'} | Total: ₱${Number(colStatus.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} | Paid: ₱${Number(colStatus.amount_paid || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} | Balance: ₱${Number(colStatus.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+        return (
+          <span
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border cursor-help ${badgeClass}`}
+            title={tooltip}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+            {isPaid ? 'Paid' : 'Unpaid'}
           </span>
         );
       },

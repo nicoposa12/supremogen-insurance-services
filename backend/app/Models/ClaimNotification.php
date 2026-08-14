@@ -28,12 +28,48 @@ class ClaimNotification extends Model
         'acknowledged_at',
     ];
 
+    protected $appends = ['collection_payment_status'];
+
     protected function casts(): array
     {
         return [
             'inception_date'  => 'date',
             'accident_date'   => 'date',
             'acknowledged_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Get payment status based on Collection Ledger invoice.
+     */
+    public function getCollectionPaymentStatusAttribute(): ?array
+    {
+        $invoice = $this->policy?->invoice ?? $this->quotation?->policy?->invoice;
+
+        if (!$invoice && $this->policy_number) {
+            $invoice = Invoice::whereHas('policy', function ($q) {
+                $q->where('policy_number', $this->policy_number);
+            })->orWhereHas('policy.quotation', function ($q) {
+                $q->where('quotation_number', $this->policy_number);
+            })->first();
+        }
+
+        if (!$invoice) {
+            return null;
+        }
+
+        $status = strtolower($invoice->status ?? 'unpaid');
+        $isPaid = $status === 'paid' || ($invoice->balance <= 0 && $invoice->amount_paid > 0);
+
+        return [
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'is_paid' => $isPaid,
+            'status_label' => $isPaid ? 'PAID' : ($status === 'partial' ? 'PARTIALLY PAID' : 'UNPAID'),
+            'raw_status' => $invoice->status,
+            'total_amount' => (float) $invoice->total_amount,
+            'amount_paid' => (float) $invoice->amount_paid,
+            'balance' => (float) $invoice->balance,
         ];
     }
 
