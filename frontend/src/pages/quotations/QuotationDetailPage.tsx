@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 import {
   ArrowLeft, Pencil, CheckCircle2, XCircle, Send, ShieldCheck,
-  Loader2, User, FileText, X, Calendar, Link2, AlertTriangle, Paperclip, Download
+  Loader2, User, FileText, X, Calendar, Link2, AlertTriangle, Paperclip, Download, Eye
 } from 'lucide-react';
 
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -41,6 +42,72 @@ export default function QuotationDetailPage({
   const [reviewRemarks, setReviewRemarks] = useState('');
   const [showReviewPanel, setShowReviewPanel] = useState(false);
   const [showCancellationModal, setShowCancellationModal] = useState(false);
+
+  // Preview Modal State for Cancellation Attachment & Documents
+  const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
+  const [previewModalTitle, setPreviewModalTitle] = useState<string>('');
+  const [previewModalType, setPreviewModalType] = useState<string>('');
+  const [isPreviewModalLoading, setIsPreviewModalLoading] = useState(false);
+
+  const handleViewCancellationDoc = async (urlPath: string) => {
+    if (!urlPath) return;
+    const fullUrl = getFileUrl(urlPath);
+    const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(urlPath);
+    const isPdf = /\.pdf$/i.test(urlPath);
+    
+    setPreviewModalTitle('Cancellation Supporting Document');
+    setPreviewModalType(isImage ? 'image' : isPdf ? 'pdf' : 'other');
+    setIsPreviewModalLoading(true);
+    setPreviewModalUrl(null);
+
+    try {
+      const { data } = await axios.get(fullUrl, { responseType: 'blob' });
+      const mimeType = isImage ? (urlPath.endsWith('.png') ? 'image/png' : 'image/jpeg') : isPdf ? 'application/pdf' : 'application/octet-stream';
+      const blobUrl = window.URL.createObjectURL(new Blob([data], { type: mimeType }));
+      setPreviewModalUrl(blobUrl);
+    } catch (err) {
+      setPreviewModalUrl(fullUrl);
+    } finally {
+      setIsPreviewModalLoading(false);
+    }
+  };
+
+  const handleDownloadCancellationDoc = async (urlPath: string) => {
+    if (!urlPath) return;
+    const fullUrl = getFileUrl(urlPath);
+    const ext = urlPath.split('.').pop()?.split('?')[0] || 'pdf';
+    const downloadFileName = `cancellation-supporting-document-${quotation?.quotation_number || id}.${ext}`;
+
+    try {
+      const { data } = await axios.get(fullUrl, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([data]));
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = downloadFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+      showToast('Download started.');
+    } catch (err) {
+      const a = document.createElement('a');
+      a.href = fullUrl;
+      a.download = downloadFileName;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Download started.');
+    }
+  };
+
+  const handleClosePreviewModal = () => {
+    if (previewModalUrl && previewModalUrl.startsWith('blob:')) {
+      window.URL.revokeObjectURL(previewModalUrl);
+    }
+    setPreviewModalUrl(null);
+    setPreviewModalTitle('');
+  };
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['quotation', id],
@@ -273,15 +340,22 @@ export default function QuotationDetailPage({
                       <FileText className="h-4 w-4 text-slate-600" />
                       <span className="font-bold text-slate-700 text-xs">Cancellation Supporting Document</span>
                     </div>
-                    <a
-                      href={getFileUrl(quotation.cancellation_details.attachment_url)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition"
-                    >
-                      <Download className="h-3.5 w-3.5" /> View / Download Attachment
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleViewCancellationDoc(quotation.cancellation_details?.attachment_url || '')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition cursor-pointer"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-slate-600" /> View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadCancellationDoc(quotation.cancellation_details?.attachment_url || '')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition cursor-pointer"
+                      >
+                        <Download className="h-3.5 w-3.5 text-slate-600" /> Download
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -953,6 +1027,77 @@ export default function QuotationDetailPage({
             queryClient.invalidateQueries({ queryKey: ['quotations'] });
           }}
         />
+      )}
+
+      {/* ─── DOCUMENT PREVIEW MODAL ───────────────────────── */}
+      {(previewModalUrl || isPreviewModalLoading) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in no-print">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-900 text-white">
+              <div className="flex items-center gap-2.5">
+                <FileText className="h-5 w-5 text-amber-400" />
+                <h3 className="font-bold text-sm tracking-wide">{previewModalTitle || 'Document Preview'}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {previewModalUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadCancellationDoc(quotation?.cancellation_details?.attachment_url || '')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleClosePreviewModal}
+                  className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50 flex items-center justify-center min-h-[50vh]">
+              {isPreviewModalLoading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-10 w-10 animate-spin text-[#4A0E17]" />
+                  <p className="text-sm font-semibold text-slate-500">Loading document preview...</p>
+                </div>
+              ) : previewModalUrl ? (
+                previewModalType === 'image' ? (
+                  <img
+                    src={previewModalUrl}
+                    alt={previewModalTitle}
+                    className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-sm border border-slate-200"
+                  />
+                ) : previewModalType === 'pdf' ? (
+                  <iframe
+                    src={previewModalUrl}
+                    className="w-full h-[70vh] rounded-2xl border border-slate-200 bg-white"
+                    title={previewModalTitle}
+                  />
+                ) : (
+                  <div className="text-center py-10 space-y-4">
+                    <FileText className="h-16 w-16 text-slate-400 mx-auto" />
+                    <p className="text-sm font-bold text-slate-600">This file format cannot be previewed in the browser.</p>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadCancellationDoc(quotation?.cancellation_details?.attachment_url || '')}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-sm font-bold rounded-xl transition shadow-sm cursor-pointer"
+                    >
+                      <Download className="h-4 w-4" /> Download File
+                    </button>
+                  </div>
+                )
+              ) : (
+                <div className="text-sm font-bold text-rose-500">Error loading document.</div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
