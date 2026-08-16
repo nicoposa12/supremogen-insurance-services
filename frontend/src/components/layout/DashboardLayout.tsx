@@ -968,7 +968,7 @@ export default function DashboardLayout() {
                               // Remittance Status notifications
                               const isRemittance = title.toLowerCase().includes('remittance') || message.toLowerCase().includes('remitted');
 
-                              // Completed Claim Requirements notifications (Evaluation Letter, LOA, Offer Letter, Denied Claim, or Requirements Completed)
+                              // Completed Claim Requirements notifications (Evaluation Letter, LOA, Offer Letter, Denied Claim, Deposit Slip, Billing Casa/Shop, or Requirements Completed)
                               const isCompletedRequirementNotice = 
                                 title.toLowerCase().includes('completed') || 
                                 title.toLowerCase().includes('official claim document') ||
@@ -976,7 +976,10 @@ export default function DashboardLayout() {
                                 message.toLowerCase().includes('evaluation letter') ||
                                 message.toLowerCase().includes('offer letter') ||
                                 message.toLowerCase().includes('loa') ||
-                                message.toLowerCase().includes('denied claim');
+                                message.toLowerCase().includes('denied claim') ||
+                                message.toLowerCase().includes('deposit slip') ||
+                                message.toLowerCase().includes('billing casa') ||
+                                message.toLowerCase().includes('billing shop');
 
                               const isCancellationNotice = title.toLowerCase().includes('cancellation') || message.toLowerCase().includes('cancellation');
 

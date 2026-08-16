@@ -5,7 +5,7 @@ import {
   Search, Plus, Eye, CheckCircle2, Filter, Loader2, X,
   Send, FileText, Phone, Mail, Car, Shield, Calendar,
   AlertTriangle, User, ChevronLeft, Printer, RotateCcw, ChevronDown,
-  Paperclip, Download, Edit,
+  Paperclip, Download, Edit, Lock,
 } from 'lucide-react';
 
 import DataTable from '../../components/ui/DataTable';
@@ -163,6 +163,8 @@ const COMPLETED_REQUIREMENTS = [
   { key: 'comp_2', label: 'LOA' },
   { key: 'comp_3', label: 'OFFER LETTER' },
   { key: 'comp_4', label: 'DENIED CLAIM' },
+  { key: 'comp_5', label: 'DEPOSIT SLIP' },
+  { key: 'comp_6', label: 'BILLING CASA/SHOP' },
 ];
 
 interface CustomAttachmentInput {
@@ -173,13 +175,19 @@ interface CustomAttachmentInput {
 }
 
 const parseDocumentType = (raw: string | undefined) => {
-  if (!raw) return { docTitle: '', docNote: '', returnReason: '' };
+  if (!raw) return { docTitle: '', docNote: '', returnReason: '', isOfficial: false };
   let docTitle = raw;
   let docNote = '';
   let returnReason = '';
+  let isOfficial = false;
 
-  if (raw.includes(' | Returned: ')) {
-    const [beforeReturn, returnedPart] = raw.split(' | Returned: ');
+  if (docTitle.includes('[Official Document] ') || docTitle.includes('[Official] ') || docTitle.includes('[Completed Document] ') || docTitle.includes('[Completed] ')) {
+    isOfficial = true;
+    docTitle = docTitle.replace(/\[(Official Document|Completed Document|Official|Completed)\]\s*/gi, '');
+  }
+
+  if (docTitle.includes(' | Returned: ')) {
+    const [beforeReturn, returnedPart] = docTitle.split(' | Returned: ');
     returnReason = returnedPart || '';
     if (beforeReturn.includes(' | Note: ')) {
       const [title, note] = beforeReturn.split(' | Note: ');
@@ -188,13 +196,51 @@ const parseDocumentType = (raw: string | undefined) => {
     } else {
       docTitle = beforeReturn;
     }
-  } else if (raw.includes(' | Note: ')) {
-    const [title, note] = raw.split(' | Note: ');
+  } else if (docTitle.includes(' | Note: ')) {
+    const [title, note] = docTitle.split(' | Note: ');
     docTitle = title;
     docNote = note;
   }
 
-  return { docTitle: docTitle.trim(), docNote: docNote.trim(), returnReason: returnReason.trim() };
+  return { docTitle: docTitle.trim(), docNote: docNote.trim(), returnReason: returnReason.trim(), isOfficial };
+};
+
+const ALL_INITIAL_REQUIREMENT_LABELS = [
+  ...OWN_DAMAGE_REQUIREMENTS.map((r) => r.label.trim().toLowerCase()),
+  ...TTPD_REQUIREMENTS.map((r) => r.label.trim().toLowerCase()),
+  ...ACT_OF_NATURE_REQUIREMENTS.map((r) => r.label.trim().toLowerCase()),
+  ...THEFT_AND_LOSS_REQUIREMENTS.map((r) => r.label.trim().toLowerCase()),
+];
+
+const isInitialRequirement = (docTitle: string) => {
+  if (!docTitle) return false;
+  const clean = docTitle.trim().toLowerCase();
+  const cleanNoNum = clean.replace(/^[0-[#\.\s]+/, '').trim();
+  return ALL_INITIAL_REQUIREMENT_LABELS.some((req) => {
+    const reqNoNum = req.replace(/^[0-[#\.\s]+/, '').trim();
+    return (
+      clean === req ||
+      clean.includes(req) ||
+      req.includes(clean) ||
+      (cleanNoNum.length > 3 && reqNoNum.length > 3 && (cleanNoNum.includes(reqNoNum) || reqNoNum.includes(cleanNoNum)))
+    );
+  });
+};
+
+const isOfficialCompletedAttachment = (att: any) => {
+  if (!att || (!att.document_type && !att.file_name)) return false;
+  const { docTitle, isOfficial } = parseDocumentType(att.document_type || att.file_name);
+  if (isOfficial) return true;
+  const titleClean = docTitle.trim().toLowerCase();
+  const officialDocLabels = (COMPLETED_REQUIREMENTS || []).map((r) => r.label.trim().toLowerCase());
+  if (officialDocLabels.some((l) => titleClean === l || titleClean.includes(l))) {
+    return true;
+  }
+  // If not matching standard initial requirements, consider it an official completed document
+  if (!isInitialRequirement(docTitle)) {
+    return true;
+  }
+  return false;
 };
 
 const getUploaderBadge = (att: any) => {
@@ -674,6 +720,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
   const [showNameSuggestions, setShowNameSuggestions] = useState(false);
   const [plateSuggestions, setPlateSuggestions] = useState<Customer[]>([]);
   const [showPlateSuggestions, setShowPlateSuggestions] = useState(false);
+  const [isFromSmartSuggestion, setIsFromSmartSuggestion] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
   const resetForm = () => {
@@ -696,6 +743,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     setPlateSuggestions([]);
     setShowNameSuggestions(false);
     setShowPlateSuggestions(false);
+    setIsFromSmartSuggestion(false);
     setValidationErrors({});
     setClaimType('');
     setPaymentStatus('');
@@ -781,6 +829,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     setPlateSuggestions([]);
     setShowNameSuggestions(false);
     setShowPlateSuggestions(false);
+    setIsFromSmartSuggestion(true);
     setValidationErrors({});
   };
 
@@ -823,6 +872,13 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
           if (target === 'LOA') return clean.includes('LOA') || clean.includes('LETTER OF AUTHORITY');
           if (target === 'OFFER LETTER') return clean.includes('OFFER');
           if (target === 'DENIED CLAIM') return clean.includes('DENIED');
+          if (target === 'DEPOSIT SLIP') return clean.includes('DEPOSIT') || clean.includes('SLIP');
+          if (target === 'BILLING CASA/SHOP') return clean.includes('BILLING') || clean.includes('CASA') || clean.includes('SHOP');
+          if (target === 'OTHER') {
+            const isKnown = ['EVALUATION', 'LOA', 'LETTER OF AUTHORITY', 'OFFER', 'DENIED', 'DEPOSIT', 'BILLING', 'CASA', 'SHOP']
+              .some((k) => clean.includes(k));
+            return !isKnown;
+          }
           return clean.includes(target);
         });
       }
@@ -988,7 +1044,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     const newErrors: Record<string, boolean> = {};
     if (!form.assured_name.trim()) newErrors.assured_name = true;
     if (!form.insurance_provider.trim()) newErrors.insurance_provider = true;
-    if (!form.policy_number.trim()) newErrors.policy_number = true;
     if (!form.accident_date) newErrors.accident_date = true;
     if (!form.claim_count) newErrors.claim_count = true;
     if (!paymentStatus) newErrors.payment_status = true;
@@ -999,7 +1054,6 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     if (Object.keys(newErrors).length > 0) {
       if (newErrors.assured_name) { showToast('Please enter the Assured Name.', 'error'); }
       else if (newErrors.insurance_provider) { showToast('Please select the Insurance Provider.', 'error'); }
-      else if (newErrors.policy_number) { showToast('Please enter the Policy Number.', 'error'); }
       else if (newErrors.accident_date) { showToast('Please set the Accident Date.', 'error'); }
       else if (newErrors.claim_count) { showToast('Please select the Claim Count.', 'error'); }
       else if (newErrors.payment_status) { showToast('Please select the Payment Status.', 'error'); }
@@ -1011,7 +1065,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     const payload = {
       ...form,
       assured_name: form.assured_name.toUpperCase(),
-      policy_number: form.policy_number.toUpperCase(),
+      policy_number: (form.policy_number || '').toUpperCase(),
       plate_number: (form.plate_number || '').toUpperCase(),
       nature_of_claims: `${prefix}[Payment Status: ${paymentStatus}]`,
     };
@@ -1050,17 +1104,21 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
           } else if (key.startsWith('comp_')) {
             const req = COMPLETED_REQUIREMENTS.find((r) => r.key === key);
             label = req ? req.label : 'Requirement Document';
+          } else if (key.startsWith('custom_comp_')) {
+            label = `[Official Document] ${key.replace('custom_comp_', '')}`;
           }
           const note = requirementNotes[key];
           const docType = note ? `${label} | Note: ${note}` : label;
-          return files.map((file) => uploadAttachment('claim_notification', detailRecord.id, file, docType));
+          return files.map((file) => uploadAttachment('claim_notification', detailRecord.id, file, docType.slice(0, 100)));
         }),
         ...customAttachments
           .filter((c) => c.file)
           .map((c) => {
             const label = c.label.trim() || 'Additional Document';
-            const docType = c.note.trim() ? `${label} | Note: ${c.note.trim()}` : label;
-            return uploadAttachment('claim_notification', detailRecord.id, c.file!, docType);
+            const isCompletedMode = (selectedRecord?.status as string) === 'completed' || completedOnly;
+            const fullLabel = isCompletedMode ? `[Official Document] ${label}` : label;
+            const docType = c.note.trim() ? `${fullLabel} | Note: ${c.note.trim()}` : fullLabel;
+            return uploadAttachment('claim_notification', detailRecord.id, c.file!, docType.slice(0, 100));
           })
       ];
       await Promise.all(promises);
@@ -1147,11 +1205,8 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     };
 
     // Filter out official completed claim documents so they don't appear in standard uploaded requirements box
-    const officialDocLabels = (COMPLETED_REQUIREMENTS || []).map((r) => r.label.trim().toLowerCase());
     const nonOfficialAttachments = (detailRecord?.attachments || []).filter((att: any) => {
-      const { docTitle } = parseDocumentType(att.document_type || '');
-      const titleClean = docTitle.trim().toLowerCase();
-      return !officialDocLabels.some((label) => titleClean === label || titleClean.includes(label));
+      return !isOfficialCompletedAttachment(att);
     });
 
     // Define the upload list section
@@ -1799,115 +1854,437 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
           )}
 
 
-          {/* Completed Claim Requirements (Evaluation Letter, LOA, Offer Letter, Denied Claim) */}
-          {((selectedRecord.status as string) === 'completed' || completedOnly) && (
-            <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-700" />
-                <p className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
-                  Official Completed Claim Documents (Upload Attachments)
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {COMPLETED_REQUIREMENTS.map((req) => {
-                  const isEvalOrOffer = req.key === 'comp_1' || req.key === 'comp_3' || req.label === 'EVALUATION LETTER' || req.label === 'OFFER LETTER';
-                  const canUploadThisReq = isClaimsOfficer || isAdmin || (canSubmit && isEvalOrOffer);
+          {/* Completed Claim Requirements (Evaluation Letter, LOA, Offer Letter, Denied Claim, Deposit Slip, Billing Casa/Shop, and Other Custom Attachments) */}
+          {((selectedRecord.status as string) === 'completed' || completedOnly) && (() => {
+            const officialDocLabels = (COMPLETED_REQUIREMENTS || []).map((r) => r.label.trim().toLowerCase());
+            const customCompletedAttachments = (detailRecord?.attachments || []).filter((att: any) => {
+              if (!isOfficialCompletedAttachment(att)) return false;
+              const { docTitle } = parseDocumentType(att.document_type || att.file_name);
+              const titleClean = docTitle.trim().toLowerCase();
+              return !officialDocLabels.some((l) => titleClean === l || titleClean.includes(l));
+            });
 
-                  return (
-                    <div key={req.key} className="space-y-1 bg-white p-3.5 rounded-xl border border-emerald-150 shadow-2xs">
-                      <div className="flex items-center justify-between">
-                        <span className="block text-xs font-bold text-emerald-950 uppercase tracking-wide">{req.label}</span>
-                        {canSubmit && !isClaimsOfficer && !isAdmin && isEvalOrOffer && (
-                          <span className="text-[9px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                            Upload Allowed
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Claims Officers & Admins can upload all; Agents & Renewal can upload Evaluation Letter and Offer Letter */}
-                      {canUploadThisReq && (
-                        <div className="flex flex-col gap-1.5 mt-1">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="file"
-                              id={`detail-file-${req.key}`}
-                              multiple
-                              onChange={(e) => {
-                                const files = Array.from(e.target.files || []);
-                                if (files.length > 0) {
-                                  setRequirementFiles((prev) => ({
-                                    ...prev,
-                                    [req.key]: [...(prev[req.key] || []), ...files],
-                                  }));
-                                }
-                              }}
-                              className="hidden"
-                            />
-                            <label
-                              htmlFor={`detail-file-${req.key}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
-                            >
-                              <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                              <span>Choose File</span>
-                            </label>
-                            {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
-                              <span className="text-xs text-slate-400 italic">No files selected</span>
-                            )}
-                          </div>
+            const customCompletedGroups: { label: string; atts: any[] }[] = [];
+            customCompletedAttachments.forEach((att: any) => {
+              const { docTitle } = parseDocumentType(att.document_type || att.file_name);
+              const groupLabel = docTitle.trim().toUpperCase() || 'ADDITIONAL ATTACHMENT';
+              const existing = customCompletedGroups.find((g) => g.label === groupLabel);
+              if (existing) {
+                existing.atts.push(att);
+              } else {
+                customCompletedGroups.push({ label: groupLabel, atts: [att] });
+              }
+            });
 
-                          {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {requirementFiles[req.key].map((file, idx) => (
-                                <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900">
-                                  <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
-                                  <span className="truncate max-w-[120px] font-medium">{file.name}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setRequirementFiles((prev) => {
-                                        const list = (prev[req.key] || []).filter((_, i) => i !== idx);
-                                        const copy = { ...prev };
-                                        if (list.length === 0) {
-                                          delete copy[req.key];
-                                        } else {
-                                          copy[req.key] = list;
-                                        }
-                                        return copy;
-                                      });
-                                    }}
-                                    className="text-slate-400 hover:text-red-500 transition cursor-pointer"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+            return (
+              <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+                    <p className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                      Official Completed Claim Documents (Upload Attachments)
+                    </p>
+                  </div>
+                  {(isClaimsOfficer || isAdmin) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomAttachments((prev) => [
+                          ...prev,
+                          {
+                            id: Math.random().toString(36).substring(2, 9),
+                            label: '',
+                            file: null,
+                            note: '',
+                          },
+                        ]);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-600/30 hover:bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-xl shadow-2xs cursor-pointer transition"
+                    >
+                      <Plus className="h-3.5 w-3.5 text-emerald-700" />
+                      <span>Upload More / Add Attachment</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Standard 6 Official Completed Claim Documents + Custom Uploaded Documents Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {COMPLETED_REQUIREMENTS.map((req) => {
+                    const isEvalOrOffer = req.key === 'comp_1' || req.key === 'comp_3' || req.label === 'EVALUATION LETTER' || req.label === 'OFFER LETTER';
+                    const canUploadThisReq = isClaimsOfficer || isAdmin || (canSubmit && isEvalOrOffer);
+
+                    return (
+                      <div key={req.key} className="space-y-1 bg-white p-3.5 rounded-xl border border-emerald-150 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <span className="block text-xs font-bold text-emerald-950 uppercase tracking-wide">{req.label}</span>
+                          {canSubmit && !isClaimsOfficer && !isAdmin && isEvalOrOffer && (
+                            <span className="text-[9px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              Upload Allowed
+                            </span>
                           )}
                         </div>
-                      )}
+                        
+                        {/* Claims Officers & Admins can upload all; Agents & Renewal can upload Evaluation Letter and Offer Letter */}
+                        {canUploadThisReq && (
+                          <div className="flex flex-col gap-1.5 mt-1">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                id={`detail-file-${req.key}`}
+                                multiple
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  if (files.length > 0) {
+                                    setRequirementFiles((prev) => ({
+                                      ...prev,
+                                      [req.key]: [...(prev[req.key] || []), ...files],
+                                    }));
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`detail-file-${req.key}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                              >
+                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                <span>Choose File</span>
+                              </label>
+                              {(!requirementFiles[req.key] || requirementFiles[req.key].length === 0) && (
+                                <span className="text-xs text-slate-400 italic">No files selected</span>
+                              )}
+                            </div>
 
-                      {canUploadThisReq && requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
-                        <div className="mt-1">
-                          <input
-                            type="text"
-                            placeholder="Add a brief note for this document..."
-                            value={requirementNotes[req.key] || ''}
-                            onChange={(e) => {
-                              setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
-                            }}
-                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-emerald-600/20 focus:border-emerald-600"
-                          />
+                            {requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {requirementFiles[req.key].map((file, idx) => (
+                                  <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900">
+                                    <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                    <span className="truncate max-w-[120px] font-medium">{file.name}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setRequirementFiles((prev) => {
+                                          const list = (prev[req.key] || []).filter((_, i) => i !== idx);
+                                          const copy = { ...prev };
+                                          if (list.length === 0) {
+                                            delete copy[req.key];
+                                          } else {
+                                            copy[req.key] = list;
+                                          }
+                                          return copy;
+                                        });
+                                      }}
+                                      className="text-slate-400 hover:text-red-500 transition cursor-pointer"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {canUploadThisReq && requirementFiles[req.key] && requirementFiles[req.key].length > 0 && (
+                          <div className="mt-1">
+                            <input
+                              type="text"
+                              placeholder="Add a brief note for this document..."
+                              value={requirementNotes[req.key] || ''}
+                              onChange={(e) => {
+                                setRequirementNotes((prev) => ({ ...prev, [req.key]: e.target.value }));
+                              }}
+                              className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-emerald-600/20 focus:border-emerald-600"
+                            />
+                          </div>
+                        )}
+
+                        {/* Always display uploaded requirement files for viewing and downloading */}
+                        {renderUploadedRequirementFiles(req.label)}
+                      </div>
+                    );
+                  })}
+
+                  {/* Render Custom Uploaded Completed Documents (like "secret" or dynamically added custom attachments) */}
+                  {customCompletedGroups.map((group) => {
+                    const customKey = `custom_comp_${group.label}`;
+                    return (
+                      <div key={group.label} className="space-y-1 bg-white p-3.5 rounded-xl border border-emerald-150 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="block text-xs font-bold text-emerald-950 uppercase tracking-wide">{group.label}</span>
+                            <span className="px-1.5 py-0.2 rounded bg-emerald-100/70 text-emerald-800 text-[9px] font-bold uppercase tracking-wider">
+                              Custom Attachment
+                            </span>
+                          </div>
                         </div>
-                      )}
 
-                      {/* Always display uploaded requirement files for viewing and downloading */}
-                      {renderUploadedRequirementFiles(req.label)}
+                        {/* If Claims Officer / Admin: allow adding more files to this custom document card */}
+                        {(isClaimsOfficer || isAdmin) && (
+                          <div className="flex flex-col gap-1.5 mt-1">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                id={`detail-file-${customKey}`}
+                                multiple
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  if (files.length > 0) {
+                                    setRequirementFiles((prev) => ({
+                                      ...prev,
+                                      [customKey]: [...(prev[customKey] || []), ...files],
+                                    }));
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`detail-file-${customKey}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                              >
+                                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+                                <span>Choose File</span>
+                              </label>
+                              {(!requirementFiles[customKey] || requirementFiles[customKey].length === 0) && (
+                                <span className="text-xs text-slate-400 italic">No files selected</span>
+                              )}
+                            </div>
+
+                            {requirementFiles[customKey] && requirementFiles[customKey].length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {requirementFiles[customKey].map((file, idx) => (
+                                  <div key={idx} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg text-xs text-emerald-900">
+                                    <Paperclip className="h-3 w-3 text-emerald-600 shrink-0" />
+                                    <span className="truncate max-w-[120px] font-medium">{file.name}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setRequirementFiles((prev) => {
+                                          const list = (prev[customKey] || []).filter((_, i) => i !== idx);
+                                          const copy = { ...prev };
+                                          if (list.length === 0) {
+                                            delete copy[customKey];
+                                          } else {
+                                            copy[customKey] = list;
+                                          }
+                                          return copy;
+                                        });
+                                      }}
+                                      className="text-slate-400 hover:text-red-500 transition cursor-pointer"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {(isClaimsOfficer || isAdmin) && requirementFiles[customKey] && requirementFiles[customKey].length > 0 && (
+                          <div className="mt-1">
+                            <input
+                              type="text"
+                              placeholder="Add a brief note for this document..."
+                              value={requirementNotes[customKey] || ''}
+                              onChange={(e) => {
+                                setRequirementNotes((prev) => ({ ...prev, [customKey]: e.target.value }));
+                              }}
+                              className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-emerald-600/20 focus:border-emerald-600"
+                            />
+                          </div>
+                        )}
+
+                        {/* Render already uploaded files for this custom document */}
+                        <div className="space-y-1.5 mt-2 pt-2 border-t border-slate-200/60">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Already Uploaded ({group.atts.length}):
+                          </span>
+                          <div className="space-y-1.5">
+                            {group.atts.map((att: any, idx: number) => {
+                              const { docNote, returnReason } = parseDocumentType(att.document_type || att.file_name);
+                              const isNew = idx === 0;
+                              const isReturned = Boolean(returnReason);
+                              return (
+                                <div
+                                  key={att.id}
+                                  className={`flex flex-col gap-1.5 px-3 py-2 rounded-xl text-xs border transition-all ${
+                                    isReturned
+                                      ? 'bg-rose-50/60 border-rose-200 text-rose-900 shadow-2xs'
+                                      : isNew
+                                      ? 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900 shadow-2xs'
+                                      : 'bg-slate-50/80 border-slate-200 text-slate-700'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      <FileText className={`h-3.5 w-3.5 shrink-0 ${isReturned ? 'text-rose-600' : isNew ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                          <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[200px]" title={att.file_name}>
+                                            {att.file_name}
+                                          </span>
+                                          <span className="text-[10px] text-slate-500 shrink-0">
+                                            ({(att.file_size / 1024).toFixed(1)} KB)
+                                          </span>
+                                          {isReturned ? (
+                                            <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-200 text-[9px] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                              <RotateCcw className="h-2.5 w-2.5 text-rose-600" />
+                                              RETURNED
+                                            </span>
+                                          ) : isNew ? (
+                                            <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-wider shadow-2xs shrink-0">
+                                              NEW FILE
+                                            </span>
+                                          ) : (
+                                            <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 text-[9px] font-bold uppercase tracking-wider shrink-0">
+                                              OLD FILE
+                                            </span>
+                                          )}
+                                          {getUploaderBadge(att)}
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-0.5">
+                                          Uploaded: {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {(isClaimsOfficer || isAdmin) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setReturnDocTarget(att);
+                                            setReturnDocReason('');
+                                          }}
+                                          className="p-1 rounded text-slate-400 hover:text-amber-600 hover:bg-slate-100 transition cursor-pointer"
+                                          title="Return Document to Agent"
+                                        >
+                                          <RotateCcw className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleViewAttachment(att)}
+                                        className="p-1 rounded text-slate-400 hover:text-[#4A0E17] hover:bg-slate-100 transition cursor-pointer"
+                                        title="View Attachment"
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => downloadAttachment(att.id, att.file_name)}
+                                        className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-100 transition cursor-pointer"
+                                        title="Download"
+                                      >
+                                        <Download className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {docNote && (
+                                    <div className="text-[11px] text-slate-600 bg-white/80 px-2 py-0.5 rounded border border-slate-200/50">
+                                      <span className="font-semibold text-slate-700">Note:</span> {docNote}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Dynamic Other Additional Attachments Upload Cards */}
+                {customAttachments.length > 0 && (
+                  <div className="space-y-3 pt-2 border-t border-emerald-200/80">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-3.5 w-3.5 text-emerald-700" />
+                      <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                        Additional Attachments to Upload ({customAttachments.length})
+                      </span>
                     </div>
-                  );
-                })}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {customAttachments.map((att) => (
+                        <div key={att.id} className="p-3.5 bg-white border border-emerald-200 rounded-xl space-y-2 relative shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomAttachments((prev) => prev.filter((c) => c.id !== att.id));
+                            }}
+                            className="absolute top-2.5 right-2.5 text-slate-400 hover:text-red-500 transition cursor-pointer"
+                            title="Remove"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+
+                          <div className="space-y-1 pr-6">
+                            <label className="block text-[10px] font-bold text-emerald-950 uppercase">Document Label</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Receipt, Clearance, Repair Invoice..."
+                              value={att.label}
+                              onChange={(e) => {
+                                setCustomAttachments((prev) =>
+                                  prev.map((c) => (c.id === att.id ? { ...c, label: e.target.value } : c))
+                                );
+                              }}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-600/20 focus:border-emerald-600"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-emerald-950 uppercase">Choose File</label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                id={`completed-custom-file-${att.id}`}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0] || null;
+                                  setCustomAttachments((prev) =>
+                                    prev.map((c) => (c.id === att.id ? { ...c, file } : c))
+                                  );
+                                }}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor={`completed-custom-file-${att.id}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-medium rounded-lg shadow-sm cursor-pointer transition shrink-0"
+                              >
+                                <Paperclip className="h-3 w-3 text-slate-400" />
+                                <span>Choose File</span>
+                              </label>
+                              <span className="text-[11px] text-slate-500 truncate max-w-[150px]">
+                                {att.file ? att.file.name : 'No file selected'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-emerald-950 uppercase">Notes (Optional)</label>
+                            <input
+                              type="text"
+                              placeholder="Add a brief note..."
+                              value={att.note}
+                              onChange={(e) => {
+                                setCustomAttachments((prev) =>
+                                  prev.map((c) => (c.id === att.id ? { ...c, note: e.target.value } : c))
+                                );
+                              }}
+                              className="w-full px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-650 focus:outline-none focus:ring-1 focus:ring-emerald-600/20 focus:border-emerald-600"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Additional Custom Attachments (hide if filtered to only returned) */}
           {!completedOnly && (selectedRecord.status as string) !== 'completed' && !filterOnlyReturned && (
@@ -2528,15 +2905,68 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Policy Number *</label>
-                  <input type="text" value={form.policy_number}
-                    onChange={(e) => {
-                      setForm({ ...form, policy_number: e.target.value.toUpperCase() });
-                      if (validationErrors.policy_number) {
-                        setValidationErrors((prev) => ({ ...prev, policy_number: false }));
-                      }
-                    }}
-                    className={`${getInputClass('policy_number')} uppercase`} placeholder="e.g. POL-2026-00001" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Policy Number</label>
+                    {isFromSmartSuggestion ? (
+                      form.policy_number ? (
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          Assigned by Underwriter
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                          Not Assigned
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                        Manual Entry (Unlocked)
+                      </span>
+                    )}
+                  </div>
+
+                  {isFromSmartSuggestion ? (
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={form.policy_number || ''}
+                          readOnly
+                          tabIndex={-1}
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-mono border transition ${
+                            form.policy_number
+                              ? 'bg-slate-50/90 text-slate-800 font-semibold border-slate-200 cursor-not-allowed'
+                              : 'bg-slate-100/80 text-slate-400 border-slate-200 cursor-not-allowed'
+                          }`}
+                          placeholder={form.policy_number ? '' : 'Blank — No Policy Number assigned yet'}
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                          <Lock className="h-4 w-4 text-slate-400" />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>
+                          {form.policy_number
+                            ? 'Locked from underwriter record.'
+                            : 'Locked (No policy assigned yet by underwriter).'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsFromSmartSuggestion(false)}
+                          className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+                        >
+                          Unlock to type manually
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={form.policy_number}
+                      onChange={(e) => setForm({ ...form, policy_number: e.target.value.toUpperCase() })}
+                      className={`${getInputClass('policy_number')} uppercase`}
+                      placeholder="e.g. POL-2026-00001"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Inception Date</label>
@@ -3463,6 +3893,9 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   <option value="LOA">LOA</option>
                   <option value="OFFER LETTER">Offer Letter</option>
                   <option value="DENIED CLAIM">Denied Claim</option>
+                  <option value="DEPOSIT SLIP">Deposit Slip</option>
+                  <option value="BILLING CASA/SHOP">Billing Casa/Shop</option>
+                  <option value="OTHER">Other / Additional Attachments</option>
                 </>
               ) : (
                 <>

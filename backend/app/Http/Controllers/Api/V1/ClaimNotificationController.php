@@ -87,7 +87,7 @@ class ClaimNotificationController extends Controller
             'email_address'      => 'nullable|email|max:255',
             'insurance_provider' => 'required|string|max:255',
             'plate_number'       => 'nullable|string|max:30',
-            'policy_number'      => 'required|string|max:50',
+            'policy_number'      => 'nullable|string|max:50',
             'accident_date'      => 'required|date|before_or_equal:today',
             'accident_reason'    => 'nullable|string|max:5000',
             'nature_of_claims'   => 'nullable|string|max:5000',
@@ -124,11 +124,12 @@ class ClaimNotificationController extends Controller
         // Notify all Claims Officers
         try {
             $officers = \App\Models\User::role('Claims Officer')->get();
+            $policyDisplay = $record->policy_number ? "Policy {$record->policy_number}" : "No Policy Assigned";
             foreach ($officers as $officer) {
                 \App\Models\Notification::create([
                     'user_id' => $officer->id,
                     'title'   => 'Claim Notification Received',
-                    'message' => "New claim notification {$record->reference_number} for assured \"{$record->assured_name}\" — Policy {$record->policy_number}.",
+                    'message' => "New claim notification {$record->reference_number} for assured \"{$record->assured_name}\" — {$policyDisplay}.",
                     'type'    => 'warning',
                     'read_at' => null,
                 ]);
