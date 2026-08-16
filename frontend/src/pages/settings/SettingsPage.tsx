@@ -47,14 +47,11 @@ export default function SettingsPage() {
   const hasSpecialChar = /[^A-Za-z0-9]/.test(newPassword);
 
   // System settings state (persisted locally)
-  const [taxRate, setTaxRate] = useState<number>(12);
-  const [quotationValidityDays, setQuotationValidityDays] = useState<number>(30);
   const [defaultCurrency, setDefaultCurrency] = useState('PHP');
   const [companyName, setCompanyName] = useState('SUPREMOGEN INSURANCE SERVICES');
 
   // Preference state
   const [emailAlerts, setEmailAlerts] = useState(true);
-  const [smsAlerts, setSmsAlerts] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
   });
@@ -117,12 +114,7 @@ export default function SettingsPage() {
       setEmail(user.email || '');
     }
     
-    const storedTax = localStorage.getItem('sys_tax_rate');
-    const storedVal = localStorage.getItem('sys_quote_val_days');
     const storedCompany = localStorage.getItem('sys_company_name');
-    
-    if (storedTax) setTaxRate(Number(storedTax));
-    if (storedVal) setQuotationValidityDays(Number(storedVal));
     if (storedCompany) setCompanyName(storedCompany);
   }, [user]);
 
@@ -384,8 +376,6 @@ export default function SettingsPage() {
 
   const handleSaveSystemSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('sys_tax_rate', String(taxRate));
-    localStorage.setItem('sys_quote_val_days', String(quotationValidityDays));
     localStorage.setItem('sys_company_name', companyName);
     showToast('System settings saved successfully.');
   };
@@ -706,14 +696,6 @@ export default function SettingsPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClass}>Default Tax Rate (%)</label>
-                  <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className={inputClass} />
-                </div>
-                <div>
-                  <label className={labelClass}>Quotation Validity Period (Days)</label>
-                  <input type="number" value={quotationValidityDays} onChange={(e) => setQuotationValidityDays(Number(e.target.value))} className={inputClass} />
-                </div>
-                <div>
                   <label className={labelClass}>Currency Code</label>
                   <select value={defaultCurrency} onChange={(e) => setDefaultCurrency(e.target.value)} className={inputClass}>
                     <option value="PHP">PHP (₱)</option>
@@ -883,16 +865,6 @@ export default function SettingsPage() {
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" checked={emailAlerts} onChange={(e) => setEmailAlerts(e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4A0E17]"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-slate-50/70 rounded-2xl border border-slate-200/55">
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">SMS Alerts</p>
-                    <p className="text-xs text-slate-500">Send instant policy renewal reminders to clients via SMS.</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={smsAlerts} onChange={(e) => setSmsAlerts(e.target.checked)} className="sr-only peer" />
                     <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4A0E17]"></div>
                   </label>
                 </div>
