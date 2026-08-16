@@ -964,6 +964,8 @@ export default function DashboardLayout() {
                               const isClaimsOfficer = roles.includes('Claims Officer');
                               const isAccounting = roles.includes('Accounting Officer') || roles.includes('Accounting');
                               const isCollection = roles.includes('Collection') || roles.includes('Collection Officer') || roles.includes('Collector');
+                              const isSalesAgent = roles.includes('Sales Agent');
+                              const isRenewal = roles.includes('Team Renewal') || roles.includes('Renewal');
 
                               // Remittance Status notifications
                               const isRemittance = title.toLowerCase().includes('remittance') || message.toLowerCase().includes('remitted');
@@ -985,8 +987,13 @@ export default function DashboardLayout() {
 
                               if (isCompletedRequirementNotice && (matchClaimNotification || matchClaim || message.toLowerCase().includes('claim notification'))) {
                                 const code = matchClaimNotification?.[0] || matchClaim?.[0] || assuredName || '';
-                                const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
-                                navigate(`/dashboard/completed-requirements${searchQ}`);
+                                if (isSalesAgent || isRenewal) {
+                                  const searchQ = code ? `&search=${encodeURIComponent(code)}` : '';
+                                  navigate(`/dashboard/claim-notifications?status=completed${searchQ}`);
+                                } else {
+                                  const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
+                                  navigate(`/dashboard/completed-requirements${searchQ}`);
+                                }
                               } else if (isRemittance) {
                                 const code = matchQuotation?.[0] || policyCode || assuredName || '';
                                 const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';

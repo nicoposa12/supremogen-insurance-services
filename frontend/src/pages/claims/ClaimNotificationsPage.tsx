@@ -236,10 +236,6 @@ const isOfficialCompletedAttachment = (att: any) => {
   if (officialDocLabels.some((l) => titleClean === l || titleClean.includes(l))) {
     return true;
   }
-  // If not matching standard initial requirements, consider it an official completed document
-  if (!isInitialRequirement(docTitle)) {
-    return true;
-  }
   return false;
 };
 
@@ -320,6 +316,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
   const [searchParams, setSearchParams] = useSearchParams();
   const querySearch = searchParams.get('search') || '';
+  const queryStatus = searchParams.get('status');
 
   // ─── List State ─────────────────────────────
   const [params, setParams] = useState<ClaimNotificationListParams>({
@@ -340,6 +337,12 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
       setParams((p) => ({ ...p, search: querySearch, page: 1 }));
     }
   }, [querySearch]);
+
+  useEffect(() => {
+    if (queryStatus && queryStatus !== params.status) {
+      setParams((p) => ({ ...p, status: queryStatus, page: 1 }));
+    }
+  }, [queryStatus]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
