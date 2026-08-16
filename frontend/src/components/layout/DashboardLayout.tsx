@@ -176,19 +176,31 @@ function SidebarSubItem({ item, collapsed }: { item: NavItem; collapsed: boolean
         : location.pathname.startsWith(cleanPath))) && roleMatch;
 
   return (
-    <NavLink
-      to={item.path}
-      end={item.path === '/dashboard' || item.path === '/dashboard/collection'}
-      className={
-        `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
-          ? 'bg-gradient-to-r from-[#8A1C2E] to-[#5C0612] text-white shadow-md shadow-[#8A1C2E]/20 active-nav-item'
-          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
-        } ${collapsed ? 'justify-center' : ''}`
-      }
-    >
-      <item.icon className="h-4 w-4 shrink-0 text-zinc-400 group-hover:text-zinc-200 group-[.active-nav-item]:text-white transition-colors" />
-      {!collapsed && <span className="truncate text-[13px]">{item.label}</span>}
-    </NavLink>
+    <div className="relative group/navitem">
+      <NavLink
+        to={item.path}
+        end={item.path === '/dashboard' || item.path === '/dashboard/collection'}
+        title={collapsed ? item.label : undefined}
+        className={
+          `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
+            ? 'bg-gradient-to-r from-[#8A1C2E] to-[#5C0612] text-white shadow-md shadow-[#8A1C2E]/20 active-nav-item'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
+          } ${collapsed ? 'justify-center' : ''}`
+        }
+      >
+        <item.icon className="h-4 w-4 shrink-0 text-zinc-400 group-hover:text-zinc-200 group-[.active-nav-item]:text-white transition-colors" />
+        {!collapsed && <span className="truncate text-[13px]">{item.label}</span>}
+      </NavLink>
+
+      {/* Floating tooltip label on hover when sidebar is collapsed */}
+      {collapsed && (
+        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2.5 hidden group-hover/navitem:flex items-center z-50 pointer-events-none">
+          <div className="relative bg-zinc-900 border border-zinc-700/80 text-zinc-100 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap animate-fade-in flex items-center gap-1.5 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-zinc-900">
+            <span>{item.label}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -722,7 +734,7 @@ export default function DashboardLayout() {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 sidebar-scrollbar">
+      <nav className={`flex-1 ${sidebarCollapsed ? 'overflow-visible' : 'overflow-y-auto'} px-3 py-4 space-y-1 sidebar-scrollbar`}>
         {isAdmin ? (
           <>
             {/* Dashboard top-level item */}
@@ -764,14 +776,22 @@ export default function DashboardLayout() {
       </nav>
 
       {/* Collapse toggle (desktop only) */}
-      <div className="hidden lg:block px-3 py-3 border-t border-[#8A1C2E]/20">
+      <div className="hidden lg:block px-3 py-3 border-t border-[#8A1C2E]/20 relative group/collapse">
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          title={sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition cursor-pointer"
         >
           <ChevronLeft className={`h-4 w-4 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
           {!sidebarCollapsed && <span>Collapse</span>}
         </button>
+        {sidebarCollapsed && (
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2.5 hidden group-hover/collapse:flex items-center z-50 pointer-events-none">
+            <div className="relative bg-zinc-900 border border-zinc-700/80 text-zinc-100 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-4 before:border-transparent before:border-r-zinc-900">
+              <span>Expand Sidebar</span>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
