@@ -24,7 +24,7 @@ export default function StatCard({
   const trendIsNegative = trend !== undefined && trend < 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 hover:shadow-lg hover:shadow-slate-200/50 hover:border-slate-300/80 transition-all duration-300 group">
+    <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 hover:shadow-lg hover:shadow-slate-200/50 hover:border-slate-300/80 dark:hover:shadow-slate-950/60 dark:hover:border-slate-700/80 transition-all duration-300 group">
       <div className="flex items-start justify-between">
         <div className="space-y-3">
           <p className="text-sm font-medium text-slate-500">{label}</p>

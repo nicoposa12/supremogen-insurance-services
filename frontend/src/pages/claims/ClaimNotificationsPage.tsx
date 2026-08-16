@@ -246,20 +246,20 @@ const getUploaderBadge = (att: any) => {
 
   const cleanRole = (roleName || '').toLowerCase();
 
-  let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+  let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:border-slate-700';
   let displayRole = roleName || '';
 
   if (cleanRole.includes('claims')) {
-    badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
+    badgeColor = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800/60';
     displayRole = 'Claims Officer';
   } else if (cleanRole.includes('sales') || cleanRole.includes('agent')) {
-    badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+    badgeColor = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/60';
     displayRole = 'Sales Agent';
   } else if (cleanRole.includes('renewal')) {
-    badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+    badgeColor = 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60';
     displayRole = 'Team Renewal';
   } else if (cleanRole.includes('admin') || cleanRole.includes('owner')) {
-    badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+    badgeColor = 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60';
     displayRole = 'Admin';
   } else if (!displayRole) {
     displayRole = 'Uploaded';
@@ -1403,18 +1403,18 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <FileText className={`h-3.5 w-3.5 shrink-0 ${isReturned ? 'text-rose-600' : isNew ? 'text-emerald-600' : 'text-slate-400'}`} />
+                        <FileText className={`h-3.5 w-3.5 shrink-0 ${isReturned ? 'text-rose-600 dark:text-rose-400' : isNew ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                            <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[200px]" title={att.file_name}>
+                            <span className="font-semibold text-slate-800 dark:text-slate-100 text-[11px] truncate max-w-[200px]" title={att.file_name}>
                               {att.file_name}
                             </span>
-                            <span className="text-[10px] text-slate-500 shrink-0">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 shrink-0">
                               ({(att.file_size / 1024).toFixed(1)} KB)
                             </span>
                             {isReturned ? (
-                              <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-200 text-[9px] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
-                                <RotateCcw className="h-2.5 w-2.5 text-rose-600" />
+                              <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800/60 text-[9px] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                <RotateCcw className="h-2.5 w-2.5 text-rose-600 dark:text-rose-400" />
                                 RETURNED
                               </span>
                             ) : isNew ? (
@@ -1422,7 +1422,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                                 NEW FILE
                               </span>
                             ) : (
-                              <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 text-[9px] font-bold uppercase tracking-wider shrink-0">
+                              <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:border dark:border-slate-700 text-[9px] font-bold uppercase tracking-wider shrink-0">
                                 OLD FILE
                               </span>
                             )}
@@ -1432,7 +1432,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                        <span className="text-[9px] text-slate-400 font-medium hidden sm:inline">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-400 font-medium hidden sm:inline">
                           {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
                         </span>
                         {(isClaimsOfficer || isAdmin) && (
@@ -1442,7 +1442,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                               setReturnDocTarget(att);
                               setReturnDocReason('');
                             }}
-                            className="p-1 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-white transition cursor-pointer"
+                            className="p-1 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-white dark:hover:bg-slate-700/60 dark:hover:text-amber-300 transition cursor-pointer"
                             title="Return Document to Agent"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
@@ -1451,7 +1451,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                         <button
                           type="button"
                           onClick={() => handleViewAttachment(att)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-white transition cursor-pointer"
+                          className="p-1 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-white dark:hover:bg-slate-700/60 dark:hover:text-red-300 transition cursor-pointer"
                           title="View Attachment"
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -1459,7 +1459,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                         <button
                           type="button"
                           onClick={() => downloadAttachment(att.id, att.file_name)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition cursor-pointer"
+                          className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-700/60 dark:hover:text-blue-300 transition cursor-pointer"
                           title="Download"
                         >
                           <Download className="h-3.5 w-3.5" />
@@ -1468,18 +1468,18 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                     </div>
 
                     {isReturned && (
-                      <div className="px-2 py-1 bg-rose-100/70 border-l-2 border-rose-500 rounded-r text-[10px] text-rose-900 font-medium">
-                        <span className="font-bold text-rose-950">Returned Reason:</span> {returnReason}
+                      <div className="px-2 py-1 bg-rose-100/70 border-l-2 border-rose-500 rounded-r text-[10px] text-rose-900 dark:bg-rose-950/40 dark:text-rose-200 font-medium">
+                        <span className="font-bold text-rose-950 dark:text-rose-200">Returned Reason:</span> {returnReason}
                       </div>
                     )}
 
                     {docNote && (
                       <div className="min-w-0 w-full">
                         <p
-                          className="text-[10px] text-amber-800 font-medium italic truncate cursor-help block max-w-full"
+                          className="text-[10px] text-amber-800 dark:text-amber-300 font-medium italic truncate cursor-help block max-w-full"
                           title={`Note: ${docNote}`}
                         >
-                          <span className="font-bold text-amber-900 not-italic">Note:</span> {docNote}
+                          <span className="font-bold text-amber-900 dark:text-amber-300 not-italic">Note:</span> {docNote}
                         </p>
                       </div>
                     )}
@@ -2122,18 +2122,18 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                                 >
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                                      <FileText className={`h-3.5 w-3.5 shrink-0 ${isReturned ? 'text-rose-600' : isNew ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                      <FileText className={`h-3.5 w-3.5 shrink-0 ${isReturned ? 'text-rose-600 dark:text-rose-400' : isNew ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`} />
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                          <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[200px]" title={att.file_name}>
+                                          <span className="font-semibold text-slate-800 dark:text-slate-100 text-[11px] truncate max-w-[200px]" title={att.file_name}>
                                             {att.file_name}
                                           </span>
-                                          <span className="text-[10px] text-slate-500 shrink-0">
+                                          <span className="text-[10px] text-slate-500 dark:text-slate-400 shrink-0">
                                             ({(att.file_size / 1024).toFixed(1)} KB)
                                           </span>
                                           {isReturned ? (
-                                            <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-200 text-[9px] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
-                                              <RotateCcw className="h-2.5 w-2.5 text-rose-600" />
+                                            <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800/60 text-[9px] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                              <RotateCcw className="h-2.5 w-2.5 text-rose-600 dark:text-rose-400" />
                                               RETURNED
                                             </span>
                                           ) : isNew ? (
@@ -2141,13 +2141,13 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                                               NEW FILE
                                             </span>
                                           ) : (
-                                            <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 text-[9px] font-bold uppercase tracking-wider shrink-0">
+                                            <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:border dark:border-slate-700 text-[9px] font-bold uppercase tracking-wider shrink-0">
                                               OLD FILE
                                             </span>
                                           )}
                                           {getUploaderBadge(att)}
                                         </div>
-                                        <p className="text-[10px] text-slate-400 mt-0.5">
+                                        <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-0.5">
                                           Uploaded: {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
                                         </p>
                                       </div>
@@ -2161,7 +2161,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                                             setReturnDocTarget(att);
                                             setReturnDocReason('');
                                           }}
-                                          className="p-1 rounded text-slate-400 hover:text-amber-600 hover:bg-slate-100 transition cursor-pointer"
+                                          className="p-1 rounded text-slate-400 hover:text-amber-600 hover:bg-slate-100 dark:hover:bg-slate-700/60 dark:hover:text-amber-300 transition cursor-pointer"
                                           title="Return Document to Agent"
                                         >
                                           <RotateCcw className="h-3 w-3" />
@@ -2170,7 +2170,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                                       <button
                                         type="button"
                                         onClick={() => handleViewAttachment(att)}
-                                        className="p-1 rounded text-slate-400 hover:text-[#4A0E17] hover:bg-slate-100 transition cursor-pointer"
+                                        className="p-1 rounded text-slate-400 hover:text-[#4A0E17] hover:bg-slate-100 dark:hover:bg-slate-700/60 dark:hover:text-red-300 transition cursor-pointer"
                                         title="View Attachment"
                                       >
                                         <Eye className="h-3 w-3" />
@@ -2178,7 +2178,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                                       <button
                                         type="button"
                                         onClick={() => downloadAttachment(att.id, att.file_name)}
-                                        className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-100 transition cursor-pointer"
+                                        className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700/60 dark:hover:text-blue-300 transition cursor-pointer"
                                         title="Download"
                                       >
                                         <Download className="h-3 w-3" />
@@ -2187,8 +2187,8 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
                                   </div>
 
                                   {docNote && (
-                                    <div className="text-[11px] text-slate-600 bg-white/80 px-2 py-0.5 rounded border border-slate-200/50">
-                                      <span className="font-semibold text-slate-700">Note:</span> {docNote}
+                                    <div className="text-[11px] text-slate-600 bg-white/80 dark:bg-slate-800/80 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/60">
+                                      <span className="font-semibold text-slate-700 dark:text-slate-200">Note:</span> {docNote}
                                     </div>
                                   )}
                                 </div>

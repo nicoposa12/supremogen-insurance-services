@@ -256,31 +256,48 @@ textarea:disabled {
   --color-blue-950: #fff0f2 !important;
 }
 
-/* Backgrounds */
-.dark .bg-slate-100\/50,
-.dark .bg-slate-100\/40,
-.dark .bg-slate-55,
+/* Base Card & Container Backgrounds */
+.dark .bg-white {
+  background-color: #111a36 !important; /* Premium dark card background */
+  border-color: #1e294b !important;
+  color: #e2e8f0 !important;
+}
+
 .dark .bg-slate-50,
+.dark .bg-slate-55,
 .dark .bg-slate-100,
-.dark .bg-slate-50\/60,
-.dark .bg-slate-50\/70 {
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-zinc-50,
+.dark .bg-zinc-100,
+.dark .bg-stone-50,
+.dark .bg-stone-100 {
   background-color: #0b132b !important; /* Lighter slate navy for containers */
 }
 
-/* Translucent Card Backgrounds (e.g. About page CTA card) */
-.dark .bg-slate-50\/50,
-.dark .bg-slate-55\/50,
+/* Translucent Slate Container Backgrounds */
 .dark .bg-slate-50\/30,
 .dark .bg-slate-50\/40,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-50\/80,
+.dark .bg-slate-55\/50,
+.dark .bg-slate-100\/30,
+.dark .bg-slate-100\/40,
 .dark .bg-slate-100\/50,
-.dark .bg-slate-100\/30 {
-  background-color: rgba(30, 41, 59, 0.45) !important;
+.dark .bg-slate-100\/70,
+.dark .bg-slate-100\/80,
+.dark .bg-slate-200\/50,
+.dark .bg-slate-200\/60,
+.dark .bg-slate-200\/80 {
+  background-color: rgba(30, 41, 59, 0.5) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .dark header {
-  background-color: rgba(11, 19, 43, 0.8) !important;
-  border-color: rgba(30, 41, 59, 0.5) !important;
+  background-color: rgba(11, 19, 43, 0.85) !important;
+  border-color: rgba(30, 41, 59, 0.6) !important;
 }
 
 .dark header h2 {
@@ -295,37 +312,372 @@ textarea:disabled {
   color: #ffffff !important;
 }
 
-.dark .bg-white {
-  background-color: #111a36 !important; /* Premium dark card background */
-  border-color: #1e294b !important;
-  color: #e2e8f0 !important;
-}
+/* ─── Typography Contrast in Dark Mode ─── */
 
-/* Typography contrast */
+/* Neutral / Slate / Gray / Zinc text */
 .dark .text-slate-950,
 .dark .text-slate-900,
 .dark .text-slate-800,
-.dark .text-slate-700 {
-  color: #f1f5f9 !important; /* Highly visible primary text */
+.dark .text-slate-700,
+.dark .text-gray-950,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700,
+.dark .text-zinc-950,
+.dark .text-zinc-900,
+.dark .text-zinc-800,
+.dark .text-zinc-700,
+.dark .text-stone-900,
+.dark .text-stone-800,
+.dark .text-stone-700 {
+  color: #f8fafc !important; /* Crisp high-contrast primary text */
 }
 
+.dark .text-slate-650,
 .dark .text-slate-600,
-.dark .text-slate-500 {
-  color: #94a3b8 !important; /* Highly visible secondary text */
+.dark .text-slate-500,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-zinc-600,
+.dark .text-zinc-500,
+.dark .text-stone-600,
+.dark .text-stone-500 {
+  color: #cbd5e1 !important; /* Crisp high-contrast secondary text */
 }
 
-.dark .text-slate-400 {
-  color: #64748b !important;
+.dark .text-slate-455,
+.dark .text-slate-400,
+.dark .text-slate-350,
+.dark .text-slate-300,
+.dark .text-gray-400,
+.dark .text-zinc-400 {
+  color: #94a3b8 !important; /* Soft legible muted text */
 }
 
-.dark .border-slate-200,
+/* Mint / Emerald / Green / Teal text */
+.dark .text-emerald-950,
+.dark .text-emerald-900,
+.dark .text-emerald-800,
+.dark .text-emerald-700,
+.dark .text-emerald-600 {
+  color: #6ee7b7 !important; /* Radiant mint emerald for dark backgrounds */
+}
+.dark .text-emerald-500,
+.dark .text-emerald-400 {
+  color: #34d399 !important;
+}
+
+.dark .text-green-950,
+.dark .text-green-900,
+.dark .text-green-800,
+.dark .text-green-700,
+.dark .text-green-600 {
+  color: #86efac !important;
+}
+.dark .text-green-500,
+.dark .text-green-400 {
+  color: #4ade80 !important;
+}
+
+.dark .text-teal-950,
+.dark .text-teal-900,
+.dark .text-teal-800,
+.dark .text-teal-700,
+.dark .text-teal-600 {
+  color: #5eead4 !important;
+}
+
+.dark .text-cyan-950,
+.dark .text-cyan-900,
+.dark .text-cyan-800,
+.dark .text-cyan-700,
+.dark .text-cyan-600 {
+  color: #67e8f9 !important;
+}
+
+/* Amber / Yellow / Orange text */
+.dark .text-amber-950,
+.dark .text-amber-900,
+.dark .text-amber-800,
+.dark .text-amber-700 {
+  color: #fde68a !important; /* Vibrant luminous gold */
+}
+.dark .text-amber-600,
+.dark .text-amber-500 {
+  color: #fbbf24 !important;
+}
+
+.dark .text-yellow-950,
+.dark .text-yellow-900,
+.dark .text-yellow-800,
+.dark .text-yellow-700 {
+  color: #fef08a !important;
+}
+.dark .text-yellow-600,
+.dark .text-yellow-500 {
+  color: #facc15 !important;
+}
+
+.dark .text-orange-950,
+.dark .text-orange-900,
+.dark .text-orange-800,
+.dark .text-orange-700 {
+  color: #fed7aa !important;
+}
+.dark .text-orange-600,
+.dark .text-orange-500 {
+  color: #fb923c !important;
+}
+
+/* Rose / Red text */
+.dark .text-rose-950,
+.dark .text-rose-900,
+.dark .text-rose-800,
+.dark .text-rose-700 {
+  color: #fecdd3 !important; /* Soft luminous rose */
+}
+.dark .text-rose-600,
+.dark .text-rose-500 {
+  color: #fb7185 !important;
+}
+
+.dark .text-red-950,
+.dark .text-red-900,
+.dark .text-red-800,
+.dark .text-red-700 {
+  color: #fecaca !important;
+}
+.dark .text-red-600,
+.dark .text-red-500 {
+  color: #f87171 !important;
+}
+
+/* Purple / Violet / Indigo / Sky text */
+.dark .text-purple-950,
+.dark .text-purple-900,
+.dark .text-purple-800,
+.dark .text-purple-700 {
+  color: #e9d5ff !important; /* Crisp lavender purple */
+}
+.dark .text-purple-600,
+.dark .text-purple-500 {
+  color: #c084fc !important;
+}
+
+.dark .text-violet-950,
+.dark .text-violet-900,
+.dark .text-violet-800,
+.dark .text-violet-700 {
+  color: #ddd6fe !important;
+}
+.dark .text-violet-600,
+.dark .text-violet-500 {
+  color: #a78bfa !important;
+}
+
+.dark .text-indigo-950,
+.dark .text-indigo-900,
+.dark .text-indigo-800,
+.dark .text-indigo-700 {
+  color: #c7d2fe !important;
+}
+.dark .text-indigo-600,
+.dark .text-indigo-500 {
+  color: #818cf8 !important;
+}
+
+.dark .text-sky-950,
+.dark .text-sky-900,
+.dark .text-sky-800,
+.dark .text-sky-700 {
+  color: #bae6fd !important;
+}
+.dark .text-sky-600,
+.dark .text-sky-500 {
+  color: #38bdf8 !important;
+}
+
+/* ─── Translucent Container & Card Backgrounds ─── */
+
+/* Emerald / Green / Teal Cards & Containers */
+.dark .bg-emerald-50,
+.dark .bg-emerald-55,
+.dark .bg-emerald-50\/30,
+.dark .bg-emerald-50\/40,
+.dark .bg-emerald-50\/50,
+.dark .bg-emerald-50\/60,
+.dark .bg-emerald-50\/70,
+.dark .bg-emerald-50\/80,
+.dark .bg-emerald-50\/90,
+.dark .bg-emerald-100,
+.dark .bg-emerald-100\/50,
+.dark .bg-emerald-100\/70,
+.dark .bg-emerald-100\/80,
+.dark .bg-emerald-150,
+.dark .bg-emerald-200,
+.dark .bg-emerald-200\/70,
+.dark .bg-emerald-200\/80,
+.dark .bg-green-50,
+.dark .bg-green-100,
+.dark .bg-teal-50,
+.dark .bg-teal-100 {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Rose / Red Cards & Containers */
+.dark .bg-rose-50,
+.dark .bg-rose-50\/30,
+.dark .bg-rose-50\/40,
+.dark .bg-rose-50\/50,
+.dark .bg-rose-50\/60,
+.dark .bg-rose-50\/70,
+.dark .bg-rose-50\/80,
+.dark .bg-rose-50\/90,
+.dark .bg-rose-100,
+.dark .bg-rose-100\/50,
+.dark .bg-rose-100\/70,
+.dark .bg-rose-100\/80,
+.dark .bg-rose-150,
+.dark .bg-rose-200,
+.dark .bg-rose-200\/70,
+.dark .bg-rose-200\/80,
+.dark .bg-red-50,
+.dark .bg-red-50\/30,
+.dark .bg-red-50\/40,
+.dark .bg-red-50\/50,
+.dark .bg-red-50\/55,
+.dark .bg-red-50\/60,
+.dark .bg-red-55\/50,
+.dark .bg-red-100 {
+  background-color: rgba(244, 63, 94, 0.14) !important;
+  border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+/* Amber / Yellow / Orange Cards & Containers */
+.dark .bg-amber-50,
+.dark .bg-amber-50\/30,
+.dark .bg-amber-50\/40,
+.dark .bg-amber-50\/50,
+.dark .bg-amber-50\/60,
+.dark .bg-amber-50\/70,
+.dark .bg-amber-50\/80,
+.dark .bg-amber-50\/90,
+.dark .bg-amber-100,
+.dark .bg-amber-100\/50,
+.dark .bg-amber-100\/70,
+.dark .bg-amber-100\/80,
+.dark .bg-amber-200,
+.dark .bg-amber-200\/70,
+.dark .bg-amber-200\/80,
+.dark .bg-yellow-50,
+.dark .bg-yellow-100,
+.dark .bg-orange-50,
+.dark .bg-orange-100 {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+/* Purple / Violet / Indigo / Blue Cards & Containers */
+.dark .bg-purple-50,
+.dark .bg-purple-50\/40,
+.dark .bg-purple-50\/50,
+.dark .bg-purple-50\/60,
+.dark .bg-purple-50\/70,
+.dark .bg-purple-100,
+.dark .bg-purple-100\/70,
+.dark .bg-purple-200,
+.dark .bg-violet-50,
+.dark .bg-violet-100,
+.dark .bg-indigo-50,
+.dark .bg-indigo-100,
+.dark .bg-blue-50,
+.dark .bg-blue-100 {
+  background-color: rgba(168, 85, 247, 0.14) !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+/* ─── Border Overrides in Dark Mode ─── */
 .dark .border-slate-100,
+.dark .border-slate-150,
+.dark .border-slate-200,
+.dark .border-slate-200\/50,
+.dark .border-slate-200\/55,
+.dark .border-slate-200\/60,
+.dark .border-slate-200\/70,
 .dark .border-slate-200\/80,
-.dark .border-slate-200\/55 {
+.dark .border-slate-250,
+.dark .border-slate-300,
+.dark .border-slate-300\/80,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-zinc-200,
+.dark .border-zinc-300 {
   border-color: #1e294b !important;
 }
 
-/* Brand Accent Overrides */
+.dark .border-emerald-100,
+.dark .border-emerald-150,
+.dark .border-emerald-200,
+.dark .border-emerald-200\/80,
+.dark .border-emerald-300 {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.dark .border-rose-100,
+.dark .border-rose-200,
+.dark .border-rose-200\/80,
+.dark .border-rose-300,
+.dark .border-red-200,
+.dark .border-red-300 {
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+.dark .border-amber-100,
+.dark .border-amber-200,
+.dark .border-amber-200\/80,
+.dark .border-amber-300 {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+.dark .border-purple-100,
+.dark .border-purple-200,
+.dark .border-purple-300 {
+  border-color: rgba(168, 85, 247, 0.35) !important;
+}
+
+/* ─── Ring Overrides in Dark Mode ─── */
+.dark .ring-emerald-600\/20,
+.dark .ring-emerald-600\/30 {
+  --tw-ring-color: rgba(16, 185, 129, 0.35) !important;
+}
+.dark .ring-blue-600\/20,
+.dark .ring-blue-600\/30 {
+  --tw-ring-color: rgba(59, 130, 246, 0.35) !important;
+}
+.dark .ring-red-600\/20,
+.dark .ring-rose-600\/30 {
+  --tw-ring-color: rgba(239, 68, 68, 0.35) !important;
+}
+.dark .ring-amber-600\/20,
+.dark .ring-amber-600\/30 {
+  --tw-ring-color: rgba(245, 158, 11, 0.35) !important;
+}
+.dark .ring-purple-600\/20,
+.dark .ring-purple-600\/30 {
+  --tw-ring-color: rgba(168, 85, 247, 0.35) !important;
+}
+.dark .ring-violet-600\/20,
+.dark .ring-violet-600\/30 {
+  --tw-ring-color: rgba(139, 92, 246, 0.35) !important;
+}
+.dark .ring-slate-500\/20,
+.dark .ring-stone-500\/20 {
+  --tw-ring-color: rgba(100, 116, 139, 0.35) !important;
+}
+
+/* ─── Brand Accent Overrides ─── */
 .dark .bg-\[\#4A0E17\] {
   background-color: #c92a3e !important; /* Vibrant maroon for buttons */
 }
@@ -346,7 +698,7 @@ textarea:disabled {
 
 /* Yellow button high-contrast text overrides */
 .dark .bg-\[\#F5A623\] {
-  color: #4A0E17 !important; /* Keep original dark maroon text for contrast */
+  color: #4A0E17 !important;
 }
 .dark .bg-\[\#F5A623\]:hover {
   color: #3D0B12 !important;
@@ -374,22 +726,12 @@ textarea:disabled {
   border-color: #1e294b !important;
 }
 
-/* Alert notifications in dark mode */
-.dark .bg-green-50 {
-  background-color: rgba(16, 185, 129, 0.12) !important;
-  border-color: rgba(16, 185, 129, 0.25) !important;
-  color: #34d399 !important;
-}
-.dark .text-green-700 {
-  color: #34d399 !important;
-}
-
-/* Inputs and Interactive Elements */
+/* Inputs, Selects and Form Controls */
 .dark input:not([type='checkbox']),
 .dark select,
 .dark textarea {
-  background-color: #1c2541 !important;
-  border-color: #2e3a5f !important;
+  background-color: #141f3d !important;
+  border-color: #25355e !important;
   color: #f8fafc !important;
 }
 
@@ -397,11 +739,29 @@ textarea:disabled {
 .dark select:focus,
 .dark textarea:focus {
   border-color: #f28b99 !important;
+  box-shadow: 0 0 0 2px rgba(242, 139, 153, 0.2) !important;
   outline: none;
 }
 
-.dark input::placeholder {
-  color: #475569 !important;
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* File Input Buttons & Attachment Badges */
+.dark label.bg-slate-50,
+.dark label.bg-white,
+.dark button.bg-white:not([class*='bg-primary']) {
+  background-color: #1c2541 !important;
+  border-color: #2e3d6b !important;
+  color: #f1f5f9 !important;
+}
+
+.dark label.bg-slate-50:hover,
+.dark label.bg-white:hover,
+.dark button.bg-white:hover:not([class*='bg-primary']) {
+  background-color: #263359 !important;
+  color: #ffffff !important;
 }
 
 .dark .divide-slate-50 > *,
@@ -413,11 +773,12 @@ textarea:disabled {
 .dark .hover\:bg-slate-100:hover,
 .dark .hover\:bg-slate-50\/50:hover,
 .dark .hover\:bg-slate-50\/80:hover {
-  background-color: rgba(30, 41, 59, 0.3) !important;
+  background-color: rgba(30, 41, 59, 0.4) !important;
 }
 
 /* Modals */
-.dark .bg-white.shadow-2xl {
+.dark .bg-white.shadow-2xl,
+.dark .bg-white.shadow-xl {
   background-color: #111a36 !important;
   border-color: #1e294b !important;
 }
@@ -432,7 +793,7 @@ textarea:disabled {
 }
 
 .dark tr:hover {
-  background-color: rgba(30, 41, 59, 0.3) !important;
+  background-color: rgba(30, 41, 59, 0.35) !important;
 }
 
 .dark th {
@@ -443,72 +804,61 @@ textarea:disabled {
 /* ─── Premium Dark Mode Status Badges ─────────── */
 .dark .bg-emerald-55,
 .dark .bg-emerald-50 {
-  background-color: rgba(16, 185, 129, 0.15) !important;
-  color: #34d399 !important;
+  background-color: rgba(16, 185, 129, 0.18) !important;
+  color: #6ee7b7 !important;
 }
 .dark .text-emerald-700 {
-  color: #34d399 !important;
-}
-.dark .ring-emerald-600\/20 {
-  --tw-ring-color: rgba(16, 185, 129, 0.3) !important;
+  color: #6ee7b7 !important;
 }
 
 .dark .bg-blue-50 {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  color: #60a5fa !important;
+  background-color: rgba(59, 130, 246, 0.18) !important;
+  color: #93c5fd !important;
 }
 .dark .text-blue-700 {
-  color: #60a5fa !important;
-}
-.dark .ring-blue-600\/20 {
-  --tw-ring-color: rgba(59, 130, 246, 0.3) !important;
+  color: #93c5fd !important;
 }
 
 .dark .bg-red-50 {
-  background-color: rgba(239, 68, 68, 0.15) !important;
-  color: #f87171 !important;
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  color: #fca5a5 !important;
 }
 .dark .text-red-700 {
-  color: #f87171 !important;
-}
-.dark .ring-red-600\/20 {
-  --tw-ring-color: rgba(239, 68, 68, 0.3) !important;
+  color: #fca5a5 !important;
 }
 
 .dark .bg-amber-50 {
-  background-color: rgba(245, 158, 11, 0.15) !important;
-  color: #fbbf24 !important;
+  background-color: rgba(245, 158, 11, 0.18) !important;
+  color: #fde68a !important;
 }
 .dark .text-amber-700 {
-  color: #fbbf24 !important;
-}
-.dark .ring-amber-600\/20 {
-  --tw-ring-color: rgba(245, 158, 11, 0.3) !important;
+  color: #fde68a !important;
 }
 
 .dark .bg-violet-50 {
-  background-color: rgba(139, 92, 246, 0.15) !important;
-  color: #a78bfa !important;
+  background-color: rgba(139, 92, 246, 0.18) !important;
+  color: #c4b5fd !important;
 }
 .dark .text-violet-700 {
-  color: #a78bfa !important;
+  color: #c4b5fd !important;
 }
-.dark .ring-violet-600\/20 {
-  --tw-ring-color: rgba(139, 92, 246, 0.3) !important;
+
+.dark .bg-purple-50 {
+  background-color: rgba(168, 85, 247, 0.18) !important;
+  color: #e9d5ff !important;
+}
+.dark .text-purple-700 {
+  color: #e9d5ff !important;
 }
 
 .dark .bg-slate-100,
 .dark .bg-stone-100 {
-  background-color: rgba(100, 116, 139, 0.15) !important;
-  color: #cbd5e1 !important;
+  background-color: rgba(100, 116, 139, 0.22) !important;
+  color: #e2e8f0 !important;
 }
 .dark .text-slate-600,
 .dark .text-stone-600 {
-  color: #cbd5e1 !important;
-}
-.dark .ring-slate-500\/20,
-.dark .ring-stone-500\/20 {
-  --tw-ring-color: rgba(100, 116, 139, 0.3) !important;
+  color: #e2e8f0 !important;
 }
 
 /* Scrollbars */
