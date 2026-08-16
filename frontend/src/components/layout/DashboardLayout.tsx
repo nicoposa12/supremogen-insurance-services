@@ -891,7 +891,7 @@ export default function DashboardLayout() {
                 </button>
 
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-white rounded-2xl border border-slate-200/80 shadow-xl z-50 overflow-hidden">
+                  <div className="fixed left-3 right-3 top-14 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-white rounded-2xl border border-slate-200/80 shadow-xl z-50 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                       <span className="text-sm font-semibold text-slate-800">Notifications</span>
                       {unreadCount > 0 && (
