@@ -256,21 +256,31 @@ function SidebarNavGroup({
     return (
       <div className="relative group/grp">
         <div
-          className="flex items-center justify-center p-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-zinc-800/40"
+          className={`flex items-center justify-center p-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
+            hasActiveChild || isOpen
+              ? 'bg-zinc-800/60 shadow-xs'
+              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40'
+          }`}
           title={`${group.roleLabel}${isViewOnly ? ' (View Only)' : ''}`}
           style={{ color: (hasActiveChild || isOpen) ? group.accent : undefined }}
         >
-          <group.icon className="h-5 w-5 shrink-0" />
+          <group.icon className="h-5 w-5 shrink-0 text-zinc-400 group-hover/grp:text-zinc-100 transition-colors" style={{ color: (hasActiveChild || isOpen) ? group.accent : undefined }} />
         </div>
-        {/* Tooltip on hover showing children */}
-        <div className="absolute left-full top-0 ml-2 hidden group-hover/grp:block z-50">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl p-2 min-w-[200px]">
-            <div className="text-xs font-bold text-zinc-400 px-2 py-1 mb-1 uppercase tracking-wider">
-              {group.roleLabel}
+        {/* Tooltip / Flyout Menu on hover showing children with contiguous hover bridge */}
+        <div className="absolute left-full top-0 -mt-1 pl-2.5 hidden group-hover/grp:block z-50 pointer-events-auto">
+          <div className="bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-2xl p-2.5 min-w-[220px] animate-fade-in">
+            <div className="text-xs font-bold text-zinc-300 px-2 py-1 mb-1.5 uppercase tracking-wider flex items-center justify-between border-b border-zinc-800 pb-1.5">
+              <span className="flex items-center gap-1.5" style={{ color: group.accent }}>
+                <group.icon className="h-3.5 w-3.5" />
+                {group.roleLabel}
+              </span>
+              {isViewOnly && <span className="text-[9px] text-amber-400 font-bold uppercase bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">View Only</span>}
             </div>
-            {group.children.map((child) => (
-              <SidebarSubItem key={child.path} item={child} collapsed={false} />
-            ))}
+            <div className="space-y-0.5">
+              {group.children.map((child) => (
+                <SidebarSubItem key={child.path} item={child} collapsed={false} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
