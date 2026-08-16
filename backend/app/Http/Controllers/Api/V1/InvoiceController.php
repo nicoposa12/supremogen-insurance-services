@@ -683,13 +683,10 @@ class InvoiceController extends Controller
             }
         }
 
-        // 3. All Sales, Renewal, Underwriter, Admin, Owner, Super Admin members
+        // 3. All Sales Agent and Team Renewal members only
         $rolesToNotify = [
             'Sales Agent', 'Sales',
             'Team Renewal', 'Renewal',
-            'Underwriter',
-            'Administrator', 'Owner', 'Super Admin',
-            'General Manager', 'Operational Manager'
         ];
         $teamUsers = \App\Models\User::whereHas('roles', function ($q) use ($rolesToNotify) {
             $q->whereIn('name', $rolesToNotify);

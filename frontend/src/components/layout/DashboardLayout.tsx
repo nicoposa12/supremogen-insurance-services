@@ -676,7 +676,17 @@ export default function DashboardLayout() {
     };
   }, [user, token, sseActive, queryClient]);
 
-  const notifications = notificationsRes?.data ?? [];
+  const isSalesAgentOrRenewalUser = roles.some((r) => ['Sales Agent', 'Sales', 'Team Renewal', 'Renewal'].includes(r));
+  const rawNotifications = notificationsRes?.data ?? [];
+  const notifications = rawNotifications.filter((n) => {
+    const title = (n.title || '').toLowerCase();
+    const message = (n.message || '').toLowerCase();
+    const isNoticeForCancellation = title.includes('notice for cancellation') || message.includes('notice for cancellation');
+    if (isNoticeForCancellation && !isSalesAgentOrRenewalUser) {
+      return false; // Notice for cancellation is only for Sales Agent / Team Renewals
+    }
+    return true;
+  });
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
   const markReadMut = useMutation({
@@ -951,6 +961,7 @@ export default function DashboardLayout() {
                               const title = n.title || '';
                               
                               const matchQuotation = message.match(/QUO-[A-Z0-9-]+/i) || message.match(/QUO \d{4} \d{5}/i);
+                              const matchIR = message.match(/IR-\d{2}-\d{5}/i) || message.match(/IR-[A-Z0-9-]+/i);
                               const matchInvoice = message.match(/INV-[A-Z0-9-]+/i);
                               const matchPayment = message.match(/PAY-\d{4}-\d{5}/i) || message.match(/PAY-[A-Z0-9-]+/i) || title.match(/PAY-[A-Z0-9-]+/i);
                               const matchClaimNotification = message.match(/CLN-[A-Z0-9-]+/i) || title.match(/CLN-[A-Z0-9-]+/i);
@@ -1009,18 +1020,20 @@ export default function DashboardLayout() {
                               // Remittance Status notifications
                               const isRemittance = title.toLowerCase().includes('remittance') || message.toLowerCase().includes('remitted');
 
-                              // Completed Claim Requirements notifications (Evaluation Letter, LOA, Offer Letter, Denied Claim, Deposit Slip, Billing Casa/Shop, or Requirements Completed)
+                              // Regular Claim Document Uploaded by Agent (should NOT go to Completed Requirements)
+                              const isRegularAgentUploadNotice = 
+                                title.toLowerCase().includes('claim document uploaded') ||
+                                (title.toLowerCase().includes('document uploaded') && !title.toLowerCase().includes('official'));
+
+                              // Completed Claim Requirements / Official Documents notifications (Evaluation Letter, LOA, Offer Letter, Denied Claim, Deposit Slip, Billing Casa/Shop, or Requirements Completed)
                               const isCompletedRequirementNotice = 
-                                title.toLowerCase().includes('completed') || 
-                                title.toLowerCase().includes('official claim document') ||
-                                message.toLowerCase().includes('requirements completed') ||
-                                message.toLowerCase().includes('evaluation letter') ||
-                                message.toLowerCase().includes('offer letter') ||
-                                message.toLowerCase().includes('loa') ||
-                                message.toLowerCase().includes('denied claim') ||
-                                message.toLowerCase().includes('deposit slip') ||
-                                message.toLowerCase().includes('billing casa') ||
-                                message.toLowerCase().includes('billing shop');
+                                !isRegularAgentUploadNotice && (
+                                  title.toLowerCase().includes('official claim document') ||
+                                  title.toLowerCase().includes('claim requirements completed') ||
+                                  message.toLowerCase().includes('requirements completed') ||
+                                  /\b(evaluation letter|offer letter|denied claim|deposit slip|billing casa|billing shop)\b/i.test(message) ||
+                                  /\b(loa|letter of authority|letter of approval)\b/i.test(message)
+                                );
 
                               const isCancellationNotice = title.toLowerCase().includes('cancellation') || message.toLowerCase().includes('cancellation');
 
@@ -1051,7 +1064,7 @@ export default function DashboardLayout() {
                                 const searchQ = searchCode ? `?search=${encodeURIComponent(searchCode)}` : '';
                                 navigate(`/dashboard/claim-notifications${searchQ}`);
                               } else if (isCancellationNotice) {
-                                const code = policyCode || matchQuotation?.[0] || assuredName || '';
+                                const code = matchQuotation?.[0] || matchIR?.[0] || policyCode || assuredName || '';
                                 const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
                                 if (isUnderwriter) {
                                   navigate(`/dashboard/insurance-requests${searchQ}`);

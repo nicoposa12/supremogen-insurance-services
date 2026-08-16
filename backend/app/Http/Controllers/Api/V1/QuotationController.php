@@ -764,11 +764,12 @@ class QuotationController extends Controller
         // Notify Underwriters
         try {
             $underwriters = \App\Models\User::role('Underwriter')->get();
+            $requestNumber = $quotation->quotation_number ?? $quotation->ir_number ?? 'Request';
             foreach ($underwriters as $underwriter) {
                 \App\Models\Notification::create([
                     'user_id' => $underwriter->id,
                     'title' => 'Policy Cancellation Requested',
-                    'message' => "Cancellation requested for {$policyNumber} ({$clientName}) by " . $request->user()->name . ".",
+                    'message' => "Cancellation requested for {$requestNumber} ({$clientName}) by " . $request->user()->name . ".",
                     'type' => 'warning',
                     'read_at' => null,
                 ]);
