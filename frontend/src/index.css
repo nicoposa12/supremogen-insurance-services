@@ -31,9 +31,44 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  html, body {
+    overflow-x: hidden;
   }
   body {
     @apply bg-slate-50 text-slate-900 antialiased font-sans;
+  }
+}
+
+/* ─── Responsive Utilities ─────────────────────── */
+
+/* Touch-friendly scrollable table wrapper */
+.responsive-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Responsive modal container — prevents off-screen overflow on mobile */
+.responsive-modal {
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Minimum touch target for interactive elements on mobile */
+@media (pointer: coarse) {
+  button, a, select, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Exclude inline/tiny icon buttons that have explicit sizing */
+  .touch-target-auto {
+    min-height: unset;
+    min-width: unset;
   }
 }
 

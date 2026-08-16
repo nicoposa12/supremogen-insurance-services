@@ -1628,14 +1628,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
 
             {/* Coverages and Premiums Grid */}
             <div>
-              <div className="grid grid-cols-2 gap-6 mb-3 border-b border-slate-100 pb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-3 border-b border-slate-100 pb-2">
                 <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider">Coverage</h3>
                 <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider">Premium</h3>
               </div>
 
               <div className="space-y-4">
                 {/* Own Damage */}
-                <div className="grid grid-cols-2 gap-6 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">OWN DAMAGE COVERAGE</label>
                     <input type="text" value={covOwnDamage} onChange={(e) => {
@@ -1651,7 +1651,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                 </div>
 
                 {/* Acts of Nature (AON) */}
-                <div className="grid grid-cols-2 gap-6 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">ACTS OF NATURE COVERAGE</label>
                     <input type="text" value={covAON} onChange={(e) => {
@@ -1667,7 +1667,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                 </div>
 
                 {/* Bodily Injury (BI) */}
-                <div className="grid grid-cols-2 gap-6 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">BODILY INJURY</label>
                     {!customBI ? (
@@ -1753,7 +1753,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                 </div>
 
                 {/* Property Damage (PD) */}
-                <div className="grid grid-cols-2 gap-6 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">PROPERTY DAMAGE</label>
                     {!customPD ? (
@@ -1839,7 +1839,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                 </div>
 
                 {/* Auto Passenger (PA) */}
-                <div className="grid grid-cols-2 gap-6 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">PERSONAL ACCIDENT</label>
                     <input type="text" value={covPA} onChange={(e) => setCovPA(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />

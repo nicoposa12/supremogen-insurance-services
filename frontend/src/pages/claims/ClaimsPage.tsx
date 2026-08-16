@@ -348,7 +348,7 @@ export default function ClaimsPage() {
                     ))}
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">Incident Date *</label>
                     <input type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} max={new Date().toISOString().split('T')[0]} className={inputClass} />

@@ -402,46 +402,48 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 text-slate-700">
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 text-slate-700">
       <div>
         <h1 className="text-xl font-bold text-slate-800">Settings</h1>
         <p className="text-sm text-slate-500">Manage your user profile, security settings, and system configurations</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        {/* Tabs sidebar */}
-        <div className="w-full md:w-64 shrink-0 bg-white rounded-3xl border border-slate-100 p-4 shadow-sm space-y-1">
-          <div className="px-3 py-2 border-b border-slate-50 mb-2">
+        {/* Tabs sidebar — horizontal scroll on mobile, vertical on md+ */}
+        <div className="w-full md:w-64 shrink-0 bg-white rounded-2xl md:rounded-3xl border border-slate-100 p-2 sm:p-4 shadow-sm">
+          <div className="hidden md:block px-3 py-2 border-b border-slate-50 mb-2">
             <h3 className="font-extrabold text-[#4A0E17] text-xs uppercase tracking-wider">Account Settings</h3>
           </div>
+          <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-1 md:pb-0 -webkit-overflow-scrolling-touch">
           
-          <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'profile' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
+          <button onClick={() => setActiveTab('profile')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'profile' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
             <UserIcon className="h-4 w-4" /> Profile Settings
           </button>
-          <button onClick={() => setActiveTab('security')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'security' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
+          <button onClick={() => setActiveTab('security')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'security' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
             <Shield className="h-4 w-4" /> Security & Password
           </button>
           {isAdmin && (
-            <button onClick={() => setActiveTab('system')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'system' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
+            <button onClick={() => setActiveTab('system')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'system' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
               <Settings className="h-4 w-4" /> System Configuration
             </button>
           )}
           
           {isAdmin && (
-            <button onClick={() => setActiveTab('accounts')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'accounts' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
+            <button onClick={() => setActiveTab('accounts')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'accounts' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
               <Users className="h-4 w-4" /> Manage Accounts
             </button>
           )}
 
           {isAdmin && (
-            <button onClick={() => setActiveTab('preferences')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'preferences' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
+            <button onClick={() => setActiveTab('preferences')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'preferences' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
               <Bell className="h-4 w-4" /> Preferences
             </button>
           )}
+          </div>
         </div>
 
         {/* Tab Panel */}
-        <div className="flex-1 bg-white rounded-3xl border border-slate-100 p-6 shadow-sm min-h-[400px]">
+        <div className="flex-1 bg-white rounded-2xl md:rounded-3xl border border-slate-100 p-3 sm:p-6 shadow-sm min-h-[400px]">
           
           {/* Profile Tab */}
           {activeTab === 'profile' && (

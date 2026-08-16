@@ -51,7 +51,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl min-w-[320px] max-w-md animate-slide-in-right ${variantStyles[toast.variant]}`}
+      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl shadow-2xl w-full sm:min-w-[320px] sm:max-w-md animate-slide-in-right ${variantStyles[toast.variant]}`}
     >
       <Icon className="h-5 w-5 shrink-0" />
       <p className="text-sm font-medium flex-1">{toast.message}</p>
@@ -94,7 +94,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
 
       {/* Toast Container (top-right) */}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2">
+      <div className="fixed top-2 right-2 left-2 sm:left-auto sm:top-4 sm:right-4 z-[9999] flex flex-col gap-2">
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onDismiss={dismissToast} />
         ))}

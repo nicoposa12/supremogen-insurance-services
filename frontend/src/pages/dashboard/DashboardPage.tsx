@@ -766,9 +766,9 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         {/* Page Title & Timeframe Selector Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
           <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{headerTitle}</h1>
+            <h1 className="text-base sm:text-xl font-extrabold text-slate-900 tracking-tight">{headerTitle}</h1>
             <p className="text-xs text-slate-500 mt-1">Real-time financial flow, policy statement ledgers, company net income, and key operational metrics.</p>
           </div>
 
@@ -779,7 +779,7 @@ export default function DashboardPage() {
                 <button
                   key={tf}
                   onClick={() => handleTimeframeChange(tf)}
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition uppercase cursor-pointer ${
+                  className={`px-2.5 sm:px-3.5 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition uppercase cursor-pointer ${
                     accountingTimeframe === tf
                       ? 'bg-[#4A0E17] text-white shadow-xs'
                       : 'text-slate-600 hover:bg-slate-200'

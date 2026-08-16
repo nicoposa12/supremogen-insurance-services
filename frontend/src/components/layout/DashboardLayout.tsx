@@ -780,12 +780,20 @@ export default function DashboardLayout() {
     <div className="min-h-screen bg-slate-100/50 flex">
       {/* ─── Desktop Sidebar ───────────────── */}
       <aside
-        className={`hidden lg:flex flex-col bg-zinc-950 border-r border-zinc-900 transition-all duration-300 shrink-0 ${sidebarCollapsed ? 'w-[72px]' : 'w-64'
-          }`}
-        style={{ position: 'sticky', top: 0, height: '100vh' }}
+        className={`hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 h-screen bg-zinc-950 border-r border-zinc-900 transition-all duration-300 shrink-0 ${
+          sidebarCollapsed ? 'w-[72px]' : 'w-64'
+        }`}
       >
         {sidebarContent}
       </aside>
+
+      {/* Desktop Sidebar Spacer to maintain layout flow */}
+      <div
+        className={`hidden lg:block shrink-0 transition-all duration-300 ${
+          sidebarCollapsed ? 'w-[72px]' : 'w-64'
+        }`}
+        aria-hidden="true"
+      />
 
       {/* ─── Mobile Sidebar Drawer ─────────── */}
       {mobileMenuOpen && (
@@ -794,10 +802,10 @@ export default function DashboardLayout() {
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="relative w-72 bg-zinc-950 flex flex-col animate-slide-in-left">
+          <aside className="relative w-72 max-w-[85vw] h-full bg-zinc-950 flex flex-col animate-slide-in-left" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white"
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white z-10"
             >
               <X className="h-5 w-5" />
             </button>
@@ -810,26 +818,26 @@ export default function DashboardLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200/80">
-          <div className="flex items-center justify-between px-4 lg:px-6 h-16">
+          <div className="flex items-center justify-between px-2 sm:px-4 lg:px-6 h-14 sm:h-16 gap-2">
             {/* Left: hamburger + title */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-2 -ml-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="lg:hidden p-2 -ml-1 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition shrink-0"
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800">{currentTitle}</h2>
+              <div className="min-w-0">
+                <h2 className="text-sm sm:text-lg font-semibold text-slate-800 truncate">{currentTitle}</h2>
               </div>
             </div>
 
             {/* Right: search + notifications + user */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               {/* Real-time Date & Time and Role / Dept Badge */}
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
                 {/* Active Role / Department Pill */}
-                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#8A1C2E]/10 border border-[#8A1C2E]/20 dark:bg-[#8A1C2E]/25 dark:border-[#8A1C2E]/40 rounded-xl text-xs font-semibold text-[#8A1C2E] dark:text-red-300">
+                <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#8A1C2E]/10 border border-[#8A1C2E]/20 dark:bg-[#8A1C2E]/25 dark:border-[#8A1C2E]/40 rounded-xl text-xs font-semibold text-[#8A1C2E] dark:text-red-300">
                   <Briefcase className="h-3.5 w-3.5 shrink-0" />
                   <span>
                     {roles?.includes('Administrator')
@@ -847,10 +855,10 @@ export default function DashboardLayout() {
                 </div>
 
                 {/* Real-time Date & Time Clock */}
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-xl text-xs text-slate-700 dark:text-slate-200 font-medium select-none shadow-xs">
-                  <Clock className="h-4 w-4 text-[#8A1C2E] dark:text-red-400 shrink-0" />
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 rounded-xl text-[10px] sm:text-xs text-slate-700 dark:text-slate-200 font-medium select-none shadow-xs">
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#8A1C2E] dark:text-red-400 shrink-0" />
                   <span className="tabular-nums">
-                    <span className="hidden md:inline">{formattedDate} • </span>
+                    <span className="hidden lg:inline">{formattedDate} • </span>
                     <span>{formattedTime}</span>
                   </span>
                 </div>
@@ -883,7 +891,7 @@ export default function DashboardLayout() {
                 </button>
 
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-slate-200/80 shadow-xl z-50 overflow-hidden">
+                  <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-white rounded-2xl border border-slate-200/80 shadow-xl z-50 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                       <span className="text-sm font-semibold text-slate-800">Notifications</span>
                       {unreadCount > 0 && (
@@ -1137,7 +1145,7 @@ export default function DashboardLayout() {
                     setUserMenuOpen(!userMenuOpen);
                     setNotificationsOpen(false);
                   }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition"
+                  className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1.5 rounded-xl hover:bg-slate-100 transition"
                 >
                   {user?.profile_photo_url ? (
                     <img
@@ -1172,7 +1180,7 @@ export default function DashboardLayout() {
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 animate-scale-in">
+                  <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-56 max-w-[14rem] bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 animate-scale-in">
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="text-sm font-medium text-slate-800">{user?.name}</p>
                       <p className="text-xs text-slate-500">{user?.email}</p>
@@ -1205,7 +1213,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-2 sm:p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

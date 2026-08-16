@@ -113,7 +113,7 @@ export default function WebsiteLayout() {
 
         {/* Mobile menu panel */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-border bg-white shadow-lg absolute w-full left-0 py-4 px-4 space-y-3">
+          <div className="md:hidden border-t border-border bg-white shadow-lg absolute w-full left-0 py-4 px-4 space-y-3 max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="space-y-1">
               {navLinks.map((link) => (
                 <Link
@@ -150,7 +150,7 @@ export default function WebsiteLayout() {
 
       {/* Footer */}
       <footer className="mt-20 border-t border-border bg-slate-50">
-        <div className="container-page grid gap-10 py-14 md:grid-cols-4 text-left">
+        <div className="container-page grid gap-10 py-14 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 text-left">
           {/* Logo & Intro */}
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">

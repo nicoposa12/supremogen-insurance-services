@@ -47,9 +47,9 @@ export default function Pagination({
   if (total === 0) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-3">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 px-2 py-3">
       {/* Info + Per-page */}
-      <div className="flex items-center gap-4 text-sm text-slate-500">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-500">
         <span>
           Showing <span className="font-medium text-slate-700">{from ?? 0}</span> to{' '}
           <span className="font-medium text-slate-700">{to ?? 0}</span> of{' '}
@@ -87,7 +87,7 @@ export default function Pagination({
             <button
               key={page}
               onClick={() => onPageChange(page)}
-              className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition ${
+              className={`min-w-[32px] h-8 sm:min-w-[36px] sm:h-9 rounded-lg text-xs sm:text-sm font-medium transition ${
                 page === currentPage
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100'

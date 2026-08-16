@@ -77,7 +77,7 @@ export default function ConfirmModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10 animate-scale-up">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden z-10 animate-scale-up max-h-[90vh] max-h-[90dvh] overflow-y-auto">
         {/* Content */}
         <div className="px-6 pt-6 pb-5">
           <div className="flex items-start gap-4">

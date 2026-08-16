@@ -43,14 +43,14 @@ export default function DataTable<T extends Record<string, any>>({
   // Skeleton rows for loading state
   if (loading) {
     return (
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`text-left ${dense ? 'px-2 py-2 text-[10px]' : 'px-4 py-3 text-xs'} font-semibold text-slate-500 uppercase tracking-wider ${col.className ?? ''}`}
+                  className={`text-left ${dense ? 'px-1.5 py-1.5 text-[10px]' : 'px-2 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-xs'} font-semibold text-slate-500 uppercase tracking-wider ${col.className ?? ''}`}
                 >
                   {col.label}
                 </th>
@@ -61,7 +61,7 @@ export default function DataTable<T extends Record<string, any>>({
             {Array.from({ length: 5 }).map((_, i) => (
               <tr key={i} className="border-b border-slate-100">
                 {columns.map((col) => (
-                  <td key={col.key} className={dense ? 'px-2 py-2' : 'px-4 py-3.5'}>
+                  <td key={col.key} className={dense ? 'px-1.5 py-1.5' : 'px-2 py-2 sm:px-4 sm:py-3.5'}>
                     <div className="h-4 bg-slate-200 rounded-md animate-pulse w-3/4" />
                   </td>
                 ))}
@@ -74,14 +74,14 @@ export default function DataTable<T extends Record<string, any>>({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-slate-200">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`text-left ${dense ? 'px-1.5 py-1.5 text-[9.5px]' : 'px-4 py-3 text-xs'} font-bold text-slate-500 uppercase tracking-tight ${col.className ?? ''}`}
+                  className={`text-left ${dense ? 'px-1.5 py-1.5 text-[9.5px]' : 'px-2 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-xs'} font-bold text-slate-500 uppercase tracking-tight ${col.className ?? ''}`}
                 >
                   {col.sortable && onSort ? (
                     <button
@@ -110,7 +110,7 @@ export default function DataTable<T extends Record<string, any>>({
                   } ${customClass || 'hover:bg-slate-50/80'}`}
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className={`text-slate-700 ${dense ? 'px-1.5 py-1.5 text-[10px]' : 'px-4 py-3.5 text-xs'} ${col.className ?? ''}`}>
+                    <td key={col.key} className={`text-slate-700 ${dense ? 'px-1.5 py-1.5 text-[10px]' : 'px-2 py-2 sm:px-4 sm:py-3.5 text-[10px] sm:text-xs'} ${col.className ?? ''}`}>
                       {col.render ? col.render(row, i) : row[col.key]}
                     </td>
                   ))}
@@ -122,3 +122,4 @@ export default function DataTable<T extends Record<string, any>>({
     </div>
   );
 }
+

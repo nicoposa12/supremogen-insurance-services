@@ -1665,7 +1665,7 @@ export default function SummaryCommissionPage() {
       </div>
 
       {/* Clean KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 no-print">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 no-print">
         <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Premium</p>

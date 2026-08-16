@@ -255,7 +255,7 @@ export default function RenewalsPage() {
               Renewing <span className="font-medium text-slate-700">{processTarget.policy?.policy_number}</span> for{' '}
               <span className="font-medium text-slate-700">{processTarget.customer?.first_name} {processTarget.customer?.last_name}</span>
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">New Effective Date *</label>
                 <input type="date" value={newEffective} onChange={(e) => setNewEffective(e.target.value)}
