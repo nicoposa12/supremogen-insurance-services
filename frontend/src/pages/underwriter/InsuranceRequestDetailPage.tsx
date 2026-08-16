@@ -12,6 +12,7 @@ import { updateCustomer } from '../../services/customerApi';
 import { getAttachments, uploadAttachment, downloadAttachment } from '../../services/attachmentApi';
 import { getClaims } from '../../services/claimApi';
 import { useAuth } from '../../context/AuthContext';
+import { getFileUrl } from '../../utils/url';
 
 const roundToTwoDecimals = (num: number): number => {
   return Math.round(num * 100 + 1e-9) / 100;
@@ -353,9 +354,10 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                 <span className="font-bold text-slate-700 text-xs">Cancellation Supporting Document</span>
               </div>
               <a
-                href={quotation.cancellation_details.attachment_url}
+                href={getFileUrl(quotation.cancellation_details.attachment_url)}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
+                download
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition"
               >
                 <Download className="h-3.5 w-3.5" /> View / Download Attachment

@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getAttachments, downloadAttachment } from '../../services/attachmentApi';
 import AttachmentPanel from '../../components/ui/AttachmentPanel';
 import { RequestCancellationModal } from '../../components/quotations/RequestCancellationModal';
+import { getFileUrl } from '../../utils/url';
 import logoImg from '../../assets/image/supremogen_logo.jpg';
 
 const roundToTwoDecimals = (num: number): number => {
@@ -273,9 +274,10 @@ export default function QuotationDetailPage({
                       <span className="font-bold text-slate-700 text-xs">Cancellation Supporting Document</span>
                     </div>
                     <a
-                      href={quotation.cancellation_details.attachment_url}
+                      href={getFileUrl(quotation.cancellation_details.attachment_url)}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
+                      download
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-2xs transition"
                     >
                       <Download className="h-3.5 w-3.5" /> View / Download Attachment
