@@ -1004,6 +1004,7 @@ export default function DashboardLayout() {
                               const isCollection = roles.includes('Collection') || roles.includes('Collection Officer') || roles.includes('Collector');
                               const isSalesAgent = roles.includes('Sales Agent');
                               const isRenewal = roles.includes('Team Renewal') || roles.includes('Renewal');
+                              const isUnderwriter = roles.includes('Underwriter');
 
                               // Remittance Status notifications
                               const isRemittance = title.toLowerCase().includes('remittance') || message.toLowerCase().includes('remitted');
@@ -1052,10 +1053,14 @@ export default function DashboardLayout() {
                               } else if (isCancellationNotice) {
                                 const code = policyCode || matchQuotation?.[0] || assuredName || '';
                                 const searchQ = code ? `?search=${encodeURIComponent(code)}` : '';
-                                if (isCollection) {
+                                if (isUnderwriter) {
+                                  navigate(`/dashboard/insurance-requests${searchQ}`);
+                                } else if (isCollection) {
                                   navigate(`/dashboard/collection/ledger${searchQ}`);
                                 } else if (isAccounting) {
                                   navigate(`/dashboard/policy-statements${searchQ}`);
+                                } else if (isRenewal) {
+                                  navigate(`/dashboard/renewals${searchQ}`);
                                 } else {
                                   navigate(`/dashboard/quotations${searchQ}`);
                                 }
@@ -1093,18 +1098,26 @@ export default function DashboardLayout() {
                                 const code = matchClaim[0];
                                 navigate(`/dashboard/claim-notifications?search=${encodeURIComponent(code)}`);
                               } else if (policyCode) {
-                                if (isAccounting) {
+                                if (isUnderwriter) {
+                                  navigate(`/dashboard/insurance-requests?search=${encodeURIComponent(policyCode)}`);
+                                } else if (isAccounting) {
                                   navigate(`/dashboard/policy-statements?search=${encodeURIComponent(policyCode)}`);
                                 } else if (isCollection) {
                                   navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(policyCode)}`);
+                                } else if (isRenewal) {
+                                  navigate(`/dashboard/renewals?search=${encodeURIComponent(policyCode)}`);
                                 } else {
                                   navigate(`/dashboard/quotations?search=${encodeURIComponent(policyCode)}`);
                                 }
                               } else if (assuredName) {
-                                if (isCollection) {
+                                if (isUnderwriter) {
+                                  navigate(`/dashboard/insurance-requests?search=${encodeURIComponent(assuredName)}`);
+                                } else if (isCollection) {
                                   navigate(`/dashboard/collection/ledger?search=${encodeURIComponent(assuredName)}`);
                                 } else if (isAccounting) {
                                   navigate(`/dashboard/review-collection-payment?search=${encodeURIComponent(assuredName)}`);
+                                } else if (isRenewal) {
+                                  navigate(`/dashboard/renewals?search=${encodeURIComponent(assuredName)}`);
                                 } else {
                                   navigate(`/dashboard/customers?search=${encodeURIComponent(assuredName)}`);
                                 }
