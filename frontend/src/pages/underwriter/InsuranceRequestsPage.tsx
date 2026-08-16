@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function InsuranceRequestsPage() {
   const { roles = [] } = useAuth();
+  const isAgentOrRenewal = roles.some((r: string) => ['Sales Agent', 'Team Renewal', 'Renewal'].includes(r));
   const [searchParams, setSearchParams] = useSearchParams();
   const querySearch = searchParams.get('search') || '';
 
@@ -299,9 +300,10 @@ export default function InsuranceRequestsPage() {
               onRowClick={(r) => setSelectedRequestId(r.id)}
               rowClassName={(r) => {
                 const isCancellationNotice =
-                  r.status === 'cancellation_requested' ||
-                  (r.notes && r.notes.includes('Notice for Cancellation')) ||
-                  (r.policy?.invoice?.notes && r.policy.invoice.notes.includes('Notice for Cancellation'));
+                  isAgentOrRenewal &&
+                  (r.status === 'cancellation_requested' ||
+                    (r.notes && r.notes.includes('Notice for Cancellation')) ||
+                    (r.policy?.invoice?.notes && r.policy.invoice.notes.includes('Notice for Cancellation')));
                 return isCancellationNotice
                   ? 'bg-amber-500/15 dark:bg-amber-950/40 hover:bg-amber-500/25 border-l-4 border-l-amber-500 text-slate-900 font-semibold shadow-2xs'
                   : 'hover:bg-slate-50/80';

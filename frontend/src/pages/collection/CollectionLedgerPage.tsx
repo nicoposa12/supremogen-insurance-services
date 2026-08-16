@@ -53,6 +53,9 @@ export default function CollectionLedgerPage() {
   const canManageCollection = roles.some((r: string) =>
     ['Collection', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
+  const isAgentOrRenewal = roles.some((r: string) =>
+    ['Sales Agent', 'Team Renewal', 'Renewal'].includes(r)
+  );
   const querySearch = searchParams.get('search') || '';
 
   // Search & Pagination & Filter States
@@ -2150,7 +2153,7 @@ export default function CollectionLedgerPage() {
                       }
 
                       const isCancelledPolicy = (row as any).status === 'voided' || (row as any).status === 'cancelled' || row.policy?.status === 'cancelled' || (row as any).policy?.quotation?.status === 'cancelled';
-                      const hasNoticeForCancellation = (row.notes && row.notes.includes('Notice for Cancellation')) || ((row as any).policy?.quotation?.status === 'cancellation_requested');
+                      const hasNoticeForCancellation = isAgentOrRenewal && ((row.notes && row.notes.includes('Notice for Cancellation')) || ((row as any).policy?.quotation?.status === 'cancellation_requested'));
 
                       return (
                         <span key={row.id} className="contents">

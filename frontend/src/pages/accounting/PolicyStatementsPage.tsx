@@ -149,6 +149,9 @@ export default function PolicyStatementsPage() {
   const isAccountingOrAdmin = roles.some((r: string) =>
     ['Accounting Officer', 'Team Support Operation', 'Administrator', 'Owner', 'Super Admin'].includes(r)
   );
+  const isAgentOrRenewal = roles.some((r: string) =>
+    ['Sales Agent', 'Team Renewal', 'Renewal'].includes(r)
+  );
 
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -878,7 +881,7 @@ export default function PolicyStatementsPage() {
                           key={q.id}
                           onClick={() => setSelectedQuotation(q)}
                           className={`cursor-pointer transition group ${
-                            (q.status === 'cancellation_requested' || (q.notes && q.notes.includes('Notice for Cancellation')) || (q.policy?.invoice?.notes && q.policy.invoice.notes.includes('Notice for Cancellation')))
+                            (isAgentOrRenewal && (q.status === 'cancellation_requested' || (q.notes && q.notes.includes('Notice for Cancellation')) || (q.policy?.invoice?.notes && q.policy.invoice.notes.includes('Notice for Cancellation'))))
                               ? 'bg-amber-500/20 dark:bg-amber-950/50 hover:bg-amber-500/30 border-l-4 border-l-amber-600 text-slate-900 font-bold shadow-2xs'
                               : q.status === 'cancelled'
                                 ? 'bg-rose-50/30 hover:bg-rose-50'

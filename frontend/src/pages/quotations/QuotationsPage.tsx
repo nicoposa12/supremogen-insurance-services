@@ -325,10 +325,12 @@ export default function QuotationsPage() {
               sortDir={params.sort_dir} onSort={handleSort} loading={isLoading}
               onRowClick={(r) => setSelectedQuotationId(r.id)}
               rowClassName={(r) => {
+                const isAgentOrRenewal = roles.includes('Sales Agent') || roles.includes('Team Renewal') || roles.includes('Renewal');
                 const isCancellationNotice =
-                  r.status === 'cancellation_requested' ||
-                  (r.notes && r.notes.includes('Notice for Cancellation')) ||
-                  (r.policy?.invoice?.notes && r.policy.invoice.notes.includes('Notice for Cancellation'));
+                  isAgentOrRenewal &&
+                  (r.status === 'cancellation_requested' ||
+                    (r.notes && r.notes.includes('Notice for Cancellation')) ||
+                    (r.policy?.invoice?.notes && r.policy.invoice.notes.includes('Notice for Cancellation')));
                 return isCancellationNotice
                   ? 'bg-amber-500/15 dark:bg-amber-950/40 hover:bg-amber-500/25 border-l-4 border-l-amber-500 text-slate-900 font-semibold shadow-2xs'
                   : 'hover:bg-slate-50/80';
