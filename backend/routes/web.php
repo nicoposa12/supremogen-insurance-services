@@ -7,24 +7,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/storage/{path}', function ($path) {
-    if (Storage::disk('public')->exists($path)) {
-        return Storage::disk('public')->response($path);
-    }
-    $defaultDisk = config('filesystems.default');
-    if ($defaultDisk && $defaultDisk !== 'public' && Storage::disk($defaultDisk)->exists($path)) {
-        return Storage::disk($defaultDisk)->response($path);
-    }
-    $localPublicPath = storage_path('app/public/' . $path);
-    if (file_exists($localPublicPath)) {
-        return response()->file($localPublicPath);
-    }
-    $localAppPath = storage_path('app/' . $path);
-    if (file_exists($localAppPath)) {
-        return response()->file($localAppPath);
-    }
-    abort(404);
-})->where('path', '.*');
+Route::get('/storage/{path}', [\App\Http\Controllers\Api\V1\StorageController::class, 'serve'])->where('path', '.*');
 
 Route::get('/debug-queue', function () {
     $data = [];

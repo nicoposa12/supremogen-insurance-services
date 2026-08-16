@@ -709,8 +709,27 @@ class QuotationController extends Controller
 
         $attachmentUrl = null;
         if ($request->hasFile('attachment')) {
-            $path = $request->file('attachment')->store('cancellations', 'public');
-            $attachmentUrl = "/storage/" . $path;
+            $file = $request->file('attachment');
+            $originalName = $file->getClientOriginalName();
+            $extension = $file->getClientOriginalExtension();
+            $safeName = \Illuminate\Support\Str::uuid() . '.' . $extension;
+            $disk = config('filesystems.default') ?: 'public';
+
+            $path = $file->storeAs("attachments/cancellations", $safeName, $disk);
+
+            $attachment = \App\Models\Attachment::create([
+                'attachable_type' => \App\Models\Quotation::class,
+                'attachable_id' => $quotation->id,
+                'file_name' => $originalName,
+                'file_path' => $path,
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'document_type' => 'cancellation_supporting_document',
+                'uploaded_by' => $request->user()?->id,
+                'storage_disk' => $disk,
+            ]);
+
+            $attachmentUrl = "/api/v1/attachments/{$attachment->id}/download";
         }
 
         $writingDate = $request->input('writing_date') ?? ($cust?->inception_date ?? now()->toDateString());
