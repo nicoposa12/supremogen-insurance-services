@@ -9,12 +9,6 @@ export const getFileUrl = (path?: string | null): string => {
   const baseUrl = import.meta.env.VITE_API_URL || '';
   const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-
-  // If path is a storage asset (e.g. /storage/cancellations/xxx.jpg), route to the API storage proxy
-  if (cleanPath.startsWith('/storage/')) {
-    const subPath = cleanPath.replace(/^\/storage\//, '');
-    return `${cleanBase}/api/v1/storage/${subPath}`;
-  }
   
   return `${cleanBase}${cleanPath}`;
 };

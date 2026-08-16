@@ -714,6 +714,9 @@ class QuotationController extends Controller
             $extension = $file->getClientOriginalExtension();
             $safeName = \Illuminate\Support\Str::uuid() . '.' . $extension;
             $disk = config('filesystems.default') ?: 'public';
+            if ($disk === 'local') {
+                $disk = 'public';
+            }
 
             $path = $file->storeAs("attachments/cancellations", $safeName, $disk);
 

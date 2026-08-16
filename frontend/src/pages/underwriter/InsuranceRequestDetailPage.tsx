@@ -45,20 +45,24 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   const handleViewCancellationDoc = async (urlPath: string) => {
     if (!urlPath) return;
     const fullUrl = getFileUrl(urlPath);
-    const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(urlPath);
-    const isPdf = /\.pdf$/i.test(urlPath);
     
     setPreviewModalTitle('Cancellation Supporting Document');
-    setPreviewModalType(isImage ? 'image' : isPdf ? 'pdf' : 'other');
     setIsPreviewModalLoading(true);
     setPreviewModalUrl(null);
 
     try {
-      const { data } = await axios.get(fullUrl, { responseType: 'blob' });
-      const mimeType = isImage ? (urlPath.endsWith('.png') ? 'image/png' : 'image/jpeg') : isPdf ? 'application/pdf' : 'application/octet-stream';
-      const blobUrl = window.URL.createObjectURL(new Blob([data], { type: mimeType }));
+      const response = await axios.get(fullUrl, { responseType: 'blob' });
+      const contentType = String(response.headers['content-type'] || 'application/octet-stream');
+      const isImage = contentType.startsWith('image/');
+      const isPdf = contentType === 'application/pdf';
+      setPreviewModalType(isImage ? 'image' : isPdf ? 'pdf' : 'other');
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: contentType }));
       setPreviewModalUrl(blobUrl);
     } catch (err) {
+      // Fallback: try to detect from URL extension
+      const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(urlPath);
+      const isPdf = /\.pdf$/i.test(urlPath);
+      setPreviewModalType(isImage ? 'image' : isPdf ? 'pdf' : 'other');
       setPreviewModalUrl(fullUrl);
     } finally {
       setIsPreviewModalLoading(false);
@@ -68,12 +72,22 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   const handleDownloadCancellationDoc = async (urlPath: string) => {
     if (!urlPath) return;
     const fullUrl = getFileUrl(urlPath);
-    const ext = urlPath.split('.').pop()?.split('?')[0] || 'pdf';
-    const downloadFileName = `cancellation-supporting-document-${quotation?.quotation_number || id}.${ext}`;
 
     try {
-      const { data } = await axios.get(fullUrl, { responseType: 'blob' });
-      const blobUrl = window.URL.createObjectURL(new Blob([data]));
+      const response = await axios.get(fullUrl, { responseType: 'blob' });
+      // Extract filename from Content-Disposition header or derive from content-type
+      const disposition = String(response.headers['content-disposition'] || '');
+      const filenameMatch = disposition.match(/filename[^;=\n]*=["']?([^"';\n]*)["']?/);
+      let downloadFileName: string;
+      if (filenameMatch?.[1]) {
+        downloadFileName = filenameMatch[1];
+      } else {
+        const contentType = String(response.headers['content-type'] || 'application/octet-stream');
+        const extMap: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'application/pdf': 'pdf' };
+        const ext = extMap[contentType] || 'pdf';
+        downloadFileName = `cancellation-supporting-document-${quotation?.quotation_number || id}.${ext}`;
+      }
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
       a.href = blobUrl;
       a.download = downloadFileName;
@@ -83,6 +97,8 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
       window.URL.revokeObjectURL(blobUrl);
       showToast('Download started.');
     } catch (err) {
+      const ext = urlPath.split('.').pop()?.split('?')[0] || 'pdf';
+      const downloadFileName = `cancellation-supporting-document-${quotation?.quotation_number || id}.${ext}`;
       const a = document.createElement('a');
       a.href = fullUrl;
       a.download = downloadFileName;
