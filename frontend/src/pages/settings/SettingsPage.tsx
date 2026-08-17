@@ -414,31 +414,58 @@ export default function SettingsPage() {
           <div className="hidden md:block px-3 py-2 border-b border-slate-50 mb-2">
             <h3 className="font-extrabold text-[#4A0E17] text-xs uppercase tracking-wider">Account Settings</h3>
           </div>
-          <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-1 md:pb-0 -webkit-overflow-scrolling-touch">
-          
-          <button onClick={() => setActiveTab('profile')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'profile' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
-            <UserIcon className="h-4 w-4" /> Profile Settings
-          </button>
-          <button onClick={() => setActiveTab('security')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'security' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
-            <Shield className="h-4 w-4" /> Security & Password
-          </button>
-          {isAdmin && (
-            <button onClick={() => setActiveTab('system')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'system' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
-              <Settings className="h-4 w-4" /> System Configuration
+          <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 no-scrollbar touch-pan-x">
+            <button
+              type="button"
+              onClick={() => setActiveTab('profile')}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                activeTab === 'profile' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <UserIcon className="h-4 w-4 shrink-0" /> <span>Profile Settings</span>
             </button>
-          )}
-          
-          {isAdmin && (
-            <button onClick={() => setActiveTab('accounts')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'accounts' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
-              <Users className="h-4 w-4" /> Manage Accounts
+            <button
+              type="button"
+              onClick={() => setActiveTab('security')}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                activeTab === 'security' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Shield className="h-4 w-4 shrink-0" /> <span>Security & Password</span>
             </button>
-          )}
-
-          {isAdmin && (
-            <button onClick={() => setActiveTab('preferences')} className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap md:w-full ${activeTab === 'preferences' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}>
-              <Bell className="h-4 w-4" /> Preferences
-            </button>
-          )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('system')}
+                className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                  activeTab === 'system' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Settings className="h-4 w-4 shrink-0" /> <span>System Configuration</span>
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('accounts')}
+                className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                  activeTab === 'accounts' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Users className="h-4 w-4 shrink-0" /> <span>Manage Accounts</span>
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('preferences')}
+                className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                  activeTab === 'preferences' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Bell className="h-4 w-4 shrink-0" /> <span>Preferences</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -721,50 +748,47 @@ export default function SettingsPage() {
           {/* Manage Accounts Tab */}
           {activeTab === 'accounts' && isAdmin && (
             <div className="space-y-6 animate-scale-in">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-bold text-slate-800 mb-1">Manage Agent Accounts</h3>
-                  <p className="text-xs text-slate-400">Create and manage accounts for Sales Agents, Underwriters, and Accountants.</p>
+                  <h3 className="text-base font-bold text-slate-800">Manage Accounts</h3>
+                  <p className="text-xs text-slate-400">Create and manage access for all roles</p>
                 </div>
                 <button 
                   onClick={() => { resetUserForm(); setIsUserModalOpen(true); }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition cursor-pointer shadow-xs shrink-0"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Create Account
+                  <Plus className="h-3.5 w-3.5" /> <span>Create Account</span>
                 </button>
               </div>
  
-              {/* Search and Filters */}
-              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-slate-50/50 p-3 rounded-2xl border border-slate-200/55">
-                <div className="relative flex-1 w-full">
+              {/* Compact Search and Filters */}
+              <div className="flex gap-2 items-center bg-slate-50/70 p-2 rounded-2xl border border-slate-200/60">
+                <div className="relative flex-1 min-w-0">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Search className="h-4 w-4 text-slate-400" />
+                    <Search className="h-3.5 w-3.5 text-slate-400" />
                   </span>
                   <input
                     type="text"
-                    placeholder="Search by name or email..."
+                    placeholder="Search accounts..."
                     value={userSearchQuery}
                     onChange={(e) => setUserSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all"
+                    className="w-full pl-8 pr-7 py-2 bg-white border border-slate-200/80 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all"
                   />
                   {userSearchQuery && (
                     <button
                       onClick={() => setUserSearchQuery('')}
-                      className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-450 hover:text-slate-600 transition cursor-pointer"
+                      className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
                 
-                <div className="relative w-full sm:w-48">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Filter className="h-3.5 w-3.5 text-slate-400" />
-                  </span>
+                <div className="relative w-32 sm:w-44 shrink-0">
                   <select
                     value={userRoleFilter}
                     onChange={(e) => setUserRoleFilter(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all appearance-none cursor-pointer"
+                    className="w-full px-3 py-2 bg-white border border-slate-200/80 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all cursor-pointer truncate"
                   >
                     <option value="All">All Roles</option>
                     {Object.entries(roleLabels).map(([val, label]) => (
@@ -774,11 +798,87 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden border border-slate-100 rounded-2xl bg-white">
+              {/* Mobile View: Minimalist Clean Account List */}
+              <div className="md:hidden">
+                {loadingUsers ? (
+                  <div className="flex justify-center py-12 bg-white rounded-2xl border border-slate-100"><Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" /></div>
+                ) : filteredUserAccounts.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-100">
+                    No agent accounts found matching your search or filters.
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs divide-y divide-slate-100 overflow-hidden">
+                    {filteredUserAccounts.map((u) => (
+                      <div key={u.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/60 transition">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {u.profile_photo_url ? (
+                            <img
+                              src={getFileUrl(u.profile_photo_url)}
+                              alt={u.name}
+                              className="h-10 w-10 rounded-full object-cover border border-slate-100 shrink-0"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold shrink-0 border border-slate-200/60">
+                              {u.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-slate-800 text-sm truncate">{u.name}</span>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                                u.role_name === 'Administrator' ? 'bg-red-50 text-red-700' :
+                                u.role_name === 'General Manager' ? 'bg-amber-50 text-amber-800' :
+                                u.role_name === 'Operational Manager' ? 'bg-indigo-50 text-indigo-800' :
+                                u.role_name === 'Team Support Operation' ? 'bg-teal-50 text-teal-800' :
+                                u.role_name === 'Underwriter' ? 'bg-blue-50 text-blue-700' :
+                                u.role_name === 'Accounting Officer' ? 'bg-emerald-50 text-emerald-700' :
+                                u.role_name === 'Claims Officer' ? 'bg-purple-50 text-purple-700' :
+                                u.role_name === 'Collection' ? 'bg-cyan-50 text-cyan-700' :
+                                'bg-slate-100 text-slate-600'
+                              }`}>
+                                {u.role_name}
+                              </span>
+                            </div>
+                            <p className="text-slate-400 font-mono text-xs truncate mt-0.5">{u.email}</p>
+                          </div>
+                        </div>
+
+                        {/* Minimalist Action Buttons */}
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            onClick={() => handleOpenEditUser(u)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-[#4A0E17] hover:bg-slate-100 active:bg-slate-200 transition cursor-pointer"
+                            title="Edit User"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => { setResetPasswordTarget(u); setResetPasswordValue(''); }}
+                            className="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 active:bg-amber-100 transition cursor-pointer"
+                            title="Reset Password"
+                          >
+                            <Key className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(u)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition cursor-pointer"
+                            title="Delete User"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto border border-slate-100 rounded-2xl bg-white shadow-2xs responsive-table-wrap">
                 {loadingUsers ? (
                   <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" /></div>
                 ) : (
-                  <table className="w-full text-left border-collapse text-sm">
+                  <table className="w-full min-w-[580px] text-left border-collapse text-sm">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100">
                         <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase">Agent Name</th>
@@ -831,13 +931,13 @@ export default function SettingsPage() {
                             </td>
                             <td className="px-4 py-3 text-right bg-white">
                               <div className="flex items-center justify-end gap-1.5">
-                                <button onClick={() => handleOpenEditUser(u)} className="p-1 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-50 transition" title="Edit">
+                                <button onClick={() => handleOpenEditUser(u)} className="p-1 rounded-lg text-slate-400 hover:text-[#4A0E17] hover:bg-slate-50 transition cursor-pointer" title="Edit">
                                   <Pencil className="h-4 w-4" />
                                 </button>
-                                <button onClick={() => { setResetPasswordTarget(u); setResetPasswordValue(''); }} className="p-1 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition" title="Reset Password">
+                                <button onClick={() => { setResetPasswordTarget(u); setResetPasswordValue(''); }} className="p-1 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer" title="Reset Password">
                                   <Key className="h-4 w-4" />
                                 </button>
-                                <button onClick={() => setDeleteTarget(u)} className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Delete">
+                                <button onClick={() => setDeleteTarget(u)} className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer" title="Delete">
                                   <Trash2 className="h-4 w-4" />
                                 </button>
                               </div>
