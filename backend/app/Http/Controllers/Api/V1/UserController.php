@@ -23,13 +23,10 @@ class UserController extends Controller
         $status = $request->input('status', 'active');
         $query = User::with('roles')
             ->when($status === 'active', function ($q) {
-                $q->where(function ($sub) {
-                    $sub->where('is_archived', false)
-                        ->orWhereNull('is_archived');
-                });
+                $q->whereRaw('COALESCE(is_archived, false) = false');
             })
             ->when($status === 'archived', function ($q) {
-                $q->where('is_archived', true);
+                $q->whereRaw('is_archived = true');
             })
             ->when($request->user()->hasRole('Underwriter'), function ($q) {
                 $q->whereNotIn('email', ['admin@supremogen.com', 'owner@supremogen.com']);
@@ -258,10 +255,7 @@ class UserController extends Controller
     public function agents()
     {
         $agents = User::role(['Sales Agent', 'Team Renewal'])
-            ->where(function ($sub) {
-                $sub->where('is_archived', false)
-                    ->orWhereNull('is_archived');
-            })
+            ->whereRaw('COALESCE(is_archived, false) = false')
             ->with('roles')
             ->orderBy('name', 'asc')
             ->get();

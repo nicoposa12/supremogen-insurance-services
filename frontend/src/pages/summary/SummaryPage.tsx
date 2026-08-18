@@ -143,19 +143,25 @@ export default function SummaryPage() {
 
   const dbAgents = useMemo(() => agentsRes?.data || [], [agentsRes]);
 
-  // Construct dynamic teams based on the loaded dbAgents list, fallback to seeded defaults
+  // Construct dynamic teams based on the loaded dbAgents list
   const dynamicTeams = useMemo(() => {
     const salesAgents = dbAgents
-      .filter((a: any) => a.role_name === 'Sales Agent')
+      .filter((a: any) => {
+        const rName = a.role_name || (Array.isArray(a.roles) ? a.roles[0]?.name : '') || '';
+        return rName.toLowerCase() === 'sales agent';
+      })
       .map((a: any) => a.name.toUpperCase().trim());
 
     const renewalAgents = dbAgents
-      .filter((a: any) => a.role_name === 'Team Renewal')
+      .filter((a: any) => {
+        const rName = a.role_name || (Array.isArray(a.roles) ? a.roles[0]?.name : '') || '';
+        return rName.toLowerCase() === 'team renewal';
+      })
       .map((a: any) => a.name.toUpperCase().trim());
 
     return {
-      'NEW ACCOUNT': salesAgents.length > 0 ? salesAgents : ['ELLA LANGRIO', 'JM CAMINGUE'],
-      'TEAM RENEWAL': renewalAgents.length > 0 ? renewalAgents : ['NIC MATULAC'],
+      'NEW ACCOUNT': salesAgents,
+      'TEAM RENEWAL': renewalAgents,
       'PARTNERS': ['ARCHIE', 'ARIS', 'AUTORELIABLE INSURANCE', 'ACTIVE BEST', 'F1 INSURANCE SERVICES', 'F1S', 'PAMPANGA', 'PRIME', 'REEL DRIVE'],
       'TEAM SUPPORT': ['AIZA', 'ANGELICA', 'FROILAN', 'JELLAN', 'JESSROME', 'JHOY', 'KHEL', 'MICO', 'RONALYNE']
     };
@@ -167,19 +173,11 @@ export default function SummaryPage() {
 
     for (const team of Object.keys(dynamicTeams)) {
       for (const agent of dynamicTeams[team as keyof typeof dynamicTeams]) {
-        if (name.includes(agent) || agent.includes(name)) {
+        if (name === agent || name.includes(agent) || agent.includes(name)) {
           return agent;
         }
       }
     }
-
-    // Fuzzy mappings for seeded data:
-    if (name.includes('JUAN') || name.includes('DELA CRUZ')) return 'ELLA LANGRIO';
-    if (name.includes('MARIA') || name.includes('SANTOS')) return 'JM CAMINGUE';
-    if (name.includes('NIC') || name.includes('MATULAC')) return 'NIC MATULAC';
-    if (name.includes('NICS') || name.includes('NICO')) return 'MICO';
-    if (name.includes('ELLA')) return 'ELLA LANGRIO';
-    if (name.includes('JM') || name.includes('CAMINGUE')) return 'JM CAMINGUE';
 
     return null;
   };
@@ -188,20 +186,8 @@ export default function SummaryPage() {
   const agentNamesMap = useMemo(() => {
     const map: Record<string, string> = {};
     dbAgents.forEach((agent: any) => {
-      const email = (agent.email || '').toLowerCase().trim();
       const name = (agent.name || '').toUpperCase().trim();
-
-      if (email === 'agent@supremogen.com' || name.includes('ELLA') || name.includes('LANGRIO')) {
-        map['ELLA LANGRIO'] = agent.name;
-      } else if (email === 'accounting@supremogen.com' || name.includes('JM') || name.includes('CAMINGUE')) {
-        map['JM CAMINGUE'] = agent.name;
-      } else if (email === 'nico@supremogen.com' || name.includes('NICO') || name.includes('OPOSA') || name.includes('MICO')) {
-        map['MICO'] = agent.name;
-      } else if (email === 'renewal@supremogen.com' || name.includes('NIC') || name.includes('MATULAC')) {
-        map['NIC MATULAC'] = agent.name;
-      } else {
-        map[name] = agent.name;
-      }
+      map[name] = agent.name;
     });
     return map;
   }, [dbAgents]);
@@ -209,7 +195,21 @@ export default function SummaryPage() {
   // Helper to identify if a row was created by a sales agent (NEW ACCOUNT team)
   const isSalesAgentRow = (row: any): boolean => {
     const agentObj = row.created_by;
-    const dbName = agentObj && typeof agentObj === 'object' ? (agentObj.name || '') : '';
+    if (agentObj && typeof agentObj === 'object') {
+      const creatorId = (agentObj as any).id;
+      const email = ((agentObj as any).email || '').toLowerCase().trim();
+      const name = ((agentObj as any).name || '').toUpperCase().trim();
+      const found = dbAgents.find((a: any) => 
+        (creatorId && a.id === creatorId) ||
+        (email && (a.email || '').toLowerCase().trim() === email) ||
+        (name && (a.name || '').toUpperCase().trim() === name)
+      );
+      if (found) {
+        const rName = found.role_name || (Array.isArray(found.roles) ? found.roles[0]?.name : '') || '';
+        return rName.toLowerCase() === 'sales agent';
+      }
+    }
+    const dbName = (row.agent || (agentObj && typeof agentObj === 'object' ? agentObj.name : '') || '').toUpperCase().trim();
     const predefinedKey = matchAgentToPredefined(dbName);
     return predefinedKey ? dynamicTeams['NEW ACCOUNT'].includes(predefinedKey) : false;
   };
@@ -254,10 +254,16 @@ export default function SummaryPage() {
     bookingList.forEach(row => {
       let matchedAgent: string | null = null;
 
-      // 1. Try matching by creator's email first (most accurate for DB users)
+      // 1. Try matching by creator's ID or email first (most accurate for DB users)
       if (row.created_by && typeof row.created_by === 'object') {
+        const creatorId = (row.created_by as any).id;
         const email = ((row.created_by as any).email || '').toLowerCase().trim();
-        const found = dbAgents.find((a: any) => (a.email || '').toLowerCase().trim() === email);
+        const name = ((row.created_by as any).name || '').toUpperCase().trim();
+        const found = dbAgents.find((a: any) => 
+          (creatorId && a.id === creatorId) || 
+          (email && (a.email || '').toLowerCase().trim() === email) ||
+          (name && (a.name || '').toUpperCase().trim() === name)
+        );
         if (found) {
           matchedAgent = found.name.toUpperCase().trim();
         }
@@ -269,7 +275,7 @@ export default function SummaryPage() {
         matchedAgent = matchAgentToPredefined(dbAgentName);
       }
 
-      if (matchedAgent) {
+      if (matchedAgent && counts[matchedAgent] !== undefined) {
         counts[matchedAgent] = (counts[matchedAgent] || 0) + 1;
       }
     });
@@ -335,8 +341,14 @@ export default function SummaryPage() {
     bookingList.forEach(row => {
       let matchedAgent: string | null = null;
       if (row.created_by && typeof row.created_by === 'object') {
+        const creatorId = (row.created_by as any).id;
         const email = ((row.created_by as any).email || '').toLowerCase().trim();
-        const found = dbAgents.find((a: any) => (a.email || '').toLowerCase().trim() === email);
+        const name = ((row.created_by as any).name || '').toUpperCase().trim();
+        const found = dbAgents.find((a: any) => 
+          (creatorId && a.id === creatorId) || 
+          (email && (a.email || '').toLowerCase().trim() === email) ||
+          (name && (a.name || '').toUpperCase().trim() === name)
+        );
         if (found) {
           matchedAgent = found.name.toUpperCase().trim();
         }
@@ -346,7 +358,7 @@ export default function SummaryPage() {
         matchedAgent = matchAgentToPredefined(dbAgentName);
       }
 
-      if (matchedAgent) {
+      if (matchedAgent && stats[matchedAgent]) {
         const policyStatus = (row.policy_status || '').toUpperCase().trim();
         const customerStatus = (row.status || '').toLowerCase().trim();
         const hasCancelledQuotation = row.quotations && Array.isArray(row.quotations) && row.quotations.some((q: any) => (q.status || '').toLowerCase() === 'cancelled');
