@@ -445,7 +445,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 text-slate-700">
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 text-slate-700">
       <div>
         <h1 className="text-xl font-bold text-slate-800">Settings</h1>
         <p className="text-sm text-slate-500">Manage your user profile, security settings, and system configurations</p>
