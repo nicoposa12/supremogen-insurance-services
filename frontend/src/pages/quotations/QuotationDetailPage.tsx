@@ -575,6 +575,8 @@ export default function QuotationDetailPage({
                     paPrem = paCov > 0 ? 700 : 0;
                   }
 
+                  const isSirJessApproved = (cust.used_rate_type || '').toUpperCase().includes('SIR JESS');
+
                   return (
                     <div className="space-y-3">
                       <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Policy & Coverages</h4>
@@ -592,37 +594,37 @@ export default function QuotationDetailPage({
                             <tr className="bg-[#4A0E17] text-white font-bold uppercase text-[10px] tracking-wider">
                               <th className="py-2 px-3 text-left">Peril</th>
                               <th className="py-2 px-3 text-right">Coverage</th>
-                              <th className="py-2 px-3 text-right">Premium</th>
+                              {!isSirJessApproved && <th className="py-2 px-3 text-right">Premium</th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 font-medium">
                             <tr className="hover:bg-slate-50/80 transition">
                               <td className="py-1.5 px-3 font-semibold text-slate-800">Own Damage</td>
                               <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(odCov)}</td>
-                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(odPrem)}</td>
+                              {!isSirJessApproved && <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(odPrem)}</td>}
                             </tr>
                             <tr className="hover:bg-slate-50/80 transition">
                               <td className="py-1.5 px-3 font-semibold text-slate-800">Acts of Nature</td>
                               <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(aonCov)}</td>
-                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(aonPrem)}</td>
+                              {!isSirJessApproved && <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(aonPrem)}</td>}
                             </tr>
                             <tr className="hover:bg-slate-50/80 transition">
                               <td className="py-1.5 px-3 font-semibold text-slate-800">Bodily Injury</td>
                               <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(biCov)}</td>
-                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(biPrem)}</td>
+                              {!isSirJessApproved && <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(biPrem)}</td>}
                             </tr>
                             <tr className="hover:bg-slate-50/80 transition">
                               <td className="py-1.5 px-3 font-semibold text-slate-800">Property Damage</td>
                               <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(pdCov)}</td>
-                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(pdPrem)}</td>
+                              {!isSirJessApproved && <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(pdPrem)}</td>}
                             </tr>
                             <tr className="hover:bg-slate-50/80 transition">
                               <td className="py-1.5 px-3 font-semibold text-slate-800">Personal Accident</td>
                               <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(paCov)}</td>
-                              <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(paPrem)}</td>
+                              {!isSirJessApproved && <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(paPrem)}</td>}
                             </tr>
                             <tr className="bg-slate-50 font-bold border-t border-slate-200">
-                              <td className="py-2 px-3 text-slate-900 uppercase text-[10px] tracking-wider" colSpan={2}>Total Premium</td>
+                              <td className="py-2 px-3 text-slate-900 uppercase text-[10px] tracking-wider" colSpan={isSirJessApproved ? 1 : 2}>Total Premium</td>
                               <td className="py-2 px-3 text-right font-mono text-[#4A0E17] font-black text-sm">{formatCurrency(quotation.total_premium)}</td>
                             </tr>
                           </tbody>
@@ -648,9 +650,11 @@ export default function QuotationDetailPage({
                     <span className="col-span-2 text-slate-800 font-bold uppercase">{quotation.customer?.used_rate_type || '—'}</span>
 
                     <span className="text-slate-500 font-semibold text-xs">Used Rate</span>
-                    <span className="col-span-2 text-slate-800 font-semibold">{quotation.customer?.used_rate || '—'}</span>
+                    <span className="col-span-2 text-slate-800 font-semibold">
+                      {(quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS') ? '—' : (quotation.customer?.used_rate || '—')}
+                    </span>
 
-                    {details && (
+                    {details && !((quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS')) && (
                       <>
                         <span className="text-slate-500 font-semibold text-xs">Agent Mark Up</span>
                         <span className="col-span-2 text-slate-800 font-medium font-mono">{formatCurrency(details.calculator?.agent_markup)}</span>
@@ -706,96 +710,98 @@ export default function QuotationDetailPage({
               <div className="pt-6 border-t border-slate-200/80">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Pricing Details */}
-                  <div className="md:col-span-2 bg-slate-50/50 rounded-2xl border border-slate-200/60 p-5 space-y-3 shadow-sm">
-                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Pricing Details</h4>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Selling Rate (OD)</span>
-                        <span className="font-semibold text-slate-800 font-mono">{Number(details.calculator?.selling_rate_od || 0).toFixed(2)}%</span>
+                  {!((quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS')) && (
+                    <div className="md:col-span-2 bg-slate-50/50 rounded-2xl border border-slate-200/60 p-5 space-y-3 shadow-sm">
+                      <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Pricing Details</h4>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-medium">Selling Rate (OD)</span>
+                          <span className="font-semibold text-slate-800 font-mono">{Number(details.calculator?.selling_rate_od || 0).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-medium">Selling Rate (AON)</span>
+                          <span className="font-semibold text-slate-800 font-mono">{Number(details.calculator?.selling_rate_aon || 0).toFixed(2)}%</span>
+                        </div>
+                        {(() => {
+                          const isMotor = quotation.customer?.quotation_used?.trim().toUpperCase() === 'MOTOR';
+                          const basicPremiumSum = Number(details.premiums?.od || 0) + Number(details.premiums?.aon || 0) + Number(details.premiums?.bi || 0) + Number(details.premiums?.pd || 0) + Number(details.premiums?.pa || 0);
+
+                          if (isMotor) {
+                            const dst = roundToTwoDecimals(basicPremiumSum * 0.125);
+                            const eVat = roundToTwoDecimals(basicPremiumSum * 0.12);
+                            const lgt = roundToTwoDecimals(basicPremiumSum * 0.002);
+                            const totalTaxAndPremium = basicPremiumSum + dst + eVat + lgt;
+                            const isPartnerRate = (quotation.customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+                            const motorFixedAddition = isPartnerRate ? 3000 : 3500;
+                            const grossPremium = totalTaxAndPremium + motorFixedAddition + Number(details.calculator?.towing_fee || 0);
+
+                            return (
+                              <>
+                                <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
+                                  <span className="text-slate-500 font-medium">Basic Premium</span>
+                                  <span className="font-semibold text-slate-800 font-mono">{formatCurrency(basicPremiumSum)}</span>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
+                                  <span className="text-slate-500 font-medium">DST (12.5%)</span>
+                                  <span className="font-semibold text-slate-800 font-mono">{formatCurrency(dst)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500 font-medium">E-VAT (12%)</span>
+                                  <span className="font-semibold text-slate-800 font-mono">{formatCurrency(eVat)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500 font-medium">LGT (0.2%)</span>
+                                  <span className="font-semibold text-slate-800 font-mono">{formatCurrency(lgt)}</span>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
+                                  <span className="text-slate-500 font-medium">Towing Fee</span>
+                                  <span className="font-semibold text-slate-800 font-mono">{formatCurrency(details.calculator?.towing_fee)}</span>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
+                                  <span className="text-slate-600 font-bold">Gross Premium</span>
+                                  <span className="font-bold text-slate-800 font-mono">{formatCurrency(grossPremium)}</span>
+                                </div>
+                              </>
+                            );
+                          } else {
+                            const isPartnerRate = (quotation.customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+                            const isOldCarRate = (quotation.customer?.used_rate_type || '').trim().toUpperCase() === 'OLD CAR QUOTATION' || (quotation.customer?.quotation_used || '').trim().toUpperCase() === 'OLD CAR';
+                            const gpMultiplier = isPartnerRate
+                              ? roundToTwoDecimals(basicPremiumSum * 1.2525)
+                              : (isOldCarRate
+                                  ? roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500 + 2500)
+                                  : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500)
+                                );
+                            const grossPremium = gpMultiplier + Number(details.calculator?.towing_fee || 0);
+
+                            return (
+                              <>
+                                <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
+                                  <span className="text-slate-500 font-medium">Basic Premium</span>
+                                  <span className="font-semibold text-slate-800 font-mono">{formatCurrency(basicPremiumSum)}</span>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
+                                  <span className="text-slate-500 font-medium">GP * 1.2525</span>
+                                  <span className="font-semibold text-slate-800 font-mono">{formatCurrency(gpMultiplier)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500 font-medium">Towing Fee</span>
+                                  <span className="font-semibold text-slate-800 font-mono">{formatCurrency(details.calculator?.towing_fee)}</span>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
+                                  <span className="text-slate-600 font-bold">Gross Premium</span>
+                                  <span className="font-bold text-slate-800 font-mono">{formatCurrency(grossPremium)}</span>
+                                </div>
+                              </>
+                            );
+                          }
+                        })()}
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Selling Rate (AON)</span>
-                        <span className="font-semibold text-slate-800 font-mono">{Number(details.calculator?.selling_rate_aon || 0).toFixed(2)}%</span>
-                      </div>
-                      {(() => {
-                        const isMotor = quotation.customer?.quotation_used?.trim().toUpperCase() === 'MOTOR';
-                        const basicPremiumSum = Number(details.premiums?.od || 0) + Number(details.premiums?.aon || 0) + Number(details.premiums?.bi || 0) + Number(details.premiums?.pd || 0) + Number(details.premiums?.pa || 0);
-
-                        if (isMotor) {
-                          const dst = roundToTwoDecimals(basicPremiumSum * 0.125);
-                          const eVat = roundToTwoDecimals(basicPremiumSum * 0.12);
-                          const lgt = roundToTwoDecimals(basicPremiumSum * 0.002);
-                          const totalTaxAndPremium = basicPremiumSum + dst + eVat + lgt;
-                          const isPartnerRate = (quotation.customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
-                          const motorFixedAddition = isPartnerRate ? 3000 : 3500;
-                          const grossPremium = totalTaxAndPremium + motorFixedAddition + Number(details.calculator?.towing_fee || 0);
-
-                          return (
-                            <>
-                              <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
-                                <span className="text-slate-500 font-medium">Basic Premium</span>
-                                <span className="font-semibold text-slate-800 font-mono">{formatCurrency(basicPremiumSum)}</span>
-                              </div>
-                              <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
-                                <span className="text-slate-500 font-medium">DST (12.5%)</span>
-                                <span className="font-semibold text-slate-800 font-mono">{formatCurrency(dst)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-slate-500 font-medium">E-VAT (12%)</span>
-                                <span className="font-semibold text-slate-800 font-mono">{formatCurrency(eVat)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-slate-500 font-medium">LGT (0.2%)</span>
-                                <span className="font-semibold text-slate-800 font-mono">{formatCurrency(lgt)}</span>
-                              </div>
-                              <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
-                                <span className="text-slate-500 font-medium">Towing Fee</span>
-                                <span className="font-semibold text-slate-800 font-mono">{formatCurrency(details.calculator?.towing_fee)}</span>
-                              </div>
-                              <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
-                                <span className="text-slate-600 font-bold">Gross Premium</span>
-                                <span className="font-bold text-slate-800 font-mono">{formatCurrency(grossPremium)}</span>
-                              </div>
-                            </>
-                          );
-                        } else {
-                          const isPartnerRate = (quotation.customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
-                          const isOldCarRate = (quotation.customer?.used_rate_type || '').trim().toUpperCase() === 'OLD CAR QUOTATION' || (quotation.customer?.quotation_used || '').trim().toUpperCase() === 'OLD CAR';
-                          const gpMultiplier = isPartnerRate
-                            ? roundToTwoDecimals(basicPremiumSum * 1.2525)
-                            : (isOldCarRate
-                                ? roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500 + 2500)
-                                : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500)
-                              );
-                          const grossPremium = gpMultiplier + Number(details.calculator?.towing_fee || 0);
-
-                          return (
-                            <>
-                              <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
-                                <span className="text-slate-500 font-medium">Basic Premium</span>
-                                <span className="font-semibold text-slate-800 font-mono">{formatCurrency(basicPremiumSum)}</span>
-                              </div>
-                              <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
-                                <span className="text-slate-500 font-medium">GP * 1.2525</span>
-                                <span className="font-semibold text-slate-800 font-mono">{formatCurrency(gpMultiplier)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-slate-500 font-medium">Towing Fee</span>
-                                <span className="font-semibold text-slate-800 font-mono">{formatCurrency(details.calculator?.towing_fee)}</span>
-                              </div>
-                              <div className="flex justify-between pt-1 border-t border-dashed border-slate-200">
-                                <span className="text-slate-600 font-bold">Gross Premium</span>
-                                <span className="font-bold text-slate-800 font-mono">{formatCurrency(grossPremium)}</span>
-                              </div>
-                            </>
-                          );
-                        }
-                      })()}
                     </div>
-                  </div>
+                  )}
 
                   {/* Prepared & Reviewed info */}
-                  <div className="bg-slate-50/50 rounded-2xl border border-slate-200/60 p-5 space-y-3 shadow-sm">
+                  <div className={`${((quotation.customer?.used_rate_type || '').toUpperCase().includes('SIR JESS')) ? 'md:col-span-3' : ''} bg-slate-50/50 rounded-2xl border border-slate-200/60 p-5 space-y-3 shadow-sm`}>
                     <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Prepared & Reviewed Info</h4>
                     <div className="space-y-2 text-xs text-slate-600">
                       {typeof quotation.prepared_by === 'object' && quotation.prepared_by && (

@@ -585,36 +585,49 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
       </div>
 
       {/* ─── COVERAGE & PREMIUM DETAILS ─────────────── */}
-      {details && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-6 border-t border-slate-150">
-          {/* Left: Coverages & Premiums */}
-          <div className="lg:col-span-8 space-y-6">
-            {/* Request Details */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Request Details</h4>
-              <div className="grid grid-cols-3 gap-x-2 gap-y-2.5 text-xs">
-                <span className="text-slate-500 font-semibold">Date Request</span>
-                <span className="col-span-2 text-slate-800 font-bold">{customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : '—'}</span>
+      {details && (() => {
+        const isSirJessApproved = (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
 
-                <span className="text-slate-500 font-semibold">Inception Date</span>
-                <span className="col-span-2 text-slate-800 font-bold">{customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : '—'}</span>
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-6 border-t border-slate-150">
+            {/* Left: Coverages & Premiums */}
+            <div className={`${isSirJessApproved ? 'lg:col-span-12' : 'lg:col-span-8'} space-y-6`}>
+              {/* Request Details */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">Request Details</h4>
+                <div className="grid grid-cols-3 gap-x-2 gap-y-2.5 text-xs">
+                  <span className="text-slate-500 font-semibold">Date Request</span>
+                  <span className="col-span-2 text-slate-800 font-bold">{customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : '—'}</span>
 
-                <span className="text-slate-500 font-semibold">Type</span>
-                <span className="col-span-2 text-slate-800 font-bold">{customer?.request_type || '—'}</span>
+                  <span className="text-slate-500 font-semibold">Inception Date</span>
+                  <span className="col-span-2 text-slate-800 font-bold">{customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : '—'}</span>
 
-                <span className="text-slate-500 font-semibold">Activity</span>
-                <span className="col-span-2 text-slate-800 font-bold">{customer?.activity || '—'}</span>
+                  <span className="text-slate-500 font-semibold">Type</span>
+                  <span className="col-span-2 text-slate-800 font-bold">{customer?.request_type || '—'}</span>
 
-                <span className="text-slate-500 font-semibold">Provider</span>
-                <span className="col-span-2 text-slate-800 font-bold">{customer?.insurance_provider || '—'}</span>
+                  <span className="text-slate-500 font-semibold">Activity</span>
+                  <span className="col-span-2 text-slate-800 font-bold">{customer?.activity || '—'}</span>
 
-                <span className="text-slate-500 font-semibold">Quotation Used</span>
-                <span className="col-span-2 text-slate-800 font-bold">{customer?.quotation_used || '—'}</span>
+                  <span className="text-slate-500 font-semibold">Provider</span>
+                  <span className="col-span-2 text-slate-800 font-bold">{customer?.insurance_provider || '—'}</span>
 
-                <span className="text-slate-500 font-semibold">Usage</span>
-                <span className="col-span-2 text-slate-800 font-bold">{customer?.usage || '—'}</span>
+                  <span className="text-slate-500 font-semibold">Quotation Used</span>
+                  <span className="col-span-2 text-slate-800 font-bold">{customer?.quotation_used || '—'}</span>
+
+                  <span className="text-slate-500 font-semibold">Usage</span>
+                  <span className="col-span-2 text-slate-800 font-bold">{customer?.usage || '—'}</span>
+
+                  <span className="text-slate-500 font-semibold">Used Rate Type</span>
+                  <span className="col-span-2 text-slate-800 font-bold uppercase">{customer?.used_rate_type || '—'}</span>
+
+                  {!isSirJessApproved && customer?.used_rate && (
+                    <>
+                      <span className="text-slate-500 font-semibold">Used Rate</span>
+                      <span className="col-span-2 text-slate-800 font-mono font-bold">{customer.used_rate}</span>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
 
             {/* Coverages & Premiums Table */}
             {(() => {
@@ -678,46 +691,54 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                 return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               };
 
+              const isSirJessApproved = (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+
               return (
-                <div className="space-y-3">
-                  <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5">
-                    Coverages & Premiums
+                <div className={`space-y-3 ${isSirJessApproved ? 'max-w-xl mx-auto' : ''}`}>
+                  <h4 className={`font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-1.5 ${isSirJessApproved ? 'text-center' : ''}`}>
+                    Coverages {isSirJessApproved ? '' : '& Premiums'}
                   </h4>
-                  <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs bg-white">
+                  <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs bg-white shadow-sm">
                     <table className="w-full text-xs text-left text-slate-700 border-collapse">
                       <thead>
                         <tr className="bg-[#4A0E17] text-white font-bold uppercase text-[10px] tracking-wider">
                           <th className="py-2.5 px-4 text-left">Coverage Type</th>
                           <th className="py-2.5 px-4 text-right">Sum Insured (Coverage)</th>
-                          <th className="py-2.5 px-4 text-right">Premium</th>
+                          {!isSirJessApproved && <th className="py-2.5 px-4 text-right">Premium</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-medium">
                         <tr className="hover:bg-slate-50/80 transition">
                           <td className="py-2.5 px-4 font-bold text-slate-800">Own Damage / Theft (OD)</td>
                           <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(odCoverage)}</td>
-                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(odPrem)}</td>
+                          {!isSirJessApproved && <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(odPrem)}</td>}
                         </tr>
                         <tr className="hover:bg-slate-50/80 transition">
                           <td className="py-2.5 px-4 font-bold text-slate-800">Acts of Nature (AON)</td>
                           <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(aonCoverage)}</td>
-                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(aonPrem)}</td>
+                          {!isSirJessApproved && <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(aonPrem)}</td>}
                         </tr>
                         <tr className="hover:bg-slate-50/80 transition">
                           <td className="py-2.5 px-4 font-bold text-slate-800">Excess Bodily Injury (BI)</td>
                           <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(biCoverage)}</td>
-                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(biPrem)}</td>
+                          {!isSirJessApproved && <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(biPrem)}</td>}
                         </tr>
                         <tr className="hover:bg-slate-50/80 transition">
                           <td className="py-2.5 px-4 font-bold text-slate-800">Third Party Property Damage (PD)</td>
                           <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(pdCoverage)}</td>
-                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(pdPrem)}</td>
+                          {!isSirJessApproved && <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(pdPrem)}</td>}
                         </tr>
                         <tr className="hover:bg-slate-50/80 transition">
                           <td className="py-2.5 px-4 font-bold text-slate-800">Auto Passenger Accident (PA)</td>
                           <td className="py-2.5 px-4 text-right font-mono tabular-nums text-slate-700">₱{formatAmt(paCoverage)}</td>
-                          <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(paPrem)}</td>
+                          {!isSirJessApproved && <td className="py-2.5 px-4 text-right font-mono tabular-nums font-bold text-slate-900">₱{formatAmt(paPrem)}</td>}
                         </tr>
+                        {isSirJessApproved && (
+                          <tr className="bg-slate-50 font-bold border-t border-slate-200">
+                            <td className="py-2.5 px-4 font-bold text-slate-900 uppercase text-[11px] tracking-wider">Total Premium</td>
+                            <td className="py-2.5 px-4 text-right font-mono text-[#4A0E17] font-black text-sm">₱{formatAmt(quotation.total_premium)}</td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -841,155 +862,158 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
             </div>
           </div>
 
-          {/* Right: Pricing Summary */}
-          <div className="lg:col-span-4 bg-slate-50/50 rounded-2xl border border-slate-200/60 p-5 space-y-3.5">
-            <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Pricing Details</h4>
+            {/* Right: Pricing Summary — Hidden for APPROVED RATE BY SIR JESS */}
+            {!isSirJessApproved && (
+              <div className="lg:col-span-4 bg-slate-50/50 rounded-2xl border border-slate-200/60 p-5 space-y-3.5">
+                <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-200/60 pb-1.5">Pricing Details</h4>
 
-            {(() => {
-              const isMotor = quotation.customer?.quotation_used?.trim().toUpperCase() === 'MOTOR';
-              const basicPremiumSum = Number(details.premiums?.od || 0) + Number(details.premiums?.aon || 0) + Number(details.premiums?.bi || 0) + Number(details.premiums?.pd || 0) + Number(details.premiums?.pa || 0);
+                {(() => {
+                  const isMotor = quotation.customer?.quotation_used?.trim().toUpperCase() === 'MOTOR';
+                  const basicPremiumSum = Number(details.premiums?.od || 0) + Number(details.premiums?.aon || 0) + Number(details.premiums?.bi || 0) + Number(details.premiums?.pd || 0) + Number(details.premiums?.pa || 0);
 
-              if (isMotor) {
-                const dst = roundToTwoDecimals(basicPremiumSum * 0.125);
-                const eVat = roundToTwoDecimals(basicPremiumSum * 0.12);
-                const lgt = roundToTwoDecimals(basicPremiumSum * 0.002);
-                const totalTaxAndPremium = basicPremiumSum + dst + eVat + lgt;
-                const isPartnerRate = (customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
-                const motorFixedAddition = isPartnerRate ? 3000 : 3500;
-                const grossPremium = totalTaxAndPremium + motorFixedAddition + Number(details.calculator?.towing_fee || 0);
+                  if (isMotor) {
+                    const dst = roundToTwoDecimals(basicPremiumSum * 0.125);
+                    const eVat = roundToTwoDecimals(basicPremiumSum * 0.12);
+                    const lgt = roundToTwoDecimals(basicPremiumSum * 0.002);
+                    const totalTaxAndPremium = basicPremiumSum + dst + eVat + lgt;
+                    const isPartnerRate = (customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+                    const motorFixedAddition = isPartnerRate ? 3000 : 3500;
+                    const grossPremium = totalTaxAndPremium + motorFixedAddition + Number(details.calculator?.towing_fee || 0);
 
-                return (
-                  <div className="space-y-3.5 text-xs text-slate-600">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Selling Rate (OD)</span>
-                      <span className="font-semibold text-slate-800 font-mono text-sm">{Number(details.calculator?.selling_rate_od || 0).toFixed(2)}%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Selling Rate (AON)</span>
-                      <span className="font-semibold text-slate-800 font-mono text-sm">{Number(details.calculator?.selling_rate_aon || 0).toFixed(2)}%</span>
-                    </div>
+                    return (
+                      <div className="space-y-3.5 text-xs text-slate-600">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Selling Rate (OD)</span>
+                          <span className="font-semibold text-slate-800 font-mono text-sm">{Number(details.calculator?.selling_rate_od || 0).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Selling Rate (AON)</span>
+                          <span className="font-semibold text-slate-800 font-mono text-sm">{Number(details.calculator?.selling_rate_aon || 0).toFixed(2)}%</span>
+                        </div>
 
-                    <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-slate-200">
-                      <span className="font-medium">Basic Premium</span>
-                      <span className="font-semibold text-slate-850 font-mono text-sm">₱{basicPremiumSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">DST (12.5%)</span>
-                      <span className="font-semibold text-slate-850 font-mono text-sm">₱{dst.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">E-VAT (12%)</span>
-                      <span className="font-semibold text-slate-850 font-mono text-sm">₱{eVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">LGT (0.2%)</span>
-                      <span className="font-semibold text-slate-850 font-mono text-sm">₱{lgt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Towing Fee</span>
-                      <span className="font-semibold text-slate-850 font-mono text-sm">₱{Number(details.calculator?.towing_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
+                        <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-slate-200">
+                          <span className="font-medium">Basic Premium</span>
+                          <span className="font-semibold text-slate-850 font-mono text-sm">₱{basicPremiumSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">DST (12.5%)</span>
+                          <span className="font-semibold text-slate-850 font-mono text-sm">₱{dst.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">E-VAT (12%)</span>
+                          <span className="font-semibold text-slate-850 font-mono text-sm">₱{eVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">LGT (0.2%)</span>
+                          <span className="font-semibold text-slate-850 font-mono text-sm">₱{lgt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Towing Fee</span>
+                          <span className="font-semibold text-slate-850 font-mono text-sm">₱{Number(details.calculator?.towing_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
 
-                    <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-slate-200">
-                      <span className="font-bold text-slate-700">Gross Premium</span>
-                      <span className="font-bold text-slate-850 font-mono text-sm">₱{grossPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Agent Mark Up</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Sub-Agent Mark Up</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.sub_agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Freebie</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.freebie_amount ?? (details.calculator?.freebie_cashback || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Cashback</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.cashback_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
+                        <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-slate-200">
+                          <span className="font-bold text-slate-700">Gross Premium</span>
+                          <span className="font-bold text-slate-850 font-mono text-sm">₱{grossPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Agent Mark Up</span>
+                          <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Sub-Agent Mark Up</span>
+                          <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.sub_agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Freebie</span>
+                          <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.freebie_amount ?? (details.calculator?.freebie_cashback || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Cashback</span>
+                          <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.cashback_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
 
-                    <div className="flex flex-col gap-1.5 pt-4 border-t-2 border-[#4A0E17]/20">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Premium</span>
-                      <div className="flex items-baseline justify-between">
-                        <span className="font-extrabold text-[#4A0E17] font-mono text-xl">₱{Number(quotation.total_premium).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Gross + Markups</span>
+                        <div className="flex flex-col gap-1.5 pt-4 border-t-2 border-[#4A0E17]/20">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Premium</span>
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-extrabold text-[#4A0E17] font-mono text-xl">₱{Number(quotation.total_premium).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase">Gross + Markups</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              } else {
-                const isPartnerRate = (customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
-                const isOldCarRate = (customer?.used_rate_type || '').trim().toUpperCase() === 'OLD CAR QUOTATION' || (customer?.quotation_used || '').trim().toUpperCase() === 'OLD CAR';
-                const gpMultiplier = isPartnerRate
-                  ? roundToTwoDecimals(basicPremiumSum * 1.2525)
-                  : (isOldCarRate
-                      ? roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500 + 2500)
-                      : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500)
                     );
-                const grossPremium = gpMultiplier + Number(details.calculator?.towing_fee || 0);
+                  } else {
+                    const isPartnerRate = (customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+                    const isOldCarRate = (customer?.used_rate_type || '').trim().toUpperCase() === 'OLD CAR QUOTATION' || (customer?.quotation_used || '').trim().toUpperCase() === 'OLD CAR';
+                    const gpMultiplier = isPartnerRate
+                      ? roundToTwoDecimals(basicPremiumSum * 1.2525)
+                      : (isOldCarRate
+                          ? roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500 + 2500)
+                          : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500)
+                        );
+                    const grossPremium = gpMultiplier + Number(details.calculator?.towing_fee || 0);
 
-                return (
-                  <div className="space-y-3.5 text-xs text-slate-600">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Selling Rate (OD)</span>
-                      <span className="font-semibold text-slate-800 font-mono text-sm">{Number(details.calculator?.selling_rate_od || 0).toFixed(2)}%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Selling Rate (AON)</span>
-                      <span className="font-semibold text-slate-800 font-mono text-sm">{Number(details.calculator?.selling_rate_aon || 0).toFixed(2)}%</span>
-                    </div>
+                    return (
+                      <div className="space-y-3.5 text-xs text-slate-600">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Selling Rate (OD)</span>
+                          <span className="font-semibold text-slate-800 font-mono text-sm">{Number(details.calculator?.selling_rate_od || 0).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Selling Rate (AON)</span>
+                          <span className="font-semibold text-slate-800 font-mono text-sm">{Number(details.calculator?.selling_rate_aon || 0).toFixed(2)}%</span>
+                        </div>
 
-                    <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-slate-200">
-                      <span className="font-medium">Basic Premium</span>
-                      <span className="font-semibold text-slate-850 font-mono text-sm">₱{basicPremiumSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">GP × 1.2525</span>
-                      <span className="font-semibold text-slate-850 font-mono text-sm">₱{gpMultiplier.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Towing Fee</span>
-                      <span className="font-semibold text-slate-850 font-mono text-sm">₱{Number(details.calculator?.towing_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
+                        <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-slate-200">
+                          <span className="font-medium">Basic Premium</span>
+                          <span className="font-semibold text-slate-850 font-mono text-sm">₱{basicPremiumSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">GP × 1.2525</span>
+                          <span className="font-semibold text-slate-850 font-mono text-sm">₱{gpMultiplier.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Towing Fee</span>
+                          <span className="font-semibold text-slate-850 font-mono text-sm">₱{Number(details.calculator?.towing_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
 
-                    <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-slate-200">
-                      <span className="font-bold text-slate-700">Gross Premium</span>
-                      <span className="font-bold text-slate-850 font-mono text-sm">₱{grossPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Agent Mark Up</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Sub-Agent Mark Up</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.sub_agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Freebie</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.freebie_amount ?? (details.calculator?.freebie_cashback || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Cashback</span>
-                      <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.cashback_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
+                        <div className="flex justify-between items-center pt-2.5 border-t border-dashed border-slate-200">
+                          <span className="font-bold text-slate-700">Gross Premium</span>
+                          <span className="font-bold text-slate-850 font-mono text-sm">₱{grossPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Agent Mark Up</span>
+                          <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Sub-Agent Mark Up</span>
+                          <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.sub_agent_markup || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Freebie</span>
+                          <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.freebie_amount ?? (details.calculator?.freebie_cashback || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Cashback</span>
+                          <span className="font-semibold text-slate-805 font-mono text-sm">₱{Number(details.calculator?.cashback_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
 
-                    <div className="flex flex-col gap-1.5 pt-4 border-t-2 border-[#4A0E17]/20">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Premium</span>
-                      <div className="flex items-baseline justify-between">
-                        <span className="font-extrabold text-[#4A0E17] font-mono text-xl">₱{Number(quotation.total_premium).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Gross + Markups</span>
+                        <div className="flex flex-col gap-1.5 pt-4 border-t-2 border-[#4A0E17]/20">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Premium</span>
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-extrabold text-[#4A0E17] font-mono text-xl">₱{Number(quotation.total_premium).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase">Gross + Markups</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              }
-            })()}
+                    );
+                  }
+                })()}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ─── Notes & Remarks ─────────────────────────── */}
       {(quotation.notes || quotation.reviewer_remarks) && (

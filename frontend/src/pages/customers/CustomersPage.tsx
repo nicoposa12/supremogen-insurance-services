@@ -1044,37 +1044,49 @@ export default function CustomersPage() {
                                     <tr className="bg-[#4A0E17] text-white font-bold uppercase text-[10px] tracking-wider">
                                       <th className="py-2 px-3 text-left">Peril</th>
                                       <th className="py-2 px-3 text-right">Coverage</th>
-                                      <th className="py-2 px-3 text-right">Premium</th>
+                                      {!(selectedCustomer?.used_rate_type || '').toUpperCase().includes('SIR JESS') && (
+                                        <th className="py-2 px-3 text-right">Premium</th>
+                                      )}
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100 font-medium">
                                     <tr className="hover:bg-slate-50/80 transition">
                                       <td className="py-1.5 px-3 font-semibold text-slate-800">Own Damage</td>
                                       <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(odCov)}</td>
-                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(odPrem)}</td>
+                                      {!(selectedCustomer?.used_rate_type || '').toUpperCase().includes('SIR JESS') && (
+                                        <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(odPrem)}</td>
+                                      )}
                                     </tr>
                                     <tr className="hover:bg-slate-50/80 transition">
                                       <td className="py-1.5 px-3 font-semibold text-slate-800">Acts of Nature</td>
                                       <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(aonCov)}</td>
-                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(aonPrem)}</td>
+                                      {!(selectedCustomer?.used_rate_type || '').toUpperCase().includes('SIR JESS') && (
+                                        <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(aonPrem)}</td>
+                                      )}
                                     </tr>
                                     <tr className="hover:bg-slate-50/80 transition">
                                       <td className="py-1.5 px-3 font-semibold text-slate-800">Bodily Injury</td>
                                       <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(biCov)}</td>
-                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(biPrem)}</td>
+                                      {!(selectedCustomer?.used_rate_type || '').toUpperCase().includes('SIR JESS') && (
+                                        <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(biPrem)}</td>
+                                      )}
                                     </tr>
                                     <tr className="hover:bg-slate-50/80 transition">
                                       <td className="py-1.5 px-3 font-semibold text-slate-800">Property Damage</td>
                                       <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(pdCov)}</td>
-                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(pdPrem)}</td>
+                                      {!(selectedCustomer?.used_rate_type || '').toUpperCase().includes('SIR JESS') && (
+                                        <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(pdPrem)}</td>
+                                      )}
                                     </tr>
                                     <tr className="hover:bg-slate-50/80 transition">
                                       <td className="py-1.5 px-3 font-semibold text-slate-800">Personal Accident</td>
                                       <td className="py-1.5 px-3 text-right font-mono text-slate-600">{formatCurrency(paCov)}</td>
-                                      <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(paPrem)}</td>
+                                      {!(selectedCustomer?.used_rate_type || '').toUpperCase().includes('SIR JESS') && (
+                                        <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(paPrem)}</td>
+                                      )}
                                     </tr>
                                     <tr className="bg-slate-50 font-bold border-t border-slate-200">
-                                      <td className="py-2 px-3 text-slate-900 uppercase text-[10px] tracking-wider" colSpan={2}>Total Premium</td>
+                                      <td className="py-2 px-3 text-slate-900 uppercase text-[10px] tracking-wider" colSpan={(selectedCustomer?.used_rate_type || '').toUpperCase().includes('SIR JESS') ? 1 : 2}>Total Premium</td>
                                       <td className="py-2 px-3 text-right font-mono text-[#4A0E17] font-black text-sm">{formatCurrency(cust.policy_premium)}</td>
                                     </tr>
                                   </tbody>
@@ -1109,7 +1121,9 @@ export default function CustomersPage() {
                             <span className="col-span-2 text-slate-800 font-medium">{selectedCustomer.used_rate_type || '—'}</span>
 
                             <span className="text-slate-500 font-semibold text-xs">Used Rate</span>
-                            <span className="col-span-2 text-slate-800 font-mono font-medium">{selectedCustomer.used_rate || '—'}</span>
+                            <span className="col-span-2 text-slate-800 font-mono font-medium">
+                              {(selectedCustomer.used_rate_type || '').toUpperCase().includes('SIR JESS') ? '—' : (selectedCustomer.used_rate || '—')}
+                            </span>
 
                             <span className="text-slate-500 font-semibold text-xs">Remarks / Notes</span>
                             <span className="col-span-2 text-slate-800 font-medium block whitespace-pre-wrap">{selectedCustomer.notes || '—'}</span>

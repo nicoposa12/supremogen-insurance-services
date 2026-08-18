@@ -224,6 +224,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [freebieCashback, setFreebieCashback] = useState<string>('');
 
   const [policyPremium, setPolicyPremium] = useState<number>(0);
+  const [manualTotalPremium, setManualTotalPremium] = useState<string>('');
   const [isSavingLocal, setIsSavingLocal] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
@@ -247,6 +248,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
 
   const isTruck = cleanQuotationUsed === 'TRUCKS';
   const isCommercialVehicle = isTruck || cleanQuotationUsed === 'FOR HIRE' || cleanUsage === 'FOR HIRE' || cleanQuotationUsed === 'L300/H100' || cleanQuotationUsed === 'LALAMOVE' || cleanQuotationUsed === 'YELLOW PLATE' || cleanUsage === 'YELLOW PLATE' || cleanQuotationUsed === 'TNVS' || cleanUsage === 'TNVS USE';
+
+  const isApprovedRateBySirJess = usedRateType === 'APPROVED RATE BY SIR JESS';
 
   // Fetch products
   const { data: productsRes } = useQuery({
@@ -311,7 +314,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         setCashbackAmount(Number(calc.cashback_amount) ? Number(calc.cashback_amount).toLocaleString('en-US') : '');
         setFreebieCashback(Number(calc.freebie_cashback) ? Number(calc.freebie_cashback).toLocaleString('en-US') : '');
 
-        setPolicyPremium(Number(firstItem.premium_amount) || 0);
+        const premAmt = Number(firstItem.premium_amount) || 0;
+        setPolicyPremium(premAmt);
+        if (premAmt > 0) {
+          setManualTotalPremium(premAmt.toLocaleString('en-US', { minimumFractionDigits: 2 }));
+        }
       }
     }
   }, [existing]);
@@ -336,13 +343,18 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
 
   // Automatically update usedRate when selling rates change (For REGULAR QUOTA RATE, OLD CAR QUOTATION, or Partner Rates)
   useEffect(() => {
-    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && (partnerName === 'JESSIE MILCA' || partnerName === 'SIR JESSIE'));
+    if (usedRateType === 'APPROVED RATE BY SIR JESS') {
+      setUsedRate('');
+      return;
+    }
+
+    const isSirJessiePartner = usedRateType === "PARTNER'S RATE" && (partnerName === 'JESSIE MILCA' || partnerName === 'SIR JESSIE');
     const isSirJay = usedRateType === "PARTNER'S RATE" && (partnerName === 'JAY ROLDAN' || partnerName === 'SIR JAY PARTNER');
     const isAutoreliable = usedRateType === "PARTNER'S RATE" && partnerName === 'AUTORELIABLE INSURANCE';
     const isF1 = usedRateType === "PARTNER'S RATE" && partnerName === 'F1 INSURANCE SERVICES';
     const isReelDrive = usedRateType === "PARTNER'S RATE" && partnerName === 'REEL DRIVE';
     const isActiveBest = usedRateType === "PARTNER'S RATE" && partnerName === 'ACTIVE BEST';
-    const isPartnerAutoRate = isSirJessie || isSirJay || isAutoreliable || isF1 || isReelDrive || isActiveBest;
+    const isPartnerAutoRate = isSirJessiePartner || isSirJay || isAutoreliable || isF1 || isReelDrive || isActiveBest;
 
     if (!usedRateType || usedRateType === 'REGULAR QUOTA RATE' || usedRateType === 'OLD CAR QUOTATION' || isPartnerAutoRate) {
       const formatRatePercent = (rate: number): string => {
@@ -360,13 +372,17 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
 
   // Parse custom rate string when using other Used Rate Types
   useEffect(() => {
-    const isSirJessie = usedRateType === 'APPROVED RATE BY SIR JESS' || (usedRateType === "PARTNER'S RATE" && (partnerName === 'JESSIE MILCA' || partnerName === 'SIR JESSIE'));
+    if (usedRateType === 'APPROVED RATE BY SIR JESS') {
+      return;
+    }
+
+    const isSirJessiePartner = usedRateType === "PARTNER'S RATE" && (partnerName === 'JESSIE MILCA' || partnerName === 'SIR JESSIE');
     const isSirJay = usedRateType === "PARTNER'S RATE" && (partnerName === 'JAY ROLDAN' || partnerName === 'SIR JAY PARTNER');
     const isAutoreliable = usedRateType === "PARTNER'S RATE" && partnerName === 'AUTORELIABLE INSURANCE';
     const isF1 = usedRateType === "PARTNER'S RATE" && partnerName === 'F1 INSURANCE SERVICES';
     const isReelDrive = usedRateType === "PARTNER'S RATE" && partnerName === 'REEL DRIVE';
     const isActiveBest = usedRateType === "PARTNER'S RATE" && partnerName === 'ACTIVE BEST';
-    const isPartnerAutoRate = isSirJessie || isSirJay || isAutoreliable || isF1 || isReelDrive || isActiveBest;
+    const isPartnerAutoRate = isSirJessiePartner || isSirJay || isAutoreliable || isF1 || isReelDrive || isActiveBest;
 
     if (usedRateType && usedRateType !== 'REGULAR QUOTA RATE' && usedRateType !== 'OLD CAR QUOTATION' && !isPartnerAutoRate) {
       if (!usedRate) return;
@@ -717,10 +733,12 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
 
   const totalPremiumCalculated = roundToTwoDecimals(grossPremium + numAgentMarkup + numSubAgentMarkup + effectiveFreebieCashback);
 
-  // Auto-apply the calculated total premium to policyPremium
+  // Auto-apply the calculated total premium to policyPremium (when not using manual Total Premium)
   useEffect(() => {
-    setPolicyPremium(totalPremiumCalculated);
-  }, [totalPremiumCalculated]);
+    if (!isApprovedRateBySirJess) {
+      setPolicyPremium(totalPremiumCalculated);
+    }
+  }, [totalPremiumCalculated, isApprovedRateBySirJess]);
 
 
 
@@ -964,6 +982,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       { value: usedRateType, name: 'Used Rate Type' },
       ...(usedRateType === "PARTNER'S RATE" ? [{ value: partnerName, name: 'Select Partner' }] : []),
       { value: usedRate, name: 'Used Rate' },
+      ...(isApprovedRateBySirJess ? [{ value: manualTotalPremium, name: 'Total Premium' }] : []),
       { value: receiverName, name: "Receiver's Name" },
       { value: deliveryAddress, name: 'Delivery Address' },
     ];
@@ -1338,14 +1357,16 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
               </div>
             ) : (
               <div>
-                <label className={labelClass}>Used Rate (Example: 1.30% - .10%) *</label>
+                <label className={labelClass}>
+                  Used Rate (Example: 1.30% - .10%) {!isApprovedRateBySirJess && '*'}
+                </label>
                 <input
                   type="text"
-                  value={usedRate}
+                  value={isApprovedRateBySirJess ? '' : usedRate}
                   readOnly
                   disabled
-                  className={`${getInputClass(usedRate)} bg-slate-100/80 cursor-not-allowed`}
-                  placeholder="e.g. 1.30% - .10%"
+                  className={`${getInputClass(isApprovedRateBySirJess ? 'valid' : usedRate, !isApprovedRateBySirJess)} bg-slate-100/80 cursor-not-allowed`}
+                  placeholder={isApprovedRateBySirJess ? 'N/A' : 'e.g. 1.30% - .10%'}
                 />
               </div>
             )}
@@ -1630,7 +1651,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         {/* Card 8: Coverages & Calculator Form */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Main Form Content */}
-          <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-6">
+          <div className={`${isApprovedRateBySirJess ? 'lg:col-span-12' : 'lg:col-span-8'} bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-6`}>
             {/* Policy Information */}
             <div>
               <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Policy Information</h3>
@@ -1660,16 +1681,21 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
               </div>
             </div>
 
-            {/* Coverages and Premiums Grid */}
+            {/* Coverages Grid */}
             <div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-3 border-b border-slate-100 pb-2">
-                <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider">Coverage</h3>
-                <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider">Premium</h3>
+              <div className={`mb-3 border-b border-slate-100 pb-2 ${isApprovedRateBySirJess ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6'}`}>
+                <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider">
+                  {isApprovedRateBySirJess ? 'Coverage Information' : 'Coverage'}
+                </h3>
+                {!isApprovedRateBySirJess && (
+                  <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider">Premium</h3>
+                )}
               </div>
 
-              <div className="space-y-4">
-                {/* Own Damage */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+              {isApprovedRateBySirJess ? (
+                /* Coverages Only Layout for APPROVED RATE BY SIR JESS */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  {/* Own Damage */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">OWN DAMAGE COVERAGE</label>
                     <input type="text" value={covOwnDamage} onChange={(e) => {
@@ -1678,14 +1704,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                       setCovAON(val);
                     }} className={inputClass} placeholder="0.00" />
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">OD Premium</label>
-                    <input type="text" value={premOD} onChange={(e) => setPremOD(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />
-                  </div>
-                </div>
 
-                {/* Acts of Nature (AON) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+                  {/* Acts of Nature (AON) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">ACTS OF NATURE COVERAGE</label>
                     <input type="text" value={covAON} onChange={(e) => {
@@ -1694,14 +1714,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                       setCovOwnDamage(val);
                     }} className={inputClass} placeholder="0.00" />
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">AON Premium</label>
-                    <input type="text" value={premAON} onChange={(e) => setPremAON(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />
-                  </div>
-                </div>
 
-                {/* Bodily Injury (BI) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+                  {/* Bodily Injury (BI) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">BODILY INJURY</label>
                     {!customBI ? (
@@ -1735,7 +1749,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                             <option value="300000">300,000</option>
                             <option value="400000">400,000</option>
                             <option value="500000">500,000</option>
-                            <option value="750000">75,0000</option>
+                            <option value="750000">750,000</option>
                             <option value="1000000">1,000,000</option>
                           </>
                         )}
@@ -1766,28 +1780,15 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                             setCustomPD(false);
                             setCovPD('');
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition"
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition cursor-pointer"
                         >
                           Reset
                         </button>
                       </div>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">BI Premium</label>
-                    <input
-                      type="text"
-                      value={premBI}
-                      onChange={(e) => setPremBI(formatRawInput(e.target.value))}
-                      className={inputClass}
-                      placeholder="0.00"
-                      disabled={!customBI && (isPrivateSedanSuv || isMotorcyclePrivate || isCommercialVehicle)}
-                    />
-                  </div>
-                </div>
 
-                {/* Property Damage (PD) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+                  {/* Property Damage (PD) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">PROPERTY DAMAGE</label>
                     {!customPD ? (
@@ -1852,115 +1853,342 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                             setCustomBI(false);
                             setCovBI('');
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition"
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition cursor-pointer"
                         >
                           Reset
                         </button>
                       </div>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">PD Premium</label>
-                    <input
-                      type="text"
-                      value={premPD}
-                      onChange={(e) => setPremPD(formatRawInput(e.target.value))}
-                      className={inputClass}
-                      placeholder="0.00"
-                      disabled={!customPD && (isPrivateSedanSuv || isMotorcyclePrivate || isCommercialVehicle)}
-                    />
-                  </div>
-                </div>
 
-                {/* Auto Passenger (PA) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+                  {/* Auto Passenger (PA) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">PERSONAL ACCIDENT</label>
                     <input type="text" value={covPA} onChange={(e) => setCovPA(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />
                   </div>
+
+                  {/* Total Premium (Manually Inputted) */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">PA Premium</label>
-                    <input
-                      type="text"
-                      value={premPA}
-                      onChange={(e) => setPremPA(formatRawInput(e.target.value))}
-                      className={inputClass}
-                      placeholder="0.00"
-                      disabled
-                    />
+                    <label className="block text-xs font-bold text-[#4A0E17] mb-1 uppercase tracking-wide">
+                      TOTAL PREMIUM <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 font-mono">
+                        ₱
+                      </span>
+                      <input
+                        type="text"
+                        value={manualTotalPremium}
+                        onChange={(e) => {
+                          const val = formatRawInput(e.target.value);
+                          setManualTotalPremium(val);
+                          setPolicyPremium(parseStringToNumber(val));
+                        }}
+                        className={`${getInputClass(manualTotalPremium)} pl-8 font-bold font-mono text-slate-800 focus:text-[#4A0E17]`}
+                        placeholder="0.00"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar / Calculator Section */}
-          <div className="lg:col-span-4 space-y-4">
-
-            {/* Calculator Triggers and Inline Calculators */}
-            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-3">
-              <h4 className="font-bold text-xs text-slate-400 uppercase tracking-wider mb-2">Calculators</h4>
-
-              <button
-                type="button"
-                onClick={() => setShowBasicCalc(!showBasicCalc)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-[#4A0E17]/5 hover:bg-[#4A0E17]/10 text-[#4A0E17] font-bold text-sm rounded-2xl transition-all cursor-pointer border border-[#4A0E17]/10"
-              >
-                <span className="flex items-center gap-2">
-                  <Calculator className="h-4 w-4" /> Basic Premium Calc
-                </span>
-                <span className="text-xs bg-[#4A0E17] text-white px-2.5 py-0.5 rounded-lg font-mono">
-                  ₱{basicPremiumSum.toLocaleString()}
-                </span>
-              </button>
-
-              {/* Inline Basic Premium Calculator */}
-              {showBasicCalc && (
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/50 space-y-3 mt-2 animate-scale-in">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calculator className="h-4 w-4 text-[#4A0E17]" />
-                    <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider">Basic Premium Calc</h4>
+              ) : (
+                /* Standard Coverage & Premium 2-Column Layout */
+                <div className="space-y-4">
+                  {/* Own Damage */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">OWN DAMAGE COVERAGE</label>
+                      <input type="text" value={covOwnDamage} onChange={(e) => {
+                        const val = formatRawInput(e.target.value);
+                        setCovOwnDamage(val);
+                        setCovAON(val);
+                      }} className={inputClass} placeholder="0.00" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">OD Premium</label>
+                      <input type="text" value={premOD} onChange={(e) => setPremOD(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />
+                    </div>
                   </div>
-                  <div className="space-y-3 text-xs">
+
+                  {/* Acts of Nature (AON) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Agent Mark Up (₱)</label>
-                      <input type="text" value={agentMarkup} onChange={(e) => setAgentMarkup(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">ACTS OF NATURE COVERAGE</label>
+                      <input type="text" value={covAON} onChange={(e) => {
+                        const val = formatRawInput(e.target.value);
+                        setCovAON(val);
+                        setCovOwnDamage(val);
+                      }} className={inputClass} placeholder="0.00" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Agent Mark Up (₱)</label>
-                      <input type="text" value={subAgentMarkup} onChange={(e) => setSubAgentMarkup(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">AON Premium</label>
+                      <input type="text" value={premAON} onChange={(e) => setPremAON(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />
+                    </div>
+                  </div>
+
+                  {/* Bodily Injury (BI) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">BODILY INJURY</label>
+                      {!customBI ? (
+                        <select
+                          value={parseStringToNumber(covBI).toString()}
+                          onChange={(e) => {
+                            if (e.target.value === 'custom') {
+                              setCustomBI(true);
+                              setCovBI('');
+                              setCustomPD(true);
+                              setCovPD('');
+                            } else {
+                              const valNum = Number(e.target.value);
+                              const formatted = valNum ? valNum.toLocaleString('en-US') : '';
+                              setCovBI(formatted);
+                              setCovPD(formatted);
+                              setCustomPD(false);
+                            }
+                          }}
+                          className={inputClass}
+                        >
+                          <option value="0">Select Coverage</option>
+                          <option value="50000">50,000</option>
+                          <option value="75000">75,000</option>
+                          <option value="100000">100,000</option>
+                          <option value="150000">150,000</option>
+                          <option value="200000">200,000</option>
+                          <option value="250000">250,000</option>
+                          {!isMotorcyclePrivate && (
+                            <>
+                              <option value="300000">300,000</option>
+                              <option value="400000">400,000</option>
+                              <option value="500000">500,000</option>
+                              <option value="750000">75,0000</option>
+                              <option value="1000000">1,000,000</option>
+                            </>
+                          )}
+                          {covBI && !['0', '50000', '75000', '100000', '150000', '200000', '250000', '300000', '400000', '500000', '750000', '1000000'].includes(parseStringToNumber(covBI).toString()) && (
+                            <option value={parseStringToNumber(covBI).toString()}>{covBI}</option>
+                          )}
+                          <option value="custom">Custom (Type manually...)</option>
+                        </select>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={covBI}
+                            onChange={(e) => {
+                              const val = formatRawInput(e.target.value);
+                              setCovBI(val);
+                              setCovPD(val);
+                            }}
+                            className={inputClass}
+                            placeholder="0.00"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomBI(false);
+                              setCovBI('');
+                              setCustomPD(false);
+                              setCovPD('');
+                            }}
+                            className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Freebie (₱)</label>
-                      <input type="text" value={freebieAmount} onChange={(e) => setFreebieAmount(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">BI Premium</label>
+                      <input
+                        type="text"
+                        value={premBI}
+                        onChange={(e) => setPremBI(formatRawInput(e.target.value))}
+                        className={inputClass}
+                        placeholder="0.00"
+                        disabled={!customBI && (isPrivateSedanSuv || isMotorcyclePrivate || isCommercialVehicle)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Property Damage (PD) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">PROPERTY DAMAGE</label>
+                      {!customPD ? (
+                        <select
+                          value={parseStringToNumber(covPD).toString()}
+                          onChange={(e) => {
+                            if (e.target.value === 'custom') {
+                              setCustomPD(true);
+                              setCovPD('');
+                              setCustomBI(true);
+                              setCovBI('');
+                            } else {
+                              const valNum = Number(e.target.value);
+                              const formatted = valNum ? valNum.toLocaleString('en-US') : '';
+                              setCovPD(formatted);
+                              setCovBI(formatted);
+                              setCustomBI(false);
+                            }
+                          }}
+                          className={inputClass}
+                        >
+                          <option value="0">Select Coverage</option>
+                          <option value="50000">50,000</option>
+                          <option value="75000">75,000</option>
+                          <option value="100000">100,000</option>
+                          <option value="150000">150,000</option>
+                          <option value="200000">200,000</option>
+                          <option value="250000">250,000</option>
+                          {!isMotorcyclePrivate && (
+                            <>
+                              <option value="300000">300,000</option>
+                              <option value="400000">400,000</option>
+                              <option value="500000">500,000</option>
+                              <option value="750000">750,000</option>
+                              <option value="1000000">1,000,000</option>
+                            </>
+                          )}
+                          {covPD && !['0', '50000', '75000', '100000', '150000', '200000', '250000', '300000', '400000', '500000', '750000', '1000000'].includes(parseStringToNumber(covPD).toString()) && (
+                            <option value={parseStringToNumber(covPD).toString()}>{covPD}</option>
+                          )}
+                          <option value="custom">Custom (Type manually...)</option>
+                        </select>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={covPD}
+                            onChange={(e) => {
+                              const val = formatRawInput(e.target.value);
+                              setCovPD(val);
+                              setCovBI(val);
+                            }}
+                            className={inputClass}
+                            placeholder="0.00"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomPD(false);
+                              setCovPD('');
+                              setCustomBI(false);
+                              setCovBI('');
+                            }}
+                            className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cashback (₱)</label>
-                      <input type="text" value={cashbackAmount} onChange={(e) => setCashbackAmount(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">PD Premium</label>
+                      <input
+                        type="text"
+                        value={premPD}
+                        onChange={(e) => setPremPD(formatRawInput(e.target.value))}
+                        className={inputClass}
+                        placeholder="0.00"
+                        disabled={!customPD && (isPrivateSedanSuv || isMotorcyclePrivate || isCommercialVehicle)}
+                      />
                     </div>
-                    <div className="flex justify-between items-center pt-2 border-t-2 border-[#4A0E17]/20">
-                      <span className="font-bold text-[#4A0E17] uppercase">Total Premium</span>
-                      <span className="font-extrabold text-[#4A0E17] font-mono text-sm">₱{totalPremiumCalculated.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+
+                  {/* Auto Passenger (PA) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-center">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">PERSONAL ACCIDENT</label>
+                      <input type="text" value={covPA} onChange={(e) => setCovPA(formatRawInput(e.target.value))} className={inputClass} placeholder="0.00" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">PA Premium</label>
+                      <input
+                        type="text"
+                        value={premPA}
+                        onChange={(e) => setPremPA(formatRawInput(e.target.value))}
+                        className={inputClass}
+                        placeholder="0.00"
+                        disabled
+                      />
                     </div>
                   </div>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Pricing Details Panel */}
-            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4">
-              <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Pricing Details</h4>
+          {/* Sidebar / Calculator Section — Hidden for APPROVED RATE BY SIR JESS */}
+          {!isApprovedRateBySirJess && (
+            <div className="lg:col-span-4 space-y-4">
+              {/* Calculator Triggers and Inline Calculators */}
+              <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-3">
+                <h4 className="font-bold text-xs text-slate-400 uppercase tracking-wider mb-2">Calculators</h4>
 
-              <div className="space-y-3.5 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-700">Total Premium</span>
-                  <span className="font-extrabold text-[#4A0E17] font-mono text-xl">₱{policyPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <button
+                  type="button"
+                  onClick={() => setShowBasicCalc(!showBasicCalc)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-[#4A0E17]/5 hover:bg-[#4A0E17]/10 text-[#4A0E17] font-bold text-sm rounded-2xl transition-all cursor-pointer border border-[#4A0E17]/10"
+                >
+                  <span className="flex items-center gap-2">
+                    <Calculator className="h-4 w-4" /> Basic Premium Calc
+                  </span>
+                  <span className="text-xs bg-[#4A0E17] text-white px-2.5 py-0.5 rounded-lg font-mono">
+                    ₱{basicPremiumSum.toLocaleString()}
+                  </span>
+                </button>
+
+                {/* Inline Basic Premium Calculator */}
+                {showBasicCalc && (
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/50 space-y-3 mt-2 animate-scale-in">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calculator className="h-4 w-4 text-[#4A0E17]" />
+                      <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider">Basic Premium Calc</h4>
+                    </div>
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Agent Mark Up (₱)</label>
+                        <input type="text" value={agentMarkup} onChange={(e) => setAgentMarkup(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sub-Agent Mark Up (₱)</label>
+                        <input type="text" value={subAgentMarkup} onChange={(e) => setSubAgentMarkup(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Freebie (₱)</label>
+                        <input type="text" value={freebieAmount} onChange={(e) => setFreebieAmount(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cashback (₱)</label>
+                        <input type="text" value={cashbackAmount} onChange={(e) => setCashbackAmount(formatRawInput(e.target.value))} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20" placeholder="0.00" />
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t-2 border-[#4A0E17]/20">
+                        <span className="font-bold text-[#4A0E17] uppercase">Total Premium</span>
+                        <span className="font-extrabold text-[#4A0E17] font-mono text-sm">₱{totalPremiumCalculated.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pricing Details Panel */}
+              <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4">
+                <h4 className="font-bold text-xs text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Pricing Details</h4>
+
+                <div className="space-y-3.5 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-700">Total Premium</span>
+                    <span className="font-extrabold text-[#4A0E17] font-mono text-xl">₱{policyPremium.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
+
       {/* Remarks / Notes Panel */}
       <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-3 mt-6">
         <h3 className="text-sm font-bold text-[#4A0E17] uppercase tracking-wider border-b border-slate-100 pb-2">Remarks / Notes</h3>
