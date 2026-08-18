@@ -457,12 +457,12 @@ export default function SettingsPage() {
           <div className="hidden md:block px-3 py-2 border-b border-slate-50 mb-2">
             <h3 className="font-extrabold text-[#4A0E17] text-xs uppercase tracking-wider">Account Settings</h3>
           </div>
-          <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 no-scrollbar touch-pan-x">
+          <div className="flex md:flex-col gap-1.5 sm:gap-2 overflow-x-auto md:overflow-x-visible p-1 md:p-0 bg-slate-50/80 md:bg-transparent rounded-xl md:rounded-none no-scrollbar touch-pan-x">
             <button
               type="button"
               onClick={() => setActiveTab('profile')}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
-                activeTab === 'profile' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                activeTab === 'profile' ? 'bg-[#4A0E17] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100/70'
               }`}
             >
               <UserIcon className="h-4 w-4 shrink-0" /> <span>Profile Settings</span>
@@ -470,8 +470,8 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setActiveTab('security')}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
-                activeTab === 'security' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                activeTab === 'security' ? 'bg-[#4A0E17] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100/70'
               }`}
             >
               <Shield className="h-4 w-4 shrink-0" /> <span>Security & Password</span>
@@ -480,8 +480,8 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('system')}
-                className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
-                  activeTab === 'system' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+                className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                  activeTab === 'system' ? 'bg-[#4A0E17] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100/70'
                 }`}
               >
                 <Settings className="h-4 w-4 shrink-0" /> <span>System Configuration</span>
@@ -491,8 +491,8 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('accounts')}
-                className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
-                  activeTab === 'accounts' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+                className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                  activeTab === 'accounts' ? 'bg-[#4A0E17] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100/70'
                 }`}
               >
                 <Users className="h-4 w-4 shrink-0" /> <span>Manage Accounts</span>
@@ -502,8 +502,8 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('preferences')}
-                className={`shrink-0 whitespace-nowrap flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
-                  activeTab === 'preferences' ? 'bg-[#4A0E17] text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+                className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl md:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer md:w-full ${
+                  activeTab === 'preferences' ? 'bg-[#4A0E17] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100/70'
                 }`}
               >
                 <Bell className="h-4 w-4 shrink-0" /> <span>Preferences</span>
@@ -790,10 +790,10 @@ export default function SettingsPage() {
 
           {/* Manage Accounts Tab */}
           {activeTab === 'accounts' && isAdmin && (
-            <div className="space-y-6 animate-scale-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-5 animate-scale-in">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <h3 className="text-base font-bold text-slate-800">Manage Accounts</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-800">Manage Accounts</h3>
                   <p className="text-xs text-slate-400">Create, manage, and archive access for employees</p>
                 </div>
                 {accountSubTab === 'active' && (
@@ -801,20 +801,20 @@ export default function SettingsPage() {
                     onClick={() => { resetUserForm(); setIsUserModalOpen(true); }}
                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white text-xs font-semibold rounded-xl transition cursor-pointer shadow-xs shrink-0"
                   >
-                    <Plus className="h-3.5 w-3.5" /> <span>Create Account</span>
+                    <Plus className="h-4 w-4" /> <span>Create Account</span>
                   </button>
                 )}
               </div>
 
               {/* Sub-tabs: Active vs Archived Accounts */}
-              <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2">
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/90 rounded-2xl sm:flex sm:bg-transparent sm:p-0 sm:border-b sm:border-slate-100 sm:pb-2">
                 <button
                   type="button"
                   onClick={() => setAccountSubTab('active')}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
+                  className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
                     accountSubTab === 'active'
                       ? 'bg-[#4A0E17] text-white shadow-xs'
-                      : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                      : 'text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
                   }`}
                 >
                   <Users className="h-3.5 w-3.5" />
@@ -829,10 +829,10 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setAccountSubTab('archived')}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
+                  className={`inline-flex items-center justify-center sm:justify-start gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
                     accountSubTab === 'archived'
                       ? 'bg-[#4A0E17] text-white shadow-xs'
-                      : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                      : 'text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
                   }`}
                 >
                   <Archive className="h-3.5 w-3.5" />
@@ -846,11 +846,11 @@ export default function SettingsPage() {
               </div>
 
               {accountSubTab === 'archived' && (
-                <div className="p-3 bg-amber-50/70 border border-amber-200/60 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
+                <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
                   <Archive className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-amber-950">Archived Accounts (Resigned / Inactive Staff)</p>
-                    <p className="text-amber-800/90 text-[11px] mt-0.5">
+                    <p className="font-bold text-amber-950">Archived Accounts (Resigned / Inactive Staff)</p>
+                    <p className="text-amber-800/90 text-[11px] mt-0.5 leading-relaxed">
                       Archived users cannot log into the system or be assigned new quotes/policies. All historical quotes, policies, and commission records remain securely intact.
                     </p>
                   </div>
@@ -858,7 +858,7 @@ export default function SettingsPage() {
               )}
  
               {/* Compact Search and Filters */}
-              <div className="flex gap-2 items-center bg-slate-50/70 p-2 rounded-2xl border border-slate-200/60">
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center bg-slate-50/80 p-2 sm:p-2.5 rounded-2xl border border-slate-200/60">
                 <div className="relative flex-1 min-w-0">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <Search className="h-3.5 w-3.5 text-slate-400" />
@@ -880,128 +880,137 @@ export default function SettingsPage() {
                   )}
                 </div>
                 
-                <div className="relative w-32 sm:w-44 shrink-0">
+                <div className="relative w-full sm:w-44 shrink-0">
                   <select
                     value={userRoleFilter}
                     onChange={(e) => setUserRoleFilter(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-200/80 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all cursor-pointer truncate"
                   >
                     <option value="All">All Roles</option>
-                    {Object.entries(roleLabels).map(([val, label]) => (
+                    {Object.entries(roleLabels).map(([val]) => (
                       <option key={val} value={val}>{val}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              {/* Mobile View: Minimalist Clean Account List */}
-              <div className="md:hidden">
+              {/* Mobile View: Executive Card Layout */}
+              <div className="md:hidden space-y-3">
                 {loadingUsers ? (
-                  <div className="flex justify-center py-12 bg-white rounded-2xl border border-slate-100"><Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" /></div>
+                  <div className="flex justify-center py-12 bg-white rounded-2xl border border-slate-100">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#4A0E17]" />
+                  </div>
                 ) : filteredUserAccounts.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-100">
                     No {accountSubTab === 'active' ? 'active' : 'archived'} agent accounts found matching your search or filters.
                   </div>
                 ) : (
-                  <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs divide-y divide-slate-100 overflow-hidden">
+                  <div className="space-y-3">
                     {filteredUserAccounts.map((u) => (
-                      <div key={u.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/60 transition">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div key={u.id} className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs space-y-3">
+                        {/* Top: Avatar, Name, Role */}
+                        <div className="flex items-start gap-3">
                           {u.profile_photo_url ? (
                             <img
                               src={getFileUrl(u.profile_photo_url)}
                               alt={u.name}
-                              className={`h-10 w-10 rounded-full object-cover border border-slate-100 shrink-0 ${u.is_archived ? 'grayscale opacity-75' : ''}`}
+                              className={`h-11 w-11 rounded-full object-cover border border-slate-100 shrink-0 ${u.is_archived ? 'grayscale opacity-75' : ''}`}
                             />
                           ) : (
-                            <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${
+                            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${
                               u.is_archived 
                                 ? 'bg-slate-100 text-slate-500 border-slate-200' 
-                                : 'bg-slate-100 text-slate-700 border-slate-200/60'
+                                : 'bg-gradient-to-tr from-[#4A0E17] to-[#7D1E2B] text-white shadow-xs'
                             }`}>
                               {u.name?.charAt(0)?.toUpperCase() ?? 'U'}
                             </div>
                           )}
+                          
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className={`font-semibold text-sm truncate ${u.is_archived ? 'text-slate-600 line-through' : 'text-slate-800'}`}>{u.name}</span>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-                                u.role_name === 'Administrator' ? 'bg-red-50 text-red-700' :
-                                u.role_name === 'General Manager' ? 'bg-amber-50 text-amber-800' :
-                                u.role_name === 'Operational Manager' ? 'bg-indigo-50 text-indigo-800' :
-                                u.role_name === 'Team Support Operation' ? 'bg-teal-50 text-teal-800' :
-                                u.role_name === 'Underwriter' ? 'bg-blue-50 text-blue-700' :
-                                u.role_name === 'Accounting Officer' ? 'bg-emerald-50 text-emerald-700' :
-                                u.role_name === 'Claims Officer' ? 'bg-purple-50 text-purple-700' :
-                                u.role_name === 'Collection' ? 'bg-cyan-50 text-cyan-700' :
-                                'bg-slate-100 text-slate-600'
+                            <div className="flex items-center justify-between gap-1.5">
+                              <h4 className={`font-bold text-sm truncate ${u.is_archived ? 'text-slate-600 line-through' : 'text-slate-800'}`}>
+                                {u.name}
+                              </h4>
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0 ${
+                                u.role_name === 'Administrator' ? 'bg-red-50 text-red-700 border border-red-100' :
+                                u.role_name === 'General Manager' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                                u.role_name === 'Operational Manager' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' :
+                                u.role_name === 'Team Support Operation' ? 'bg-teal-50 text-teal-800 border border-teal-200' :
+                                u.role_name === 'Underwriter' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                u.role_name === 'Accounting Officer' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                u.role_name === 'Claims Officer' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                                u.role_name === 'Collection' ? 'bg-cyan-50 text-cyan-700 border border-cyan-100' :
+                                'bg-slate-100 text-slate-700'
                               }`}>
                                 {u.role_name}
                               </span>
-                              {u.is_archived && (
-                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1">
-                                  <Archive className="h-2.5 w-2.5" /> Archived
-                                </span>
-                              )}
                             </div>
                             <p className="text-slate-400 font-mono text-xs truncate mt-0.5">{u.email}</p>
-                            {u.is_archived && u.archive_reason && (
-                              <p className="text-amber-700 text-[11px] font-medium truncate mt-0.5">
-                                Reason: {u.archive_reason}
-                              </p>
+                            
+                            {u.is_archived && (
+                              <div className="mt-2 p-2 bg-amber-50/80 border border-amber-200/60 rounded-xl text-[11px] text-amber-900 space-y-0.5">
+                                <div className="flex items-center gap-1 font-semibold text-amber-950">
+                                  <Archive className="h-3 w-3 text-amber-700" />
+                                  <span>Reason: {u.archive_reason || 'Resigned'}</span>
+                                </div>
+                                {u.archived_at && (
+                                  <p className="text-[10px] text-slate-400 font-mono">
+                                    Archived on {new Date(u.archived_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  </p>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
 
-                        {/* Minimalist Action Buttons */}
-                        <div className="flex items-center gap-0.5 shrink-0">
+                        {/* Action Buttons Toolbar at Bottom of Card */}
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5 flex-wrap">
                           {accountSubTab === 'active' ? (
                             <>
                               <button
                                 onClick={() => handleOpenEditUser(u)}
-                                className="p-2 rounded-xl text-slate-400 hover:text-[#4A0E17] hover:bg-slate-100 active:bg-slate-200 transition cursor-pointer"
-                                title="Edit User"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-[#4A0E17] transition cursor-pointer"
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span>Edit</span>
                               </button>
                               <button
                                 onClick={() => { setResetPasswordTarget(u); setResetPasswordValue(''); }}
-                                className="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 active:bg-amber-100 transition cursor-pointer"
-                                title="Reset Password"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50/80 hover:bg-amber-100 transition cursor-pointer"
                               >
-                                <Key className="h-4 w-4" />
+                                <Key className="h-3.5 w-3.5" />
+                                <span>Password</span>
                               </button>
                               <button
                                 onClick={() => { setArchiveTarget(u); setArchiveReason('Employee Resigned'); }}
-                                className="p-2 rounded-xl text-slate-400 hover:text-amber-700 hover:bg-amber-50 active:bg-amber-100 transition cursor-pointer"
-                                title="Archive / Mark as Resigned"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-amber-50 hover:text-amber-700 transition cursor-pointer"
                               >
-                                <Archive className="h-4 w-4" />
+                                <Archive className="h-3.5 w-3.5" />
+                                <span>Archive</span>
                               </button>
                               <button
                                 onClick={() => setDeleteTarget(u)}
-                                className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition cursor-pointer"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
                                 title="Delete User"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </>
                           ) : (
                             <>
                               <button
                                 onClick={() => setRestoreTarget(u)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition cursor-pointer"
-                                title="Restore User Account"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition cursor-pointer"
                               >
                                 <RotateCcw className="h-3.5 w-3.5" />
-                                <span>Restore</span>
+                                <span>Restore Account</span>
                               </button>
                               <button
                                 onClick={() => setDeleteTarget(u)}
-                                className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition cursor-pointer"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
                                 title="Delete Permanently"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </>
                           )}
