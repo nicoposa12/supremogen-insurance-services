@@ -201,7 +201,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [covAON, setCovAON] = useState<string>('');
   const [covBI, setCovBI] = useState<string>('');
   const [covPD, setCovPD] = useState<string>('');
-  const [covPA, setCovPA] = useState<string>('');
+  const [covPA, setCovPA] = useState<string>('250,000');
 
   const [customBI, setCustomBI] = useState(false);
   const [customPD, setCustomPD] = useState(false);
@@ -211,7 +211,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [premAON, setPremAON] = useState<string>('');
   const [premBI, setPremBI] = useState<string>('');
   const [premPD, setPremPD] = useState<string>('');
-  const [premPA, setPremPA] = useState<string>('');
+  const [premPA, setPremPA] = useState<string>('500');
 
   // Calculator inputs (Basic Premium Popup)
   const [sellingRateOD, setSellingRateOD] = useState<number>(1.90);
@@ -505,16 +505,21 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     }
   }, [covBI, covPD, premBI, premPD, isPrivateSedanSuv, isMotorcyclePrivate, isCommercialVehicle]);
 
-  // Auto-calculate PA Premium based on Seater (50 per seat for Motor, 100 per seat for others)
+  // Auto-calculate PA Coverage (Seater * 50,000) & PA Premium based on Seater (50 per seat for Motor, 100 per seat for others)
   useEffect(() => {
     if (seater) {
+      const calculatedCovPA = (seater * 50000).toLocaleString('en-US');
+      if (covPA !== calculatedCovPA) {
+        setCovPA(calculatedCovPA);
+      }
+
       const perSeat = isMotorcyclePrivate ? 50 : 100;
       const calculatedPA = (seater * perSeat).toLocaleString('en-US');
       if (premPA !== calculatedPA) {
         setPremPA(calculatedPA);
       }
     }
-  }, [seater, premPA, isMotorcyclePrivate]);
+  }, [seater, isMotorcyclePrivate]);
 
   // Update Selling Rates based on vehicle type, usage, and rate type
   useEffect(() => {

@@ -596,6 +596,9 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                 <span className="text-slate-500 font-semibold">Date Request</span>
                 <span className="col-span-2 text-slate-800 font-bold">{customer?.writing_date ? new Date(customer.writing_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : '—'}</span>
 
+                <span className="text-slate-500 font-semibold">Inception Date</span>
+                <span className="col-span-2 text-slate-800 font-bold">{customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : '—'}</span>
+
                 <span className="text-slate-500 font-semibold">Type</span>
                 <span className="col-span-2 text-slate-800 font-bold">{customer?.request_type || '—'}</span>
 
