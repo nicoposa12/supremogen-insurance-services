@@ -26,6 +26,9 @@ class User extends Authenticatable
         'email',
         'password',
         'profile_photo_path',
+        'is_archived',
+        'archived_at',
+        'archive_reason',
     ];
 
     /**
@@ -58,6 +61,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_archived' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 

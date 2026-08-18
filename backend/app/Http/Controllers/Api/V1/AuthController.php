@@ -50,6 +50,15 @@ class AuthController extends Controller
             ], 401);
         }
 
+        if ($user->is_archived) {
+            $this->audit('auth.login_archived_attempt', $user, 'Archived/resigned user attempted login: ' . $user->name);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'This employee account has been archived / deactivated. Please contact management or your system administrator.'
+            ], 403);
+        }
+
         // Get roles and permissions
         $roles = $user->getRoleNames();
         $permissions = $user->getAllPermissions()->pluck('name');

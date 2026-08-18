@@ -55,6 +55,8 @@ Route::prefix('v1')->group(function () {
         // Users / Agents
         Route::get('/agents', [UserController::class, 'agents']);
         Route::post('/users/{user}/impersonate', [UserController::class, 'impersonate'])->middleware('permission:users.view');
+        Route::post('/users/{user}/archive', [UserController::class, 'archive'])->middleware('permission:users.view');
+        Route::post('/users/{user}/restore', [UserController::class, 'restore'])->middleware('permission:users.view');
         Route::apiResource('/users', UserController::class)->middleware('permission:users.view');
 
         // Insurance Products (dropdown data)

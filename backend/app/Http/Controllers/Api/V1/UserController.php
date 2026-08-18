@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
@@ -19,13 +20,25 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
+        $status = $request->input('status', 'active');
         $query = User::with('roles')
+            ->when($status === 'active', function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('is_archived', false)
+                        ->orWhereNull('is_archived');
+                });
+            })
+            ->when($status === 'archived', function ($q) {
+                $q->where('is_archived', true);
+            })
             ->when($request->user()->hasRole('Underwriter'), function ($q) {
                 $q->whereNotIn('email', ['admin@supremogen.com', 'owner@supremogen.com']);
             })
             ->when($request->input('search'), function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%");
+                });
             });
 
         if ($request->boolean('no_paginate')) {
@@ -240,11 +253,18 @@ class UserController extends Controller
     }
 
     /**
-     * Get all sales agents.
+     * Get all active sales agents.
      */
     public function agents()
     {
-        $agents = User::role(['Sales Agent', 'Team Renewal'])->with('roles')->orderBy('name', 'asc')->get();
+        $agents = User::role(['Sales Agent', 'Team Renewal'])
+            ->where(function ($sub) {
+                $sub->where('is_archived', false)
+                    ->orWhereNull('is_archived');
+            })
+            ->with('roles')
+            ->orderBy('name', 'asc')
+            ->get();
         $agents->transform(function ($user) {
             $user->role_name = $user->getRoleNames()->first() ?? 'None';
             return $user;
@@ -252,6 +272,81 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'data' => $agents,
+        ]);
+    }
+
+    /**
+     * Archive/deactivate an employee user account.
+     */
+    public function archive(Request $request, User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot archive your own account.',
+            ], 422);
+        }
+
+        if (request()->user()->hasRole('Underwriter') && in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action.',
+            ], 403);
+        }
+
+        if ($user->email === 'admin@supremogen.com') {
+            return response()->json([
+                'success' => false,
+                'message' => 'The primary administrator account cannot be archived.',
+            ], 422);
+        }
+
+        $reason = $request->input('reason', 'Employee Resigned');
+        $now = now()->toDateTimeString();
+
+        // PostgreSQL requires boolean keyword (true/false) instead of integer binding (1/0)
+        DB::statement("UPDATE users SET is_archived = true, archived_at = ?, archive_reason = ?, updated_at = NOW() WHERE id = ?", [
+            $now,
+            $reason,
+            $user->id,
+        ]);
+
+        $user->refresh();
+
+        // Revoke all active login tokens immediately
+        $user->tokens()->delete();
+
+        $this->audit('user.archive', $user, 'Archived account: ' . $user->name . ' (' . $user->email . ') - Reason: ' . $reason);
+
+        $user->role_name = $user->getRoleNames()->first() ?? 'None';
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Account archived successfully.',
+            'data' => $user,
+        ]);
+    }
+
+    /**
+     * Restore an archived employee user account.
+     */
+    public function restore(Request $request, User $user)
+    {
+        // PostgreSQL requires boolean keyword (true/false) instead of integer binding (1/0)
+        DB::statement("UPDATE users SET is_archived = false, archived_at = NULL, archive_reason = NULL, updated_at = NOW() WHERE id = ?", [
+            $user->id,
+        ]);
+
+        $user->refresh();
+
+        $this->audit('user.restore', $user, 'Restored archived account: ' . $user->name . ' (' . $user->email . ')');
+
+        $user->role_name = $user->getRoleNames()->first() ?? 'None';
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Account restored successfully.',
+            'data' => $user,
         ]);
     }
 
