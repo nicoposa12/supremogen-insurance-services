@@ -922,9 +922,13 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
                 );
               } else {
                 const isPartnerRate = (customer?.used_rate_type || '').toUpperCase().includes('PARTNER') || (customer?.used_rate_type || '').toUpperCase().includes('SIR JESS');
+                const isOldCarRate = (customer?.used_rate_type || '').trim().toUpperCase() === 'OLD CAR QUOTATION' || (customer?.quotation_used || '').trim().toUpperCase() === 'OLD CAR';
                 const gpMultiplier = isPartnerRate
                   ? roundToTwoDecimals(basicPremiumSum * 1.2525)
-                  : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500);
+                  : (isOldCarRate
+                      ? roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500 + 2500)
+                      : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500)
+                    );
                 const grossPremium = gpMultiplier + Number(details.calculator?.towing_fee || 0);
 
                 return (

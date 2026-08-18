@@ -235,8 +235,10 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const isPrivateSedanSuv = (
     cleanQuotationUsed === 'SUV' ||
     cleanQuotationUsed === 'SEDAN' ||
-    cleanQuotationUsed === 'EV/HYBRID'
-  ) && cleanUsage === 'PRIVATE';
+    cleanQuotationUsed === 'EV/HYBRID' ||
+    cleanQuotationUsed === 'OLD CAR' ||
+    usedRateType === 'OLD CAR QUOTATION'
+  ) && (cleanUsage === 'PRIVATE' || !cleanUsage);
 
   const isMotorcyclePrivate = cleanQuotationUsed === 'MOTOR' && (
     cleanUsage === 'PRIVATE' ||
@@ -537,6 +539,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
 
     const cleanQuotationUsed = (quotationUsed || '').trim().toUpperCase();
     const cleanUsage = (usage || '').trim().toUpperCase();
+    const isPrivateOldCar = (
+      cleanQuotationUsed === 'OLD CAR' ||
+      ((cleanQuotationUsed === 'SEDAN' || cleanQuotationUsed === 'SUV' || cleanQuotationUsed === 'OLD CAR') && usedRateType === 'OLD CAR QUOTATION') ||
+      usedRateType === 'OLD CAR QUOTATION'
+    ) && (cleanUsage === 'PRIVATE' || !cleanUsage);
     const isPrivateSUV = cleanQuotationUsed === 'SUV' && cleanUsage === 'PRIVATE';
     const isPrivateSedan = cleanQuotationUsed === 'SEDAN' && cleanUsage === 'PRIVATE';
     const isPrivateEV = cleanQuotationUsed === 'EV/HYBRID' && cleanUsage === 'PRIVATE';
@@ -607,6 +614,9 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setSellingRateAON(0.10);
     } else if (cleanQuotationUsed === 'TNVS' || cleanUsage === 'TNVS USE') {
       setSellingRateOD(1.80);
+      setSellingRateAON(0.10);
+    } else if (isPrivateOldCar) {
+      setSellingRateOD(2.00);
       setSellingRateAON(0.10);
     } else if (isPrivateSUV) {
       setSellingRateOD(1.30);
@@ -689,9 +699,16 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const totalTaxAndPremium = basicPremiumSum + dst + eVat + lgt;
 
   const isPartnerRate = (usedRateType || '').toUpperCase().includes('PARTNER') || (usedRateType || '').toUpperCase().includes('SIR JESS');
+  const isOldCarRate = (usedRateType || '').trim().toUpperCase() === 'OLD CAR QUOTATION' || cleanQuotationUsed === 'OLD CAR';
   const gpMultiplier = isMotor
     ? 0
-    : (isPartnerRate ? roundToTwoDecimals(basicPremiumSum * 1.2525) : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500));
+    : (isPartnerRate 
+        ? roundToTwoDecimals(basicPremiumSum * 1.2525) 
+        : (isOldCarRate
+            ? roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500 + 2500)
+            : roundToTwoDecimals((basicPremiumSum * 1.2525) + 1500)
+          )
+      );
 
   const motorFixedAddition = isPartnerRate ? 3000 : 3500;
   const grossPremium = isMotor
@@ -1091,7 +1108,19 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
             </div>
             <div>
               <label className={labelClass}>Quotation Used *</label>
-              <select value={quotationUsed} onChange={(e) => setQuotationUsed(e.target.value)} className={getInputClass(quotationUsed)}>
+              <select
+                value={quotationUsed}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setQuotationUsed(val);
+                  if (val === 'OLD CAR') {
+                    if (!usedRateType || usedRateType === 'REGULAR QUOTA RATE') {
+                      setUsedRateType('OLD CAR QUOTATION');
+                    }
+                  }
+                }}
+                className={getInputClass(quotationUsed)}
+              >
                 <option value="">Select Quotation</option>
                 <option value="SUV">SUV</option>
                 <option value="SEDAN">SEDAN</option>
