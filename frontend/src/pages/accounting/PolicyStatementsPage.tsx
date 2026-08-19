@@ -197,7 +197,7 @@ export default function PolicyStatementsPage() {
   // Filter approved quotations with timeframe & filters
   const approvedQuotations = useMemo(() => {
     return allQuotations.filter((q) => {
-      const isRelevant = q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review' || q.status === 'cancelled' || q.status === 'cancellation_requested';
+      const isRelevant = q.status === 'approved' || q.status === 'cancellation_requested' || q.status === 'cancelled';
       if (!isRelevant) return false;
 
       const firstItem = q.items?.[0];
@@ -257,8 +257,11 @@ export default function PolicyStatementsPage() {
     let totalCompInc = 0;
     let totalDeductions = 0;
     let totalNetInc = 0;
+    let activePoliciesCount = 0;
 
     approvedQuotations.forEach((q) => {
+      if (q.status === 'cancelled') return;
+      activePoliciesCount++;
       const fin = calculateQuotationFinancials(q);
       totalPrem += fin.totalPolicyPremium;
       totalRemit += fin.netRemittance;
@@ -268,7 +271,7 @@ export default function PolicyStatementsPage() {
     });
 
     return {
-      count: approvedQuotations.length,
+      count: activePoliciesCount,
       totalPrem: Math.round(totalPrem),
       totalRemit: Math.round(totalRemit),
       totalCompInc: Math.round(totalCompInc),

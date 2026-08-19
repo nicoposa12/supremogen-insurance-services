@@ -132,7 +132,7 @@ export default function DashboardPage() {
 
   const quotationsList = qResponse?.data?.data || [];
   const approvedList = useMemo(() => {
-    return quotationsList.filter((q: any) => q.status === 'approved' || q.status === 'submitted' || q.status === 'under_review');
+    return quotationsList.filter((q: any) => q.status === 'approved' || q.status === 'cancellation_requested');
   }, [quotationsList]);
 
   const getAssuredName = (q: any): string => {
