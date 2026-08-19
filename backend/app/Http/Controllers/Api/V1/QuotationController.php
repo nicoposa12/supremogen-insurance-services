@@ -465,43 +465,6 @@ class QuotationController extends Controller
             }
         });
 
-        // After transaction commits, create Claim Notification outside the transaction
-        // to prevent a NOT NULL violation from rolling back the approval
-        if ($action === 'approve' && $policy) {
-            try {
-                $customer = $quotation->customer;
-                $claimNotification = \App\Models\ClaimNotification::create([
-                    'reference_number'   => \App\Models\ClaimNotification::generateNumber(),
-                    'assured_name'       => trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')),
-                    'contact_number'     => $customer->mobile ?? $customer->phone,
-                    'email_address'      => $customer->email,
-                    'insurance_provider' => $customer->insurance_provider ?? 'Supremogen Insurance Services',
-                    'plate_number'       => $customer->plate_no,
-                    'policy_number'      => $policy->policy_number ?? 'PENDING',
-                    'inception_date'     => $policy->effective_date,
-                    'accident_date'      => $policy->effective_date ?? now(),
-                    'nature_of_claims'   => 'Auto-generated claim notification upon underwriting approval.',
-                    'notes'              => 'Automatically generated from approved Quotation ' . $quotation->quotation_number,
-                    'submitted_by'       => $quotation->prepared_by ?? $request->user()->id,
-                    'status'             => 'pending',
-                ]);
-
-                // Notify all Claims Officers
-                $officers = \App\Models\User::role('Claims Officer')->get();
-                foreach ($officers as $officer) {
-                    \App\Models\Notification::create([
-                        'user_id' => $officer->id,
-                        'title'   => 'Claim Notification Received',
-                        'message' => "New claim notification {$claimNotification->reference_number} for assured \"{$claimNotification->assured_name}\" — Policy {$claimNotification->policy_number}.",
-                        'type'    => 'warning',
-                        'read_at' => null,
-                    ]);
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to create automatic claim notification: ' . $e->getMessage());
-            }
-        }
-
         // Notify the creator & team of the quotation (Sales Agent or Team Renewal)
         try {
             $refNo = $quotation->quotation_number ?: ($quotation->ir_number ?: "IR-{$quotation->id}");
