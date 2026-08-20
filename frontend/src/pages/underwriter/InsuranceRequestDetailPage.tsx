@@ -88,8 +88,6 @@ const getAlphaFormattedText = (quotation: any): string => {
 
   const totalPremVal = Number(quotation.total_premium || d?.premiums?.total || 0);
 
-  const noteVal = quotation.notes?.trim() ? quotation.notes.toUpperCase() : 'WITH TOWING';
-
   return `ASSURED NAME: ${assuredNameDisplay}
 ADDRESS: ${addr}
 INCEPTION DATE: ${incepDate}
@@ -110,7 +108,7 @@ BI/PD: ${bipdDisplay}
 PERSONAL ACCIDENT: ${paVal.toLocaleString('en-US')}
 TOTAL PREMIUM: ${totalPremVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 
-NOTE: ${noteVal}`;
+NOTE: WITH TOWING`;
 };
 
 const getCbicFormattedText = (quotation: any): string => {
@@ -154,8 +152,6 @@ const getCbicFormattedText = (quotation: any): string => {
     ? new Date(c.inception_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
     : '—';
 
-  const noteVal = quotation.notes?.trim() ? quotation.notes.toUpperCase() : 'WITH TOWING FEE';
-
   return `PROVIDER: CBIC
 USAGE: ${formattedUsage}
 MORTGAGEE: ${mortgageeVal}
@@ -173,7 +169,7 @@ PA (SEATER): ${paVal.toLocaleString('en-US')}
 TOTAL PREMIUM: ${totalPremVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 INCEPTION DATE: ${incepDate}
 
-NOTE: ${noteVal}`;
+NOTE: WITH TOWING FEE`;
 };
 
 export default function InsuranceRequestDetailPage({ id, onClose }: { id: number; onClose: () => void }) {
@@ -1565,7 +1561,7 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto bg-slate-50/50 flex-1">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs font-mono text-xs text-slate-800 leading-relaxed whitespace-pre-wrap select-all font-semibold">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs font-mono text-xs text-slate-800 leading-relaxed whitespace-pre-wrap select-text font-semibold">
                 {formattedIssuanceText}
               </div>
             </div>
