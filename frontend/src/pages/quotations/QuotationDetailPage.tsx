@@ -512,6 +512,9 @@ export default function QuotationDetailPage({
                     <span className="text-slate-500 font-semibold text-xs">Plate Number</span>
                     <span className="col-span-2 text-slate-800 font-mono font-bold uppercase">{quotation.customer?.plate_no || '—'}</span>
 
+                    <span className="text-slate-500 font-semibold text-xs">MV File No.</span>
+                    <span className="col-span-2 text-slate-800 font-mono font-bold uppercase">{quotation.customer?.mv_file_no || (firstItem?.coverage_details as any)?.mv_file_no || '—'}</span>
+
                     <span className="text-slate-500 font-semibold text-xs">Bank</span>
                     <span className="col-span-2 text-slate-800 font-bold uppercase">{quotation.customer?.mortgage || '—'}</span>
 

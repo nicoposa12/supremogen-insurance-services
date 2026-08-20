@@ -125,6 +125,22 @@ export default function InsuranceRequestsPage() {
       ),
     },
     {
+      key: 'agent', label: 'Agent', sortable: false,
+      render: (r: Quotation) => {
+        const custAny = (r.customer || {}) as any;
+        const agentName = (r.prepared_by && typeof r.prepared_by === 'object' ? r.prepared_by.name : null) ||
+          r.customer?.agent ||
+          custAny.created_by_user?.name ||
+          (typeof custAny.created_by === 'object' ? custAny.created_by?.name : null) ||
+          '—';
+        return (
+          <span className="text-xs font-semibold text-slate-800 uppercase tracking-wide">
+            {agentName}
+          </span>
+        );
+      },
+    },
+    {
       key: 'customer', label: 'Assured Client',
       render: (r: Quotation) => (
         <div>
@@ -207,6 +223,26 @@ export default function InsuranceRequestsPage() {
       ),
     },
     {
+      key: 'provider', label: 'Provider', sortable: false,
+      render: (r: Quotation) => {
+        const firstItem = r.items?.[0];
+        const cov = firstItem?.coverage_details || {};
+        const rawProvider = (cov.insurance_provider || cov.provider || r.customer?.insurance_provider || 'ALPHA').toUpperCase().trim();
+        const isCBIC = rawProvider.includes('CBIC');
+        const displayProvider = isCBIC ? 'CBIC' : 'ALPHA';
+
+        return (
+          <span className={`px-2 py-0.5 text-[11px] font-bold rounded-md uppercase border tracking-wider font-mono ${
+            isCBIC
+              ? 'bg-amber-50 text-amber-800 border-amber-200/80'
+              : 'bg-blue-50 text-blue-800 border-blue-200/80'
+          }`}>
+            {displayProvider}
+          </span>
+        );
+      },
+    },
+    {
       key: 'policy_no', label: 'Policy No.',
       render: (r: Quotation) => <InlinePolicyNoCell quotation={r} />,
     },
@@ -224,7 +260,7 @@ export default function InsuranceRequestsPage() {
         {/* Search Input */}
         <div className="relative flex-grow w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input type="text" placeholder="Search IR number, client name, request number..."
+          <input type="text" placeholder="Search IR number, agent, client name, request number..."
             value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition" />
           {searchInput && (

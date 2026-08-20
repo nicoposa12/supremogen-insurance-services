@@ -31,6 +31,8 @@ class Customer extends Model
         'phone',
         'mobile',
         'plate_no',
+        'mv_file_no',
+        'auth_no',
         'unit',
         'mortgage',
         'agent',
@@ -224,6 +226,7 @@ class Customer extends Model
               ->orWhere('customer_code', $likeOperator, "%{$term}%")
               ->orWhere('company_name', $likeOperator, "%{$term}%")
               ->orWhere('plate_no', $likeOperator, "%{$term}%")
+              ->orWhere('mv_file_no', $likeOperator, "%{$term}%")
               ->orWhere('policy_no', $likeOperator, "%{$term}%");
 
             if (count($words) > 1) {

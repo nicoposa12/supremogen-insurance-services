@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import {
   ArrowLeft, CheckCircle2, XCircle, FileText, Loader2,
-  User, Car, Upload, History, Link2, Save, Paperclip, Download, AlertTriangle, Eye, X
+  User, Car, Upload, History, Link2, Save, Paperclip, Download, AlertTriangle, Eye, X, Copy, Check
 } from 'lucide-react';
 
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -17,6 +17,163 @@ import { getFileUrl } from '../../utils/url';
 
 const roundToTwoDecimals = (num: number): number => {
   return Math.round(num * 100 + 1e-9) / 100;
+};
+
+const parseVehicleUnit = (rawUnit: string) => {
+  const clean = (rawUnit || '').trim();
+  if (!clean) return { year: '—', make: '—', body: '—' };
+
+  // Match 4-digit year at beginning, e.g. "2025 TOYOTA FORTUNER 2.4 V 4X2 A/T"
+  const yearMatch = clean.match(/^(\d{4})\s+(.+)$/);
+  if (yearMatch) {
+    const year = yearMatch[1];
+    const rest = yearMatch[2].trim();
+    const parts = rest.split(/\s+/);
+    const make = (parts[0] || '—').toUpperCase();
+    const body = (parts.slice(1).join(' ') || make).toUpperCase();
+    return { year, make, body };
+  }
+
+  // Fallback: split first word as make
+  const parts = clean.split(/\s+/);
+  return {
+    year: '—',
+    make: (parts[0] || '—').toUpperCase(),
+    body: (parts.slice(1).join(' ') || clean).toUpperCase(),
+  };
+};
+
+const getAlphaFormattedText = (quotation: any): string => {
+  if (!quotation) return '';
+  const c: any = quotation.customer || {};
+  const item = quotation.items?.[0];
+  const d: any = item?.coverage_details || {};
+
+  const rawMortgagee = (c.mortgage || d.mortgage || '').toUpperCase().trim();
+  const mortgageeVal = rawMortgagee && rawMortgagee !== 'N/A' && rawMortgagee !== 'NONE' ? rawMortgagee : 'N/A';
+
+  const rawFullName = [c.first_name, c.middle_name, c.last_name, c.suffix].filter(Boolean).join(' ').toUpperCase().trim() ||
+    (c.company_name || d.full_name || d.assured_name || '').toUpperCase().trim();
+
+  const assuredNameDisplay = rawFullName;
+
+  const addrParts = [c.address_line_1, c.address_line_2, c.city, c.province, c.zip_code].filter(Boolean);
+  const addr = addrParts.length > 0 ? addrParts.join(', ').toUpperCase().trim() : (d.address || '—').toUpperCase().trim();
+
+  const incepDate = c.inception_date
+    ? new Date(c.inception_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
+    : '—';
+
+  const unitDesc = (c.unit || d.unit || '').trim();
+  const { year: yearModel, make, body: typeOfBody } = parseVehicleUnit(unitDesc);
+
+  const colorVal = (c.color || d.color || '—').toUpperCase().trim();
+  const mvFileNoVal = (c.mv_file_no || d.mv_file_no || 'N/A').toUpperCase().trim();
+  const plateVal = (c.plate_no || d.plate_no || 'TBA').toUpperCase().trim();
+  const chassis = (c.chassis_no || d.chassis_no || '—').toUpperCase().trim();
+  const engine = (c.engine_no || d.engine_no || '—').toUpperCase().trim();
+
+  const rawUsage = (c.usage || d.usage || 'PRIVATE').toUpperCase().trim();
+  const usageVal = rawUsage.replace(/\s*USE$/, '');
+
+  const itemSum = Number(item?.sum_insured || 0);
+  const covSum = Number(d?.sum_insured || d?.coverages?.own_damage || d?.coverages?.od || c.own_damage_coverage || c.sum_insured || 0);
+  const odVal = itemSum > 0 ? itemSum : (covSum > 0 ? covSum : 0);
+
+  const biVal = Number(d?.coverages?.bi || d?.cov_bi || c.bi_coverage || 200000);
+  const pdVal = Number(d?.coverages?.pd || d?.cov_pd || c.pd_coverage || 200000);
+  const bipdDisplay = biVal === pdVal ? biVal.toLocaleString('en-US') : `${biVal.toLocaleString('en-US')} / ${pdVal.toLocaleString('en-US')}`;
+
+  const paVal = Number(d?.coverages?.pa || d?.cov_pa || c.pa || c.pa_coverage || 350000);
+
+  const totalPremVal = Number(quotation.total_premium || d?.premiums?.total || 0);
+
+  const noteVal = quotation.notes?.trim() ? quotation.notes.toUpperCase() : 'WITH TOWING';
+
+  return `ASSURED NAME: ${assuredNameDisplay}
+ADDRESS: ${addr}
+INCEPTION DATE: ${incepDate}
+
+YEAR MODEL: ${yearModel}
+MAKE: ${make}
+TYPE OF BODY: ${typeOfBody}
+COLOR: ${colorVal}
+MV FILE NO.: ${mvFileNoVal}
+PLATE NO.: ${plateVal}
+SERIAL/CHASSIS NO.: ${chassis}
+MOTOR/ENGINE NO.: ${engine}
+MORTGAGEE: ${mortgageeVal}
+USAGE: ${usageVal}
+
+OWN DAMAGE, THEFT, AON: ${odVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+BI/PD: ${bipdDisplay}
+PERSONAL ACCIDENT: ${paVal.toLocaleString('en-US')}
+TOTAL PREMIUM: ${totalPremVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+
+NOTE: ${noteVal}`;
+};
+
+const getCbicFormattedText = (quotation: any): string => {
+  if (!quotation) return '';
+  const c: any = quotation.customer || {};
+  const item = quotation.items?.[0];
+  const d: any = item?.coverage_details || {};
+
+  const rawUsage = (c.usage || d.usage || 'TNVS').toUpperCase().trim();
+  const formattedUsage = rawUsage.includes('USE') ? rawUsage : `${rawUsage} USE`;
+  const rawMortgagee = (c.mortgage || d.mortgage || '').toUpperCase().trim();
+  const mortgageeVal = rawMortgagee && rawMortgagee !== 'N/A' && rawMortgagee !== 'NONE' ? rawMortgagee : 'N/A';
+
+  const rawFullName = [c.first_name, c.middle_name, c.last_name, c.suffix].filter(Boolean).join(' ').toUpperCase().trim() ||
+    (c.company_name || d.full_name || d.assured_name || '').toUpperCase().trim();
+
+  const assuredNameDisplay = rawFullName;
+
+  const addrParts = [c.address_line_1, c.address_line_2, c.city, c.province, c.zip_code].filter(Boolean);
+  const addr = addrParts.length > 0 ? addrParts.join(', ').toUpperCase().trim() : (d.address || '—').toUpperCase().trim();
+
+  const unitDesc = (c.unit || d.unit || '—').toUpperCase().trim();
+  const chassis = (c.chassis_no || d.chassis_no || '—').toUpperCase().trim();
+  const engine = (c.engine_no || d.engine_no || '—').toUpperCase().trim();
+  const plate = (c.plate_no || d.plate_no || c.mv_file_no || d.mv_file_no || '—').toUpperCase().trim();
+  const colorVal = (c.color || d.color || '—').toUpperCase().trim();
+
+  const itemSum = Number(item?.sum_insured || 0);
+  const covSum = Number(d?.sum_insured || d?.coverages?.own_damage || d?.coverages?.od || c.own_damage_coverage || c.sum_insured || 0);
+  const odVal = itemSum > 0 ? itemSum : (covSum > 0 ? covSum : 0);
+
+  const biVal = Number(d?.coverages?.bi || d?.cov_bi || c.bi_coverage || 200000);
+  const pdVal = Number(d?.coverages?.pd || d?.cov_pd || c.pd_coverage || 200000);
+  const bipdDisplay = biVal === pdVal ? biVal.toLocaleString('en-US') : `${biVal.toLocaleString('en-US')} / ${pdVal.toLocaleString('en-US')}`;
+
+  const paVal = Number(d?.coverages?.pa || d?.cov_pa || c.pa || c.pa_coverage || 250000);
+
+  const totalPremVal = Number(quotation.total_premium || d?.premiums?.total || 0);
+
+  const incepDate = c.inception_date
+    ? new Date(c.inception_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
+    : '—';
+
+  const noteVal = quotation.notes?.trim() ? quotation.notes.toUpperCase() : 'WITH TOWING FEE';
+
+  return `PROVIDER: CBIC
+USAGE: ${formattedUsage}
+MORTGAGEE: ${mortgageeVal}
+
+ASSURED NAME: ${assuredNameDisplay}
+ASSURED ADDRESS: ${addr}
+UNIT DESCRIPTION: ${unitDesc}
+CHASSIS NUMBER: ${chassis}
+ENGINE NUMBER: ${engine}
+PLATE NUMBER: ${plate}
+COLOR: ${colorVal}
+SUM INSURED: ${odVal.toLocaleString('en-US')}
+BI/PD: ${bipdDisplay}
+PA (SEATER): ${paVal.toLocaleString('en-US')}
+TOTAL PREMIUM: ${totalPremVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+INCEPTION DATE: ${incepDate}
+
+NOTE: ${noteVal}`;
 };
 
 export default function InsuranceRequestDetailPage({ id, onClose }: { id: number; onClose: () => void }) {
@@ -33,6 +190,8 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   const [showReviewPanel, setShowReviewPanel] = useState(false);
 
   const [showClaimsModal, setShowClaimsModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [hasCopiedDetails, setHasCopiedDetails] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bankFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -180,8 +339,8 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
         setEngineNo(c.engine_no || '');
         setMortgagee(c.mortgage || '');
         setSeater(String(quotation.items?.[0]?.coverage_details?.seater || ''));
-        setMvFileNo(c.plate_no || '');
-        setAuthNo('');
+        setMvFileNo(c.mv_file_no || (quotation.items?.[0]?.coverage_details as any)?.mv_file_no || '');
+        setAuthNo(c.auth_no || (quotation.items?.[0]?.coverage_details as any)?.auth_no || '');
       }
     }
   }, [quotation]);
@@ -248,6 +407,8 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
         mobile: contact,
         email: email || undefined,
         plate_no: plateNo,
+        mv_file_no: mvFileNo,
+        auth_no: authNo,
         unit: make,
         color,
         chassis_no: serialNo,
@@ -279,6 +440,31 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
   const customer = quotation.customer;
   const firstItem = quotation.items?.[0];
   const details = firstItem?.coverage_details || null;
+  const rawProvider = (
+    details?.insurance_provider ||
+    details?.provider ||
+    customer?.insurance_provider ||
+    (quotation as any)?.insurance_provider ||
+    (quotation as any)?.provider ||
+    ''
+  ).toUpperCase().trim();
+  const isAlpha = rawProvider.includes('ALPHA');
+  const isCBIC = rawProvider.includes('CBIC');
+  const activeProvider = isAlpha ? 'ALPHA' : (isCBIC ? 'CBIC' : (rawProvider || 'ALPHA'));
+  const isApproved = quotation.status === 'approved';
+
+  const formattedIssuanceText = isAlpha
+    ? getAlphaFormattedText(quotation)
+    : getCbicFormattedText(quotation);
+
+  const handleCopyDetails = () => {
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(formattedIssuanceText);
+      setHasCopiedDetails(true);
+      showToast(`${activeProvider} details copied to clipboard!`, 'success');
+      setTimeout(() => setHasCopiedDetails(false), 2500);
+    }
+  };
 
   // Styling constants
   const labelClass = 'text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap min-w-[110px] text-right pr-3 pt-2.5';
@@ -556,11 +742,31 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
               <div className="p-3 space-y-2">
                 <div className="flex justify-between items-baseline text-[11px]">
                   <span className="text-amber-850 font-bold uppercase text-[9px]">MV File No.</span>
-                  <span className="text-slate-800 font-extrabold font-mono uppercase">{mvFileNo || '—'}</span>
+                  {isEditable ? (
+                    <input
+                      type="text"
+                      value={mvFileNo}
+                      onChange={(e) => setMvFileNo(e.target.value)}
+                      placeholder="MV File No."
+                      className="font-mono text-xs font-bold text-slate-800 bg-white border border-amber-300 rounded px-2 py-0.5 w-32 text-right uppercase"
+                    />
+                  ) : (
+                    <span className="text-slate-800 font-extrabold font-mono uppercase">{mvFileNo || '—'}</span>
+                  )}
                 </div>
                 <div className="flex justify-between items-baseline text-[11px]">
                   <span className="text-amber-850 font-bold uppercase text-[9px]">Auth. No.</span>
-                  <span className="text-slate-800 font-extrabold font-mono uppercase">{authNo || '—'}</span>
+                  {isEditable ? (
+                    <input
+                      type="text"
+                      value={authNo}
+                      onChange={(e) => setAuthNo(e.target.value)}
+                      placeholder="Auth. No."
+                      className="font-mono text-xs font-bold text-slate-800 bg-white border border-amber-300 rounded px-2 py-0.5 w-32 text-right uppercase"
+                    />
+                  ) : (
+                    <span className="text-slate-800 font-extrabold font-mono uppercase">{authNo || '—'}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -601,6 +807,9 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
 
                   <span className="text-slate-500 font-semibold">Inception Date</span>
                   <span className="col-span-2 text-slate-800 font-bold">{customer?.inception_date ? new Date(customer.inception_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : '—'}</span>
+
+                  <span className="text-slate-500 font-semibold">Ownership</span>
+                  <span className="col-span-2 text-slate-800 font-bold uppercase">{customer?.ownership || customer?.customer_type || '—'}</span>
 
                   <span className="text-slate-500 font-semibold">Type</span>
                   <span className="col-span-2 text-slate-800 font-bold">{customer?.request_type || '—'}</span>
@@ -1125,15 +1334,50 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
       {/* Prepared By Info */}
       <div className="flex flex-wrap gap-4 text-xs text-slate-400">
         {typeof quotation.prepared_by === 'object' && quotation.prepared_by && (
-          <span>Prepared by: <span className="text-slate-600">{quotation.prepared_by.name}</span></span>
+          <span>Prepared by: <span className="text-slate-600 font-semibold">{quotation.prepared_by.name}</span></span>
         )}
         {quotation.submitted_at && (
-          <span>Submitted: <span className="text-slate-600">{new Date(quotation.submitted_at).toLocaleString()}</span></span>
+          <span>Submitted: <span className="text-slate-600 font-semibold">{new Date(quotation.submitted_at).toLocaleString()}</span></span>
         )}
         {typeof quotation.reviewed_by === 'object' && quotation.reviewed_by && (
-          <span>Reviewed by: <span className="text-slate-600">{quotation.reviewed_by.name}</span></span>
+          <span>Reviewed by: <span className="text-slate-600 font-semibold">{quotation.reviewed_by.name}</span></span>
         )}
       </div>
+
+      {/* Show Details Banner & Button for Approved Requests */}
+      {isApproved && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className={`p-2.5 rounded-xl ${
+              isAlpha ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
+            }`}>
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
+                  Policy Issuance Format
+                </h4>
+                <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider ${
+                  isAlpha ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                }`}>
+                  {activeProvider}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Standardized policy issuance format for {activeProvider} Provider submission.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDetailsModal(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A0E17] hover:bg-[#3D0B12] text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer uppercase tracking-wider shrink-0"
+          >
+            <Eye className="h-4 w-4 text-amber-300" /> Show Details
+          </button>
+        </div>
+      )}
 
       {/* Hidden File Input for Uploads */}
       <input
@@ -1272,6 +1516,82 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
               ) : (
                 <div className="text-sm font-bold text-rose-500">Error loading document.</div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ─── FORMATTED DETAILS MODAL (ALPHA / CBIC) ───────────────────────── */}
+      {showDetailsModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in no-print"
+          onClick={() => setShowDetailsModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden w-full max-w-2xl max-h-[90vh] flex flex-col animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Minimal Modern Header */}
+            <div className="flex items-center justify-between px-6 py-4.5 border-b border-slate-100 bg-white">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-xl ${
+                  isAlpha ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
+                }`}>
+                  <FileText className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">
+                      {activeProvider} Issuance Request Details
+                    </h3>
+                    <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md tracking-wider uppercase ${
+                      isAlpha ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-850'
+                    }`}>
+                      {activeProvider}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Standardized format for policy issuance submission
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDetailsModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto bg-slate-50/50 flex-1">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs font-mono text-xs text-slate-800 leading-relaxed whitespace-pre-wrap select-all font-semibold">
+                {formattedIssuanceText}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-white border-t border-slate-100 flex items-center justify-between">
+              <p className="text-xs text-slate-400">
+                Click <strong className="text-slate-600">Copy Text</strong> to copy the entire format.
+              </p>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleCopyDetails}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4A0E17] hover:bg-[#3D0B12] text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer uppercase tracking-wider"
+                >
+                  {hasCopiedDetails ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-amber-400" />}
+                  {hasCopiedDetails ? 'Copied' : 'Copy Text'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDetailsModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

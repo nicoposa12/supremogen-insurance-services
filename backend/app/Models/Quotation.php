@@ -130,13 +130,19 @@ class Quotation extends Model
             $q->where('quotation_number', $likeOperator, "%{$term}%")
               ->orWhere('ir_number', $likeOperator, "%{$term}%")
               ->orWhere('notes', $likeOperator, "%{$term}%")
+              ->orWhereHas('preparedBy', function ($pbQ) use ($term, $likeOperator) {
+                  $pbQ->where('name', $likeOperator, "%{$term}%");
+              })
               ->orWhereHas('customer', function ($cq) use ($term, $likeOperator, $concatExpr, $words) {
-                  $cq->where('first_name', $likeOperator, "%{$term}%")
+                  $cq->where('agent', $likeOperator, "%{$term}%")
+                     ->orWhere('insurance_provider', $likeOperator, "%{$term}%")
+                     ->orWhere('first_name', $likeOperator, "%{$term}%")
                      ->orWhere('last_name', $likeOperator, "%{$term}%")
                      ->orWhereRaw("{$concatExpr} {$likeOperator} ?", ["%{$term}%"])
                      ->orWhere('customer_code', $likeOperator, "%{$term}%")
                      ->orWhere('policy_no', $likeOperator, "%{$term}%")
-                     ->orWhere('plate_no', $likeOperator, "%{$term}%");
+                     ->orWhere('plate_no', $likeOperator, "%{$term}%")
+                     ->orWhere('mv_file_no', $likeOperator, "%{$term}%");
 
                   if (count($words) > 1) {
                       $cq->orWhere(function ($sub) use ($words, $likeOperator) {
@@ -144,7 +150,8 @@ class Quotation extends Model
                               $sub->where(function ($wQ) use ($w, $likeOperator) {
                                   $wQ->where('first_name', $likeOperator, "%{$w}%")
                                      ->orWhere('last_name', $likeOperator, "%{$w}%")
-                                     ->orWhere('company_name', $likeOperator, "%{$w}%");
+                                     ->orWhere('company_name', $likeOperator, "%{$w}%")
+                                     ->orWhere('agent', $likeOperator, "%{$w}%");
                               });
                           }
                       });

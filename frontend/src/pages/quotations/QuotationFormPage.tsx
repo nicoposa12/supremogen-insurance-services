@@ -183,6 +183,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [inceptionDate, setInceptionDate] = useState('');
 
   const [plateNo, setPlateNo] = useState('');
+  const [mvFileNo, setMvFileNo] = useState('');
+  const [authNo, setAuthNo] = useState('');
   const [unit, setUnit] = useState('');
   const [mortgage, setMortgage] = useState('');
 
@@ -319,6 +321,14 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         if (premAmt > 0) {
           setManualTotalPremium(premAmt.toLocaleString('en-US', { minimumFractionDigits: 2 }));
         }
+      }
+
+      if (q.customer) {
+        setPlateNo(q.customer.plate_no || '');
+        setMvFileNo(q.customer.mv_file_no || (firstItem?.coverage_details as any)?.mv_file_no || '');
+        setAuthNo(q.customer.auth_no || (firstItem?.coverage_details as any)?.auth_no || '');
+        setUnit(q.customer.unit || '');
+        setMortgage(q.customer.mortgage || '');
       }
     }
   }, [existing]);
@@ -467,6 +477,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setPolicyNo(c.policy_no || '');
 
       setPlateNo(c.plate_no || '');
+      setMvFileNo(c.mv_file_no || '');
+      setAuthNo(c.auth_no || '');
       setUnit(c.unit || '');
       setMortgage(c.mortgage || '');
 
@@ -824,6 +836,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       policy_no: policyNo,
 
       plate_no: plateNo,
+      mv_file_no: mvFileNo,
+      auth_no: authNo,
       unit: unit,
       mortgage: mortgage,
       agent: agent,
@@ -901,6 +915,8 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       seater,
       unit,
       plate_no: plateNo,
+      mv_file_no: mvFileNo,
+      auth_no: authNo,
       chassis_no: chassisNo,
       engine_no: engineNo,
       color,
@@ -975,6 +991,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       { value: engineNo, name: 'Engine #' },
       { value: color, name: 'Color' },
       { value: plateNo, name: 'Plate Number' },
+      { value: mvFileNo, name: 'MV File No.' },
       { value: mortgage, name: 'Bank' },
       { value: inceptionDate, name: 'Inception Date' },
       { value: ownership, name: 'Ownership' },
@@ -1248,7 +1265,11 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
             </div>
             <div>
               <label className={labelClass}>Plate Number *</label>
-              <input type="text" value={plateNo} onChange={(e) => setPlateNo(e.target.value)} className={getInputClass(plateNo)} placeholder="Plate or MV File No." />
+              <input type="text" value={plateNo} onChange={(e) => setPlateNo(e.target.value)} className={getInputClass(plateNo)} placeholder="Plate number (or TBA)" />
+            </div>
+            <div>
+              <label className={labelClass}>MV File No. *</label>
+              <input type="text" value={mvFileNo} onChange={(e) => setMvFileNo(e.target.value)} className={getInputClass(mvFileNo)} placeholder="MV File number" />
             </div>
             <div>
               <label className={labelClass}>Bank *</label>

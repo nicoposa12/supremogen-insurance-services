@@ -223,6 +223,8 @@ export default function CustomersPage() {
           phone: formEditTarget.phone ?? '',
           mobile: formEditTarget.mobile ?? '',
           plate_no: formEditTarget.plate_no ?? '',
+          mv_file_no: formEditTarget.mv_file_no ?? '',
+          auth_no: formEditTarget.auth_no ?? '',
           unit: formEditTarget.unit ?? '',
           mortgage: formEditTarget.mortgage ?? '',
           agent: formEditTarget.agent ?? '',
@@ -285,6 +287,8 @@ export default function CustomersPage() {
           phone: '',
           mobile: '',
           plate_no: '',
+          mv_file_no: '',
+          auth_no: '',
           unit: '',
           mortgage: '',
           agent: '',
@@ -965,6 +969,9 @@ export default function CustomersPage() {
 
                             <span className="text-slate-500 font-semibold text-xs">Plate Number</span>
                             <span className="col-span-2 text-slate-800 font-mono font-bold uppercase">{selectedCustomer.plate_no || '—'}</span>
+
+                            <span className="text-slate-500 font-semibold text-xs">MV File No.</span>
+                            <span className="col-span-2 text-slate-800 font-mono font-bold uppercase">{selectedCustomer.mv_file_no || '—'}</span>
 
                             <span className="text-slate-500 font-semibold text-xs">Bank</span>
                             <span className="col-span-2 text-slate-800 font-bold uppercase">{selectedCustomer.mortgage || '—'}</span>
@@ -1674,9 +1681,18 @@ export default function CustomersPage() {
                         <input
                           {...register('plate_no', { required: 'Plate number is required' })}
                           className={inputClass(errors.plate_no)}
-                          placeholder="e.g. ABC1234 or MV File No."
+                          placeholder="e.g. ABC1234 (or TBA)"
                         />
                         {errors.plate_no && <p className="text-xs text-red-500 mt-1">{errors.plate_no.message}</p>}
+                      </div>
+                      <div>
+                        <label className={labelClass}>MV File No. *</label>
+                        <input
+                          {...register('mv_file_no', { required: 'MV File number is required' })}
+                          className={inputClass(errors.mv_file_no)}
+                          placeholder="e.g. 1301-00000000000"
+                        />
+                        {errors.mv_file_no && <p className="text-xs text-red-500 mt-1">{errors.mv_file_no.message}</p>}
                       </div>
                       <div>
                         <label className={labelClass}>Bank *</label>

@@ -418,6 +418,8 @@ class CustomerController extends Controller
             // Transaction & Policy fields
             'record_no' => "nullable|string|max:30|{$recordNoUnique}",
             'plate_no' => "nullable|string|max:30",
+            'mv_file_no' => "nullable|string|max:50",
+            'auth_no' => "nullable|string|max:50",
             'unit' => 'nullable|string|max:100',
             'mortgage' => 'nullable|string|max:100',
             'agent' => 'nullable|string|max:100',

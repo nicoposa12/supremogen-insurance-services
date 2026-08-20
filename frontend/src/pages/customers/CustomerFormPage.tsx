@@ -56,6 +56,11 @@ export default function CustomerFormPage() {
       engine_no: '',
       color: '',
       ownership: '',
+      plate_no: '',
+      mv_file_no: '',
+      auth_no: '',
+      unit: '',
+      mortgage: '',
       own_damage_coverage: 0,
       bi_coverage: 0,
       pd_coverage: 0,
@@ -139,8 +144,9 @@ export default function CustomerFormPage() {
         status: c.status ?? 'active',
         notes: c.notes ?? '',
         
-        // Transaction fields
         plate_no: c.plate_no ?? '',
+        mv_file_no: c.mv_file_no ?? '',
+        auth_no: c.auth_no ?? '',
         unit: c.unit ?? '',
         mortgage: c.mortgage ?? '',
         agent: c.agent ?? '',
@@ -568,9 +574,18 @@ export default function CustomerFormPage() {
               <input
                 {...register('plate_no', { required: 'Plate number is required' })}
                 className={inputClass(errors.plate_no)}
-                placeholder="e.g. ABC1234 or MV File No."
+                placeholder="e.g. ABC1234 (or TBA)"
               />
               {errors.plate_no && <p className="text-xs text-red-500 mt-1">{errors.plate_no.message}</p>}
+            </div>
+            <div>
+              <label className={labelClass}>MV File No. *</label>
+              <input
+                {...register('mv_file_no', { required: 'MV File number is required' })}
+                className={inputClass(errors.mv_file_no)}
+                placeholder="e.g. 1301-00000000000"
+              />
+              {errors.mv_file_no && <p className="text-xs text-red-500 mt-1">{errors.mv_file_no.message}</p>}
             </div>
             <div>
               <label className={labelClass}>Bank *</label>

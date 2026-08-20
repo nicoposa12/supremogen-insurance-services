@@ -40,6 +40,8 @@ export interface Customer {
   // Transaction fields
   record_no?: string;
   plate_no?: string | null;
+  mv_file_no?: string | null;
+  auth_no?: string | null;
   unit?: string | null;
   mortgage?: string | null;
   agent?: string | null;
@@ -253,6 +255,8 @@ export interface CustomerFormData {
   // Transaction fields
   record_no?: string;
   plate_no?: string;
+  mv_file_no?: string;
+  auth_no?: string;
   unit?: string;
   mortgage?: string;
   agent?: string;

@@ -29,6 +29,7 @@ class QuotationController extends Controller
 
         $query = Quotation::with([
             'customer',
+            'customer.createdBy:id,name',
             'customer.attachments',
             'policy',
             'policy.invoice',
