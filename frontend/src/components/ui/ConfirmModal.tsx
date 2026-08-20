@@ -28,14 +28,8 @@ export default function ConfirmModal({
 
   useEffect(() => {
     if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !loading) onCancel();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    // Auto-focus the cancel button for accessibility
     confirmRef.current?.focus();
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, onCancel, loading]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -73,7 +67,6 @@ export default function ConfirmModal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity"
-        onClick={() => !loading && onCancel()}
       />
 
       {/* Modal */}

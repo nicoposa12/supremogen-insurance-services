@@ -248,8 +248,8 @@ export default function RenewalsPage() {
 
       {/* Process Renewal Modal */}
       {processTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setProcessTarget(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
             <h3 className="text-lg font-bold text-slate-800">Renew Policy</h3>
             <p className="text-sm text-slate-500">
               Renewing <span className="font-medium text-slate-700">{processTarget.policy?.policy_number}</span> for{' '}

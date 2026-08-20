@@ -261,8 +261,8 @@ export default function InvoiceDetailPage({ id: propId, onClose, onEdit }: { id?
 
       {/* ─── Record Payment Modal ───────────── */}
       {isPaymentOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setIsPaymentOpen(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             
             {/* Modal Header */}
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between shrink-0">

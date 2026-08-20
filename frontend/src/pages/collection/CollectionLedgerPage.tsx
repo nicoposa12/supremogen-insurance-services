@@ -1011,21 +1011,7 @@ export default function CollectionLedgerPage() {
     }
   }, [filteredInvoices, searchParams, querySearch, invoicesLoading]);
 
-  // Listen for Escape key press to close modals
-  useEffect(() => {
-    if (!collectionModalOpen && !previewAttachment) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (previewAttachment) {
-          setPreviewAttachment(null);
-        } else if (collectionModalOpen) {
-          setCollectionModalOpen(false);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [collectionModalOpen, previewAttachment]);
+
   // Mutation for recording a collection payment
   const recordCollectionMut = useMutation({
     mutationFn: (data: PaymentFormData) => recordPayment(data),
@@ -2668,7 +2654,6 @@ export default function CollectionLedgerPage() {
             {/* Backdrop */}
             <div
               className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
-              onClick={() => setCollectionModalOpen(false)}
             />
 
             {/* Form Modal Body */}
@@ -3245,11 +3230,6 @@ export default function CollectionLedgerPage() {
         <div className="fixed inset-0 z-[10005] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
-            onClick={() => {
-              if (previewUrl) window.URL.revokeObjectURL(previewUrl);
-              setPreviewUrl(null);
-              setPreviewAttachment(null);
-            }}
           />
           <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-3xl w-full p-6 border border-slate-100 dark:border-slate-800 animate-scale-in max-h-[90vh] flex flex-col">
             <button

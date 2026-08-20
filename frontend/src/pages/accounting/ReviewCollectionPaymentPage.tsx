@@ -218,21 +218,7 @@ export default function ReviewCollectionPaymentPage() {
     }
   }, [payments, autoOpenModal, searchParamVal]);
 
-  // Listen for Escape key press to close modals
-  useEffect(() => {
-    if (!selectedPayment && !previewAttachment) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (previewAttachment) {
-          handleClosePreview();
-        } else if (selectedPayment) {
-          setSelectedPayment(null);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedPayment, previewAttachment]);
+
 
   // Verification Mutation
   const verifyMut = useMutation({
@@ -882,8 +868,8 @@ export default function ReviewCollectionPaymentPage() {
 
       {/* Verification Confirmation Modal */}
       {selectedPayment && actionType && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer" onClick={() => setSelectedPayment(null)}>
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 cursor-default" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 cursor-default">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className={`p-2 rounded-xl ${actionType === 'verified' ? 'bg-[#4A0E17]/10 text-[#4A0E17]' : 'bg-rose-100 text-rose-800'}`}>
@@ -1163,8 +1149,8 @@ export default function ReviewCollectionPaymentPage() {
 
       {/* Proof of Payment Preview Modal */}
       {previewAttachment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" onClick={handleClosePreview}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <FileText className="h-5 w-5 text-amber-300 shrink-0" />

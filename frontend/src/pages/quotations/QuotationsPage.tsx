@@ -351,8 +351,8 @@ export default function QuotationsPage() {
 
       {/* ─── Quotation Form Modal ───────────── */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setIsFormOpen(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             
             {/* Modal Header */}
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between shrink-0">
@@ -387,8 +387,8 @@ export default function QuotationsPage() {
 
       {/* ─── Quotation Details Modal ───────────── */}
       {selectedQuotationId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedQuotationId(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             <QuotationDetailPage 
               id={selectedQuotationId} 
               onClose={() => setSelectedQuotationId(null)} 
@@ -405,8 +405,8 @@ export default function QuotationsPage() {
 
       {/* ─── Document Preview Modal ───────────── */}
       {previewAttachment !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={handleClosePreview}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh] animate-scale-in">
             
             {/* Modal Header */}
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">

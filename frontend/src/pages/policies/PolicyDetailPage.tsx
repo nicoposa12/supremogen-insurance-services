@@ -185,7 +185,7 @@ export default function PolicyDetailPage({ id: propId, onClose }: { id?: number;
       {/* Cancel Modal */}
       {showCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowCancel(false)} />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" />
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-scale-in">
             <h3 className="text-lg font-bold text-slate-800 mb-2">Cancel Policy</h3>
             <p className="text-sm text-slate-500 mb-4">This action cannot be undone. Please provide a reason.</p>

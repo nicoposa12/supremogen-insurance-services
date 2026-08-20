@@ -11,6 +11,7 @@ import { uploadAttachment } from '../../services/attachmentApi';
 import type { CustomerFormData } from '../../types/CustomerTypes';
 import { parseFullName } from './CustomersPage';
 import { useAuth } from '../../context/AuthContext';
+import { BANK_OPTIONS } from '../quotations/QuotationFormPage';
 
 export default function CustomerFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -81,6 +82,17 @@ export default function CustomerFormPage() {
 
   const usedRateType = watch('used_rate_type');
   const isPartnerRate = usedRateType === 'partner_rate' || usedRateType === 'Partner Rate';
+  const watchedMortgage = watch('mortgage');
+  const [isOtherBank, setIsOtherBank] = useState(false);
+
+  useEffect(() => {
+    if (watchedMortgage) {
+      const m = watchedMortgage.toUpperCase().trim();
+      if (m && !BANK_OPTIONS.includes(m)) {
+        setIsOtherBank(true);
+      }
+    }
+  }, [watchedMortgage]);
 
   const isSalesOrRenewal = roles?.some((r) => r === 'Sales Agent' || r === 'Team Renewal');
   const isUnderwriterOrAdmin = roles?.some((r) => r === 'Underwriter' || r === 'Admin' || r === 'Super Admin');
@@ -589,33 +601,38 @@ export default function CustomerFormPage() {
             </div>
             <div>
               <label className={labelClass}>Bank *</label>
-              <select {...register('mortgage', { required: 'Bank is required' })} className={inputClass(errors.mortgage)}>
+              <select
+                value={isOtherBank ? 'OTHER' : (BANK_OPTIONS.includes(watchedMortgage || '') ? watchedMortgage : (watchedMortgage ? 'OTHER' : ''))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'OTHER') {
+                    setIsOtherBank(true);
+                    setValue('mortgage', '', { shouldValidate: true });
+                  } else {
+                    setIsOtherBank(false);
+                    setValue('mortgage', val, { shouldValidate: true });
+                  }
+                }}
+                className={inputClass(errors.mortgage)}
+              >
                 <option value="">Select Bank</option>
-                <option value="TFSPH">TFSPH</option>
-                <option value="EASTWEST">EASTWEST</option>
-                <option value="MAYBANK">MAYBANK</option>
-                <option value="BPI">BPI</option>
-                <option value="BDO UNIBANK INC.">BDO UNIBANK INC.</option>
-                <option value="PS BANK">PS BANK</option>
-                <option value="SECURITY BANK">SECURITY BANK</option>
-                <option value="MALAYAN SAVINGS BANK">MALAYAN SAVINGS BANK</option>
-                <option value="METROBANK">METROBANK</option>
-                <option value="UCPB SAVINGS">UCPB SAVINGS</option>
-                <option value="LUZON DEVELOPMENT BANK">LUZON DEVELOPMENT BANK</option>
-                <option value="PHILIPPINE BANK OF COMMUNICATION (PBCOM)">PHILIPPINE BANK OF COMMUNICATION (PBCOM)</option>
-                <option value="RCBC">RCBC</option>
-                <option value="PHILIPPINE BUSINESS BANK (PBB)">PHILIPPINE BUSINESS BANK (PBB)</option>
-                <option value="SOUTH ASIALINK FINANCING CORP">SOUTH ASIALINK FINANCING CORP</option>
-                <option value="N/A">N/A</option>
-                <option value="ASIALINK">ASIALINK</option>
-                <option value="CHINA BANK SAVINGS">CHINA BANK SAVINGS</option>
-                <option value="CHINA BANK">CHINA BANK</option>
-                <option value="GLOBAL DOMINION FINANCING INC">GLOBAL DOMINION FINANCING INC</option>
-                <option value="LANDBANK">LANDBANK</option>
-                <option value="ORICO AUTO FINANCE PHILIPPINES">ORICO AUTO FINANCE PHILIPPINES</option>
-                <option value="BANK OF COMMERCE">BANK OF COMMERCE</option>
+                {BANK_OPTIONS.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
                 <option value="OTHER">OTHER</option>
               </select>
+              {isOtherBank && (
+                <div className="mt-2 animate-fade-in">
+                  <input
+                    type="text"
+                    value={watchedMortgage || ''}
+                    onChange={(e) => setValue('mortgage', e.target.value.toUpperCase(), { shouldValidate: true })}
+                    className={inputClass(errors.mortgage)}
+                    placeholder="Specify other bank name..."
+                    autoFocus
+                  />
+                </div>
+              )}
               {errors.mortgage && <p className="text-xs text-red-500 mt-1">{errors.mortgage.message}</p>}
             </div>
             <div>

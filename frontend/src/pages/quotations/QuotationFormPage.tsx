@@ -117,8 +117,34 @@ const PD_RATES_COMMERCIAL_VEHICLE: Record<number, number> = {
   400000: 1575,
   500000: 1680,
   750000: 2100,
-  1000000: 2535
+  1000000: 2535,
 };
+
+export const BANK_OPTIONS = [
+  'TFSPH',
+  'EASTWEST',
+  'MAYBANK',
+  'BPI',
+  'BDO UNIBANK INC.',
+  'PS BANK',
+  'SECURITY BANK',
+  'MALAYAN SAVINGS BANK',
+  'METROBANK',
+  'UCPB SAVINGS',
+  'LUZON DEVELOPMENT BANK',
+  'PHILIPPINE BANK OF COMMUNICATION (PBCOM)',
+  'RCBC',
+  'PHILIPPINE BUSINESS BANK (PBB)',
+  'SOUTH ASIALINK FINANCING CORP',
+  'N/A',
+  'ASIALINK',
+  'CHINA BANK SAVINGS',
+  'CHINA BANK',
+  'GLOBAL DOMINION FINANCING INC',
+  'LANDBANK',
+  'ORICO AUTO FINANCE PHILIPPINES',
+  'BANK OF COMMERCE',
+];
 
 export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { id?: number; onClose?: () => void; onSuccess?: () => void }) {
   const { id: routeId } = useParams<{ id: string }>();
@@ -187,6 +213,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const [authNo, setAuthNo] = useState('');
   const [unit, setUnit] = useState('');
   const [mortgage, setMortgage] = useState('');
+  const [isOtherBank, setIsOtherBank] = useState(false);
 
   // File Upload states
   const [orcrFile, setOrcrFile] = useState<File | null>(null);
@@ -328,10 +355,18 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
         setMvFileNo(q.customer.mv_file_no || (firstItem?.coverage_details as any)?.mv_file_no || '');
         setAuthNo(q.customer.auth_no || (firstItem?.coverage_details as any)?.auth_no || '');
         setUnit(q.customer.unit || '');
-        setMortgage(q.customer.mortgage || '');
+        if (q.customer?.mortgage) {
+          const m = q.customer.mortgage.toUpperCase().trim();
+          setMortgage(m);
+          if (m && !BANK_OPTIONS.includes(m)) {
+            setIsOtherBank(true);
+          } else {
+            setIsOtherBank(false);
+          }
+        }
       }
     }
-  }, [existing]);
+  }, [existing, isEdit]);
 
   // Populate agent name from authenticated user account on create
   useEffect(() => {
@@ -480,7 +515,13 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       setMvFileNo(c.mv_file_no || '');
       setAuthNo(c.auth_no || '');
       setUnit(c.unit || '');
-      setMortgage(c.mortgage || '');
+      const m = (c.mortgage || '').toUpperCase().trim();
+      setMortgage(m);
+      if (m && !BANK_OPTIONS.includes(m)) {
+        setIsOtherBank(true);
+      } else {
+        setIsOtherBank(false);
+      }
 
       if (!isEdit) {
         if (c.agent) setAgent(c.agent);
@@ -998,7 +1039,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
       { value: paymentTerms, name: 'Payment Terms' },
       { value: usedRateType, name: 'Used Rate Type' },
       ...(usedRateType === "PARTNER'S RATE" ? [{ value: partnerName, name: 'Select Partner' }] : []),
-      { value: usedRate, name: 'Used Rate' },
+      ...(!isApprovedRateBySirJess ? [{ value: usedRate, name: 'Used Rate' }] : []),
       ...(isApprovedRateBySirJess ? [{ value: manualTotalPremium, name: 'Total Premium' }] : []),
       { value: receiverName, name: "Receiver's Name" },
       { value: deliveryAddress, name: 'Delivery Address' },
@@ -1273,33 +1314,38 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
             </div>
             <div>
               <label className={labelClass}>Bank *</label>
-              <select value={mortgage} onChange={(e) => setMortgage(e.target.value)} className={getInputClass(mortgage)}>
+              <select
+                value={isOtherBank ? 'OTHER' : (BANK_OPTIONS.includes(mortgage) ? mortgage : (mortgage ? 'OTHER' : ''))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'OTHER') {
+                    setIsOtherBank(true);
+                    setMortgage('');
+                  } else {
+                    setIsOtherBank(false);
+                    setMortgage(val);
+                  }
+                }}
+                className={getInputClass(mortgage || (isOtherBank ? 'OTHER' : ''))}
+              >
                 <option value="">Select Bank</option>
-                <option value="TFSPH">TFSPH</option>
-                <option value="EASTWEST">EASTWEST</option>
-                <option value="MAYBANK">MAYBANK</option>
-                <option value="BPI">BPI</option>
-                <option value="BDO UNIBANK INC.">BDO UNIBANK INC.</option>
-                <option value="PS BANK">PS BANK</option>
-                <option value="SECURITY BANK">SECURITY BANK</option>
-                <option value="MALAYAN SAVINGS BANK">MALAYAN SAVINGS BANK</option>
-                <option value="METROBANK">METROBANK</option>
-                <option value="UCPB SAVINGS">UCPB SAVINGS</option>
-                <option value="LUZON DEVELOPMENT BANK">LUZON DEVELOPMENT BANK</option>
-                <option value="PHILIPPINE BANK OF COMMUNICATION (PBCOM)">PHILIPPINE BANK OF COMMUNICATION (PBCOM)</option>
-                <option value="RCBC">RCBC</option>
-                <option value="PHILIPPINE BUSINESS BANK (PBB)">PHILIPPINE BUSINESS BANK (PBB)</option>
-                <option value="SOUTH ASIALINK FINANCING CORP">SOUTH ASIALINK FINANCING CORP</option>
-                <option value="N/A">N/A</option>
-                <option value="ASIALINK">ASIALINK</option>
-                <option value="CHINA BANK SAVINGS">CHINA BANK SAVINGS</option>
-                <option value="CHINA BANK">CHINA BANK</option>
-                <option value="GLOBAL DOMINION FINANCING INC">GLOBAL DOMINION FINANCING INC</option>
-                <option value="LANDBANK">LANDBANK</option>
-                <option value="ORICO AUTO FINANCE PHILIPPINES">ORICO AUTO FINANCE PHILIPPINES</option>
-                <option value="BANK OF COMMERCE">BANK OF COMMERCE</option>
+                {BANK_OPTIONS.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
                 <option value="OTHER">OTHER</option>
               </select>
+              {isOtherBank && (
+                <div className="mt-2 animate-fade-in">
+                  <input
+                    type="text"
+                    value={mortgage}
+                    onChange={(e) => setMortgage(e.target.value.toUpperCase())}
+                    className={getInputClass(mortgage)}
+                    placeholder="Specify other bank name..."
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className={labelClass}>Inception Date *</label>
@@ -1694,7 +1740,7 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
                 <div>
                   <label className={labelClass}>Seater</label>
                   <select value={seater} onChange={(e) => setSeater(Number(e.target.value))} className={inputClass}>
-                    {[2, 3, 4, 5, 7, 8, 10, 12, 15].map((s) => (
+                    {[2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 18, 21, 24, 30].map((s) => (
                       <option key={s} value={s}>{s} Seater</option>
                     ))}
                   </select>

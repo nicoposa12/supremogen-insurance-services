@@ -1407,8 +1407,8 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
 
       {/* Claim History Modal */}
       {showClaimsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowClaimsModal(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[80vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[80vh] animate-scale-in">
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between">
               <h3 className="font-bold text-base tracking-tight">Claim History - {assuredClient}</h3>
               <button onClick={() => setShowClaimsModal(false)} className="p-1 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition">
@@ -1520,11 +1520,9 @@ export default function InsuranceRequestDetailPage({ id, onClose }: { id: number
       {showDetailsModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in no-print"
-          onClick={() => setShowDetailsModal(false)}
         >
           <div
             className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden w-full max-w-2xl max-h-[90vh] flex flex-col animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
           >
             {/* Minimal Modern Header */}
             <div className="flex items-center justify-between px-6 py-4.5 border-b border-slate-100 bg-white">

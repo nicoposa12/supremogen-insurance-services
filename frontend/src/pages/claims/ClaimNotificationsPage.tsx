@@ -421,8 +421,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
     return (
       <div
-        onClick={handleCloseViewAttachment}
-        className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print cursor-pointer"
+        className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 no-print"
       >
         <div
           onClick={(e) => e.stopPropagation()}
@@ -498,8 +497,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
     return (
       <div
-        onClick={() => { setReturnDocTarget(null); setReturnDocReason(''); }}
-        className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 no-print cursor-pointer"
+        className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 no-print"
       >
         <div
           onClick={(e) => e.stopPropagation()}
@@ -571,20 +569,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
     );
   };
 
-  // Listen to Escape key to close modals
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsEmailModalOpen(false);
-        setReturnTarget(null);
-        setReturnDocTarget(null);
-        setAcknowledgeTarget(null);
-        handleCloseViewAttachment();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+
 
   // Helper to determine claim type from nature_of_claims on edit
   const determineClaimType = (nature: string | undefined): string => {
@@ -2714,8 +2699,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
         {returnTarget && (
           <div
-            onClick={() => { setReturnTarget(null); setReturnReason(''); }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 cursor-pointer"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
           >
             <div
               onClick={(e) => e.stopPropagation()}
@@ -4018,8 +4002,7 @@ export default function ClaimNotificationsPage({ completedOnly = false }: ClaimN
 
       {returnTarget && (
         <div
-          onClick={() => { setReturnTarget(null); setReturnReason(''); }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}

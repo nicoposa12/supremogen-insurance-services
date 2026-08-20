@@ -28,6 +28,7 @@ import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { getCustomers, deleteCustomer, createCustomer, updateCustomer } from '../../services/customerApi';
 import { getPayments } from '../../services/paymentApi';
+import { BANK_OPTIONS } from '../quotations/QuotationFormPage';
 import { getClaims } from '../../services/claimApi';
 import { uploadAttachment, getAttachments, downloadAttachment } from '../../services/attachmentApi';
 import type { Customer, CustomerListParams, CustomerFormData } from '../../types/CustomerTypes';
@@ -154,6 +155,7 @@ export default function CustomersPage() {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CustomerFormData>({
     defaultValues: {
@@ -199,6 +201,17 @@ export default function CustomersPage() {
 
   const usedRateType = watch('used_rate_type');
   const isPartnerRate = usedRateType === 'partner_rate' || usedRateType === 'Partner Rate';
+  const watchedMortgage = watch('mortgage');
+  const [isOtherBank, setIsOtherBank] = useState(false);
+
+  useEffect(() => {
+    if (watchedMortgage) {
+      const m = watchedMortgage.toUpperCase().trim();
+      if (m && !BANK_OPTIONS.includes(m)) {
+        setIsOtherBank(true);
+      }
+    }
+  }, [watchedMortgage]);
 
   // Reset form when opening/closing or changing edit target
   useEffect(() => {
@@ -765,8 +778,8 @@ export default function CustomersPage() {
 
       {/* ─── Transaction Details Modal ─────────── */}
       {selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedCustomer(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             
             {/* Modal Header */}
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between">
@@ -1380,8 +1393,8 @@ export default function CustomersPage() {
 
       {/* ─── Transaction Form Modal ───────────── */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setIsFormOpen(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             
             {/* Modal Header */}
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between">
@@ -1696,33 +1709,38 @@ export default function CustomersPage() {
                       </div>
                       <div>
                         <label className={labelClass}>Bank *</label>
-                        <select {...register('mortgage', { required: 'Bank is required' })} className={inputClass(errors.mortgage)}>
+                        <select
+                          value={isOtherBank ? 'OTHER' : (BANK_OPTIONS.includes(watchedMortgage || '') ? watchedMortgage : (watchedMortgage ? 'OTHER' : ''))}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'OTHER') {
+                              setIsOtherBank(true);
+                              setValue('mortgage', '', { shouldValidate: true });
+                            } else {
+                              setIsOtherBank(false);
+                              setValue('mortgage', val, { shouldValidate: true });
+                            }
+                          }}
+                          className={inputClass(errors.mortgage)}
+                        >
                           <option value="">Select Bank</option>
-                          <option value="TFSPH">TFSPH</option>
-                          <option value="EASTWEST">EASTWEST</option>
-                          <option value="MAYBANK">MAYBANK</option>
-                          <option value="BPI">BPI</option>
-                          <option value="BDO UNIBANK INC.">BDO UNIBANK INC.</option>
-                          <option value="PS BANK">PS BANK</option>
-                          <option value="SECURITY BANK">SECURITY BANK</option>
-                          <option value="MALAYAN SAVINGS BANK">MALAYAN SAVINGS BANK</option>
-                          <option value="METROBANK">METROBANK</option>
-                          <option value="UCPB SAVINGS">UCPB SAVINGS</option>
-                          <option value="LUZON DEVELOPMENT BANK">LUZON DEVELOPMENT BANK</option>
-                          <option value="PHILIPPINE BANK OF COMMUNICATION (PBCOM)">PHILIPPINE BANK OF COMMUNICATION (PBCOM)</option>
-                          <option value="RCBC">RCBC</option>
-                          <option value="PHILIPPINE BUSINESS BANK (PBB)">PHILIPPINE BUSINESS BANK (PBB)</option>
-                          <option value="SOUTH ASIALINK FINANCING CORP">SOUTH ASIALINK FINANCING CORP</option>
-                          <option value="N/A">N/A</option>
-                          <option value="ASIALINK">ASIALINK</option>
-                          <option value="CHINA BANK SAVINGS">CHINA BANK SAVINGS</option>
-                          <option value="CHINA BANK">CHINA BANK</option>
-                          <option value="GLOBAL DOMINION FINANCING INC">GLOBAL DOMINION FINANCING INC</option>
-                          <option value="LANDBANK">LANDBANK</option>
-                          <option value="ORICO AUTO FINANCE PHILIPPINES">ORICO AUTO FINANCE PHILIPPINES</option>
-                          <option value="BANK OF COMMERCE">BANK OF COMMERCE</option>
+                          {BANK_OPTIONS.map((b) => (
+                            <option key={b} value={b}>{b}</option>
+                          ))}
                           <option value="OTHER">OTHER</option>
                         </select>
+                        {isOtherBank && (
+                          <div className="mt-2 animate-fade-in">
+                            <input
+                              type="text"
+                              value={watchedMortgage || ''}
+                              onChange={(e) => setValue('mortgage', e.target.value.toUpperCase(), { shouldValidate: true })}
+                              className={inputClass(errors.mortgage)}
+                              placeholder="Specify other bank name..."
+                              autoFocus
+                            />
+                          </div>
+                        )}
                         {errors.mortgage && <p className="text-xs text-red-500 mt-1">{errors.mortgage.message}</p>}
                       </div>
                       <div>

@@ -1186,8 +1186,8 @@ export default function SettingsPage() {
 
       {/* ─── Create/Edit User Modal ───────────── */}
       {isUserModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setIsUserModalOpen(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             
             {/* Modal Header */}
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between">
@@ -1289,8 +1289,8 @@ export default function SettingsPage() {
 
       {/* Archive Account Modal */}
       {archiveTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setArchiveTarget(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             {/* Modal Header */}
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1371,8 +1371,8 @@ export default function SettingsPage() {
 
       {/* Reset Password Modal */}
       {resetPasswordTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setResetPasswordTarget(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             
             {/* Modal Header */}
             <div className="bg-[#4A0E17] text-white px-6 py-4 flex items-center justify-between">

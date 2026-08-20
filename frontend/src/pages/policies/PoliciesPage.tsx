@@ -165,8 +165,8 @@ export default function PoliciesPage() {
 
       {/* ─── Policy Details Modal ───────────── */}
       {selectedPolicyId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedPolicyId(null)}>
-          <div className="bg-slate-50 rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-slate-50 rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-scale-in">
             <div className="flex-grow overflow-y-auto p-6">
               <PolicyDetailPage 
                 id={selectedPolicyId} 
