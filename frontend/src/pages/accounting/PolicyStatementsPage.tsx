@@ -332,6 +332,8 @@ export default function PolicyStatementsPage() {
       const createdDate = new Date(q.created_at);
       const dateFormatted = `${createdDate.toLocaleDateString('en-US')} ${createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
       const refNo = q.quotation_number || q.ir_number || `IR-${q.id}`;
+      const custAny = (q.customer || {}) as any;
+      const policyNo = q.policy?.policy_number || q.policy_number || custAny.policy_no || '—';
       const assured = getAssuredName(q);
       const statusRemit = q.is_remitted ? 'Remitted' : 'Unremitted';
       const isCancelled = q.status === 'cancelled' ? ' [CANCELLED]' : '';
@@ -339,6 +341,7 @@ export default function PolicyStatementsPage() {
       return `
         <tr>
           <td style="text-align: left; font-family: monospace;">${refNo}${isCancelled}</td>
+          <td style="text-align: left; font-family: monospace;">${policyNo}</td>
           <td style="text-align: left; font-weight: 500;">${assured}</td>
           <td style="text-align: center;">${fin.provider}</td>
           <td style="text-align: right; font-family: monospace;">₱${formatCurrency(fin.totalPolicyPremium)}</td>
@@ -388,13 +391,13 @@ export default function PolicyStatementsPage() {
         <!-- Report Header -->
         <table style="border: none; margin-bottom: 12px;">
           <tr style="border: none;">
-            <td colspan="11" style="border: none;" class="header-title">SUPREMOGEN INSURANCE SERVICES</td>
+            <td colspan="12" style="border: none;" class="header-title">SUPREMOGEN INSURANCE SERVICES</td>
           </tr>
           <tr style="border: none;">
-            <td colspan="11" style="border: none; font-size: 13pt; font-weight: bold; color: #1e293b;">POLICY STATEMENTS & FINANCIAL LEDGER REPORT</td>
+            <td colspan="12" style="border: none; font-size: 13pt; font-weight: bold; color: #1e293b;">POLICY STATEMENTS & FINANCIAL LEDGER REPORT</td>
           </tr>
           <tr style="border: none;">
-            <td colspan="11" style="border: none;" class="header-sub">
+            <td colspan="12" style="border: none;" class="header-sub">
               Timeframe: <strong>${timeframeLabel}</strong> &nbsp;|&nbsp; Provider Filter: <strong>${providerLabel}</strong> &nbsp;|&nbsp; Exported On: <strong>${generatedDate}</strong>
             </td>
           </tr>
@@ -403,7 +406,7 @@ export default function PolicyStatementsPage() {
         <!-- 1. Key Metrics & Financial Computation Flow -->
         <table style="margin-bottom: 20px;">
           <tr>
-            <th colspan="11" class="section-header">1. FINANCIAL COMPUTATION FLOW & EXECUTIVE KEY METRICS</th>
+            <th colspan="12" class="section-header">1. FINANCIAL COMPUTATION FLOW & EXECUTIVE KEY METRICS</th>
           </tr>
           <tr style="background-color: #f8fafc;">
             <td colspan="2" class="kpi-title" style="text-align: center;">TOTAL POLICY PREMIUM</td>
@@ -412,7 +415,7 @@ export default function PolicyStatementsPage() {
             <td style="text-align: center; font-weight: bold; font-size: 11pt; background-color: #ffffff;">=</td>
             <td colspan="2" class="kpi-title" style="text-align: center;">GROSS COMPANY INCOME</td>
             <td style="text-align: center; font-weight: bold; font-size: 11pt; background-color: #ffffff;">−</td>
-            <td class="kpi-title" style="text-align: center;">MARKUPS & FREEBIES</td>
+            <td colspan="2" class="kpi-title" style="text-align: center;">MARKUPS & FREEBIES</td>
             <td class="kpi-title" style="text-align: center; background-color: #d1fae5; color: #065f46;">NET COMPANY INCOME</td>
           </tr>
           <tr>
@@ -422,7 +425,7 @@ export default function PolicyStatementsPage() {
             <td style="text-align: center; font-weight: bold;">=</td>
             <td colspan="2" class="kpi-value" style="color: #b45309; text-align: center;">₱${accountingMetrics.totalCompInc.toLocaleString('en-US')}</td>
             <td style="text-align: center; font-weight: bold;">−</td>
-            <td class="kpi-value" style="color: #be123c; text-align: center;">₱${accountingMetrics.totalDeductions.toLocaleString('en-US')}</td>
+            <td colspan="2" class="kpi-value" style="color: #be123c; text-align: center;">₱${accountingMetrics.totalDeductions.toLocaleString('en-US')}</td>
             <td class="kpi-value" style="color: #047857; text-align: center; background-color: #ecfdf5; font-size: 13pt;">₱${accountingMetrics.totalNetInc.toLocaleString('en-US')}</td>
           </tr>
           <tr style="font-size: 8.5pt; color: #64748b; background-color: #ffffff;">
@@ -432,7 +435,7 @@ export default function PolicyStatementsPage() {
             <td style="text-align: center;"></td>
             <td colspan="2" style="text-align: center;">Profit Margin: ${accountingMetrics.marginPct}%</td>
             <td style="text-align: center;"></td>
-            <td style="text-align: center;">Agent/Sub-Agent/Freebie/Cashback</td>
+            <td colspan="2" style="text-align: center;">Agent/Sub-Agent/Freebie/Cashback</td>
             <td style="text-align: center; font-weight: bold; color: #047857;">Final Net Profit</td>
           </tr>
         </table>
@@ -440,10 +443,11 @@ export default function PolicyStatementsPage() {
         <!-- 2. Detailed Data Table -->
         <table>
           <tr>
-            <th colspan="11" class="section-header">2. DETAILED POLICY STATEMENTS LEDGER (${approvedQuotations.length} RECORDS)</th>
+            <th colspan="12" class="section-header">2. DETAILED POLICY STATEMENTS LEDGER (${approvedQuotations.length} RECORDS)</th>
           </tr>
           <tr>
             <th class="tbl-th">Ref / IR No.</th>
+            <th class="tbl-th">Policy No.</th>
             <th class="tbl-th">Assured Name</th>
             <th class="tbl-th">Provider</th>
             <th class="tbl-th">Total Premium</th>
@@ -458,7 +462,7 @@ export default function PolicyStatementsPage() {
           ${rowsHtml}
           <!-- Totals Footer Row -->
           <tr class="tbl-total">
-            <td colspan="3" style="text-align: right; font-weight: bold; font-size: 10pt; padding: 10px;">TOTALS (${approvedQuotations.length} POLICIES):</td>
+            <td colspan="4" style="text-align: right; font-weight: bold; font-size: 10pt; padding: 10px;">TOTALS (${approvedQuotations.length} POLICIES):</td>
             <td style="text-align: right; font-family: monospace; font-weight: bold; font-size: 10pt; color: #1d4ed8;">₱${formatCurrency(accountingMetrics.totalPrem)}</td>
             <td style="text-align: right; font-family: monospace; font-weight: bold; font-size: 10pt; color: #7e22ce;">₱${formatCurrency(accountingMetrics.totalRemit)}</td>
             <td style="text-align: right; font-family: monospace; font-weight: bold; font-size: 10pt; color: #b45309;">₱${formatCurrency(accountingMetrics.totalCompInc)}</td>
@@ -859,6 +863,7 @@ export default function PolicyStatementsPage() {
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
                     <tr>
                       <th className="px-2.5 py-2.5 whitespace-nowrap">Ref / IR No.</th>
+                      <th className="px-2.5 py-2.5 whitespace-nowrap">Policy No.</th>
                       <th className="px-2.5 py-2.5 whitespace-nowrap">Assured Name</th>
                       <th className="px-2 py-2.5 text-center whitespace-nowrap">Provider</th>
                       <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Total Premium</th>
@@ -878,6 +883,8 @@ export default function PolicyStatementsPage() {
                       const createdDate = new Date(q.created_at);
                       const formattedDateStr = createdDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
                       const formattedTimeStr = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                      const custAny = (q.customer || {}) as any;
+                      const policyNo = q.policy?.policy_number || q.policy_number || custAny.policy_no || '—';
 
                       return (
                         <tr
@@ -897,6 +904,13 @@ export default function PolicyStatementsPage() {
                               <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300 uppercase tracking-wider">
                                 CANCELLED
                               </span>
+                            )}
+                          </td>
+                          <td className="px-2.5 py-2 font-mono text-xs whitespace-nowrap">
+                            {policyNo !== '—' ? (
+                              <span className="text-slate-800 font-semibold">{policyNo}</span>
+                            ) : (
+                              <span className="text-slate-400 font-normal italic">—</span>
                             )}
                           </td>
                           <td className="px-2.5 py-2 font-semibold text-slate-700 max-w-[130px] truncate" title={getAssuredName(q)}>

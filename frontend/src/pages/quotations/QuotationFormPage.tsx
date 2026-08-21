@@ -1098,10 +1098,13 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
   const isSaving = isSavingLocal || createMut.isPending || updateMut.isPending || submitMut.isPending;
   const getInputClass = (value: any, isRequired = true) => {
     const isError = submitAttempted && isRequired && (!value || !value.toString().trim());
-    return `w-full px-3.5 py-2 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 transition-all ${
+    const hasValue = Boolean(value && value.toString().trim());
+    return `w-full px-3.5 py-2 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 transition-all ${
       isError 
-        ? 'bg-red-50/50 border border-red-500 focus:border-red-500 focus:ring-red-200' 
-        : 'bg-slate-50 border border-slate-200 focus:border-[#4A0E17] focus:ring-[#4A0E17]/20'
+        ? 'bg-red-50/50 border-2 border-red-500 focus:border-red-500 focus:ring-red-200' 
+        : hasValue
+          ? 'bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-[#4A0E17] focus:ring-[#4A0E17]/20 shadow-2xs'
+          : 'bg-white border-2 border-slate-200 hover:border-slate-300 focus:border-[#4A0E17] focus:ring-[#4A0E17]/20 shadow-2xs'
     }`;
   };
 
@@ -1110,11 +1113,13 @@ export default function QuotationFormPage({ id: propId, onClose, onSuccess }: { 
     return `flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition p-4 text-center ${
       isError
         ? 'bg-red-50/50 border-red-500 hover:bg-red-50 focus:outline-none'
-        : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+        : file
+          ? 'bg-emerald-50/20 border-emerald-500 hover:bg-emerald-50/30'
+          : 'bg-white border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50'
     }`;
   };
 
-  const inputClass = 'w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all';
+  const inputClass = 'w-full px-3.5 py-2 bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-[#4A0E17] focus:ring-2 focus:ring-[#4A0E17]/20 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none transition-all shadow-2xs disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-600 disabled:cursor-not-allowed';
   const labelClass = 'block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider';
 
   if (isEdit && loadingExisting) {
