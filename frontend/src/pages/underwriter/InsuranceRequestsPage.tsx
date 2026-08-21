@@ -93,6 +93,7 @@ export default function InsuranceRequestsPage() {
         "QUOTATION USED",
         "USAGE",
         "POLICY NO #",
+        "STATUS",
         "ASSURED NAME",
         "ASSURED ADDRESS",
         "YEAR MODEL & MAKE",
@@ -165,6 +166,10 @@ export default function InsuranceRequestsPage() {
 
         // 8. POLICY NO #
         const policyNo = c.policy_no || r.policy_number || (r as any).policy?.policy_number || '';
+
+        // STATUS (Next to Policy No #)
+        const rawStatus = (r.status || '').toString().trim();
+        const formattedStatus = rawStatus ? rawStatus.replace(/_/g, ' ').toUpperCase() : 'DRAFT';
 
         // 9. ASSURED NAME
         const assuredName = [c.first_name, c.middle_name, c.last_name, c.suffix].filter(Boolean).join(' ') || c.full_name || cov.full_name || '';
@@ -290,6 +295,7 @@ export default function InsuranceRequestsPage() {
           quotationUsed,
           usage,
           policyNo,
+          formattedStatus,
           assuredName,
           assuredAddress,
           yearModelMake,
