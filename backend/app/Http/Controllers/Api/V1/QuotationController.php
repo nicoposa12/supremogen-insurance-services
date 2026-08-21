@@ -63,6 +63,26 @@ class QuotationController extends Controller
             });
         }
 
+        if ($request->boolean('all') || $request->input('all') === '1' || $request->input('per_page') === 'all') {
+            $allQuotations = $query
+                ->search($request->input('search'))
+                ->ofStatus($request->input('status'))
+                ->betweenDates($request->input('start_date'), $request->input('end_date'))
+                ->orderBy($sortBy, $sortDir)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'data' => $allQuotations,
+                    'total' => $allQuotations->count(),
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => $allQuotations->count(),
+                ],
+            ]);
+        }
+
         $quotations = $query
             ->search($request->input('search'))
             ->ofStatus($request->input('status'))
@@ -315,10 +335,10 @@ class QuotationController extends Controller
 
         // Notify all Underwriters
         try {
-            $underwriters = \App\Models\User::role('Underwriter')->get();
+            $underwriters = User::role('Underwriter')->get();
             $actionWord = $newStatus === 'resubmitted' ? 'resubmitted' : 'submitted';
             foreach ($underwriters as $underwriter) {
-                \App\Models\Notification::create([
+                Notification::create([
                     'user_id' => $underwriter->id,
                     'title' => $newStatus === 'resubmitted' ? 'Quotation Resubmitted for Review' : 'Quotation Submitted for Review',
                     'message' => "Quotation {$quotation->quotation_number} has been {$actionWord} by " . request()->user()->name . " and requires your review.",
@@ -496,9 +516,9 @@ class QuotationController extends Controller
                     : 'Customer';
 
                 // 1. Notify all Accounting Officers about the newly approved policy statement
-                $accountingOfficers = \App\Models\User::role(['Accounting Officer', 'Team Support Operation'])->get();
+                $accountingOfficers = User::role(['Accounting Officer', 'Team Support Operation'])->get();
                 foreach ($accountingOfficers as $officer) {
-                    \App\Models\Notification::create([
+                    Notification::create([
                         'user_id' => $officer->id,
                         'title'   => 'Policy Statement Ready',
                         'message' => "New policy billing statement for {$refNo} (Assured: {$customerName}) is ready for accounting processing.",
@@ -509,9 +529,9 @@ class QuotationController extends Controller
 
                 // 2. Notify all Collection officers about the generated invoice
                 if ($invoice) {
-                    $collectionOfficers = \App\Models\User::role('Collection')->get();
+                    $collectionOfficers = User::role('Collection')->get();
                     foreach ($collectionOfficers as $officer) {
-                        \App\Models\Notification::create([
+                        Notification::create([
                             'user_id' => $officer->id,
                             'title'   => 'Invoice Issued',
                             'message' => "A new invoice {$invoice->invoice_number} has been generated for {$customerName} with balance ₱" . number_format((float) $invoice->balance, 2) . ".",
@@ -685,7 +705,7 @@ class QuotationController extends Controller
             $path = $file->storeAs("attachments/cancellations", $safeName, $disk);
 
             $attachment = \App\Models\Attachment::create([
-                'attachable_type' => \App\Models\Quotation::class,
+                'attachable_type' => Quotation::class,
                 'attachable_id' => $quotation->id,
                 'file_name' => $originalName,
                 'file_path' => $path,
@@ -727,10 +747,10 @@ class QuotationController extends Controller
 
         // Notify Underwriters
         try {
-            $underwriters = \App\Models\User::role('Underwriter')->get();
+            $underwriters = User::role('Underwriter')->get();
             $requestNumber = $quotation->quotation_number ?? $quotation->ir_number ?? 'Request';
             foreach ($underwriters as $underwriter) {
-                \App\Models\Notification::create([
+                Notification::create([
                     'user_id' => $underwriter->id,
                     'title' => 'Policy Cancellation Requested',
                     'message' => "Cancellation requested for {$requestNumber} ({$clientName}) by " . $request->user()->name . ".",
@@ -835,7 +855,7 @@ class QuotationController extends Controller
         // Notify requested sales agent
         if ($quotation->cancellation_requested_by) {
             try {
-                \App\Models\Notification::create([
+                Notification::create([
                     'user_id' => $quotation->cancellation_requested_by,
                     'title' => $action === 'approve' ? 'Cancellation Request Approved' : 'Cancellation Request Rejected',
                     'message' => "Cancellation request for policy {$quotation->ir_number} was " . ($action === 'approve' ? 'approved' : 'rejected') . " by Underwriter.",
@@ -920,13 +940,13 @@ class QuotationController extends Controller
 
             if ($quotation->customer) {
                 if ($quotation->customer->created_by) {
-                    $creator = \App\Models\User::find($quotation->customer->created_by);
+                    $creator = User::find($quotation->customer->created_by);
                     if ($creator && $creator->isSalesOrRenewal()) {
                         $targetUserIds->push($creator->id);
                     }
                 }
                 if ($quotation->customer->agent) {
-                    $matchedAgent = \App\Models\User::where('name', $quotation->customer->agent)->first();
+                    $matchedAgent = User::where('name', $quotation->customer->agent)->first();
                     if ($matchedAgent && $matchedAgent->isSalesOrRenewal()) {
                         $targetUserIds->push($matchedAgent->id);
                     }
@@ -935,21 +955,21 @@ class QuotationController extends Controller
 
             // Fallback: if no specific agent user found, notify all active Sales Agent and Team Renewal users
             if ($targetUserIds->isEmpty()) {
-                $agentsAndRenewals = \App\Models\User::role(['Sales Agent', 'Team Renewal'])->get();
+                $agentsAndRenewals = User::role(['Sales Agent', 'Team Renewal'])->get();
                 foreach ($agentsAndRenewals as $agentUser) {
                     $targetUserIds->push($agentUser->id);
                 }
             }
 
             foreach ($targetUserIds->unique() as $userId) {
-                $alreadyNotified = \App\Models\Notification::where('user_id', $userId)
+                $alreadyNotified = Notification::where('user_id', $userId)
                     ->where('title', $title)
                     ->where('message', $message)
                     ->where('created_at', '>=', now()->subSeconds(10))
                     ->exists();
 
                 if (!$alreadyNotified) {
-                    \App\Models\Notification::create([
+                    Notification::create([
                         'user_id' => $userId,
                         'title'   => $title,
                         'message' => $message,

@@ -3,11 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, Eye, Filter, FileText, X, Loader2, Download } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { exportToExcelXml, type ExcelCell } from '../../utils/excelExport';
 
 import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
 import EmptyState from '../../components/ui/EmptyState';
+import { useToast } from '../../components/ui/Toast';
 import { getQuotations } from '../../services/quotationApi';
 import type { Quotation, QuotationListParams } from '../../types/SalesTypes';
 import InsuranceRequestDetailPage from './InsuranceRequestDetailPage.tsx';
@@ -15,8 +17,39 @@ import InlinePolicyNoCell from '../../components/quotations/InlinePolicyNoCell';
 import BankAttachmentCell from '../../components/quotations/BankAttachmentCell';
 import { useAuth } from '../../context/AuthContext';
 
+const formatDateOnly = (dateVal?: string | null): string => {
+  if (!dateVal) return '';
+  try {
+    const raw = String(dateVal).trim();
+    if (!raw) return '';
+    const match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (match) {
+      const year = match[1];
+      const month = String(parseInt(match[2], 10)).padStart(2, '0');
+      const day = String(parseInt(match[3], 10)).padStart(2, '0');
+      return `${month}/${day}/${year}`;
+    }
+    const mmddyyyy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (mmddyyyy) {
+      const month = String(parseInt(mmddyyyy[1], 10)).padStart(2, '0');
+      const day = String(parseInt(mmddyyyy[2], 10)).padStart(2, '0');
+      const year = mmddyyyy[3];
+      return `${month}/${day}/${year}`;
+    }
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return raw;
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${month}/${day}/${year}`;
+  } catch {
+    return String(dateVal);
+  }
+};
+
 export default function InsuranceRequestsPage() {
   const { roles = [] } = useAuth();
+  const { showToast } = useToast();
   const isAgentOrRenewal = roles.some((r: string) => ['Sales Agent', 'Team Renewal', 'Renewal'].includes(r));
   const [searchParams, setSearchParams] = useSearchParams();
   const querySearch = searchParams.get('search') || '';
@@ -27,12 +60,277 @@ export default function InsuranceRequestsPage() {
   });
   const [searchInput, setSearchInput] = useState(querySearch);
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Modal Preview States
   const [previewAttachment, setPreviewAttachment] = useState<{ id: number; file_name: string; mime_type: string } | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewList, setPreviewList] = useState<any[]>([]);
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const res = await getQuotations({
+        ...params,
+        all: true,
+        per_page: undefined,
+      });
+
+      const allData: Quotation[] = res.data?.data ?? [];
+
+      if (allData.length === 0) {
+        showToast('No insurance requests available to export.', 'info');
+        return;
+      }
+
+      const headers = [
+        "AGENT'S NAME",
+        "DATE REQUEST",
+        "TYPE",
+        "ACTIVITY",
+        "PROVIDER",
+        "QUOTATION USED",
+        "USAGE",
+        "POLICY NO #",
+        "ASSURED NAME",
+        "ASSURED ADDRESS",
+        "YEAR MODEL & MAKE",
+        "CHASSIS #",
+        "ENGINE #",
+        "COLOR",
+        "PLATE NUMBER",
+        "BANK",
+        "INCEPTION DATE",
+        "OWNERSHIP",
+        "OWN DAMAGE COVERAGE",
+        "ACTS OF NATURE COVERAGE",
+        "BODILY INJURY",
+        "PROPERTY DAMAGE",
+        "PERSONAL ACCIDENT",
+        "TOTAL PREMIUM",
+        "PAYMENT TERMS",
+        "AGENT'S MARK UP / COMM",
+        "SUB-AGENT'S MARK UP",
+        "SUB-AGENT'S NAME",
+        "FREEBIE",
+        "RECEIVER'S NAME",
+        "DELIVERY ADDRESS",
+        "LANDMARK",
+        "CONTACT NO.#",
+        "BACKUP NO.#",
+        "EMAIL ADD",
+        "FB LINK",
+        "ORCR / NDOS / 4 SIDES",
+        "USED RATE",
+        "Ella Langrio Screenshot",
+        "USED RATE (EXAMPLE: 1.30% - .10%)",
+        "NOTES",
+        "MV FILE #",
+      ];
+
+      const rows: ExcelCell[][] = allData.map((r) => {
+        const c: any = r.customer || {};
+        const item = r.items?.[0] || ({} as any);
+        const cov = item.coverage_details || {};
+        const calc = cov.calculator || {};
+        const coverages = cov.coverages || {};
+
+        // 1. AGENT'S NAME
+        const agentName = (r.prepared_by && typeof r.prepared_by === 'object' ? r.prepared_by.name : null) ||
+          cov.agent ||
+          c.agent ||
+          c.created_by_user?.name ||
+          (typeof c.created_by === 'object' ? c.created_by?.name : null) ||
+          '';
+
+        // 2. DATE REQUEST
+        const dateRequest = formatDateOnly(c.writing_date || r.submitted_at || r.created_at);
+
+        // 3. TYPE
+        const requestType = c.request_type || cov.request_type || '';
+
+        // 4. ACTIVITY
+        const activity = c.activity || cov.activity || '';
+
+        // 5. PROVIDER
+        const rawProvider = (cov.insurance_provider || cov.provider || c.insurance_provider || item.insurance_product?.name || 'ALPHA').toString().toUpperCase().trim();
+        const provider = rawProvider.includes('CBIC') ? 'CBIC' : 'ALPHA';
+
+        // 6. QUOTATION USED
+        const quotationUsed = c.quotation_used || cov.quotation_used || '';
+
+        // 7. USAGE
+        const usage = c.usage || cov.usage || '';
+
+        // 8. POLICY NO #
+        const policyNo = c.policy_no || r.policy_number || (r as any).policy?.policy_number || '';
+
+        // 9. ASSURED NAME
+        const assuredName = [c.first_name, c.middle_name, c.last_name, c.suffix].filter(Boolean).join(' ') || c.full_name || cov.full_name || '';
+
+        // 10. ASSURED ADDRESS
+        const assuredAddress = [c.address_line_1, c.address_line_2, c.city, c.province, c.zip_code].filter(Boolean).join(', ') || c.address_line_1 || '';
+
+        // 11. YEAR MODEL & MAKE
+        const yearModelMake = c.unit || cov.unit || '';
+
+        // 12. CHASSIS #
+        const chassisNo = c.chassis_no || cov.chassis_no || '';
+
+        // 13. ENGINE #
+        const engineNo = c.engine_no || cov.engine_no || '';
+
+        // 14. COLOR
+        const color = c.color || cov.color || '';
+
+        // 15. PLATE NUMBER
+        const plateNumber = c.plate_no || cov.plate_no || '';
+
+        // 16. BANK
+        const bank = c.mortgage || cov.mortgage || '';
+
+        // 17. INCEPTION DATE
+        const inceptionDate = formatDateOnly(c.inception_date || cov.inception_date);
+
+        // 18. OWNERSHIP
+        const ownership = c.ownership || cov.ownership || '';
+
+        // 19. OWN DAMAGE COVERAGE
+        const ownDamageCoverage = Number(c.own_damage_coverage || coverages.own_damage || item.sum_insured || 0);
+
+        // 20. ACTS OF NATURE COVERAGE
+        const aonCoverage = Number(c.aog || coverages.aon || 0);
+
+        // 21. BODILY INJURY
+        const bodilyInjury = Number(c.bi_coverage || coverages.bi || 0);
+
+        // 22. PROPERTY DAMAGE
+        const propertyDamage = Number(c.pd_coverage || coverages.pd || 0);
+
+        // 23. PERSONAL ACCIDENT
+        const personalAccident = Number(c.pa || coverages.pa || 0);
+
+        // 24. TOTAL PREMIUM
+        const totalPremium = Number(r.total_premium || item.premium_amount || c.gross_premium || c.policy_premium || 0);
+
+        // 25. PAYMENT TERMS
+        const paymentTerms = c.payment_terms || cov.payment_terms || '';
+
+        // 26. AGENT'S MARK UP / COMM
+        const agentMarkup = Number(c.agent_markup || calc.agent_markup || 0);
+
+        // 27. SUB-AGENT'S MARK UP
+        const subAgentMarkup = Number(c.sub_agent_markup || calc.sub_agent_markup || 0);
+
+        // 28. SUB-AGENT'S NAME
+        const subAgentName = c.sub_agent_name || cov.sub_agent_name || '';
+
+        // 29. FREEBIE
+        const freebie = Number(c.freebie || calc.freebie_amount || calc.freebie || 0);
+
+        // 30. RECEIVER'S NAME
+        const receiverName = c.receiver_name || cov.receiver_name || '';
+
+        // 31. DELIVERY ADDRESS
+        const deliveryAddress = c.delivery_address || cov.delivery_address || '';
+
+        // 32. LANDMARK
+        const landmark = c.landmark || cov.landmark || '';
+
+        // 33. CONTACT NO.#
+        const contactNo = c.mobile || c.phone || '';
+
+        // 34. BACKUP NO.#
+        const backupNo = c.backup_phone || cov.backup_phone || '';
+
+        // 35. EMAIL ADD
+        const emailAdd = c.email || '';
+
+        // 36. FB LINK
+        const fbLink = c.fb_link || cov.fb_link || '';
+
+        // 37. ORCR / NDOS / 4 SIDES
+        const allAttachments = [...(r.attachments || []), ...(c.attachments || [])];
+        const orcrAtt = allAttachments.find(a => a.document_type === 'orcr_ndos_4sides' || (a.file_name && /orcr/i.test(a.file_name)));
+        const orcrStatus = orcrAtt
+          ? { text: orcrAtt.file_name || 'Uploaded File', url: `${window.location.origin}/api/v1/attachments/${orcrAtt.id}/preview` }
+          : 'NO';
+
+        // 38. USED RATE
+        const usedRateType = c.used_rate_type || cov.used_rate_type || '';
+
+        // 39. Ella Langrio Screenshot
+        const ellaAtt = allAttachments.find(a => a.document_type === 'ella_langrio_screenshot' || (a.file_name && /ella|screenshot/i.test(a.file_name)));
+        const ellaStatus = ellaAtt
+          ? { text: ellaAtt.file_name || 'Uploaded File', url: `${window.location.origin}/api/v1/attachments/${ellaAtt.id}/preview` }
+          : 'NO';
+
+        // 40. USED RATE (EXAMPLE: 1.30% - .10%)
+        const usedRate = c.used_rate || cov.used_rate || '';
+
+        // 41. NOTES
+        const notes = r.notes || c.notes || '';
+
+        // 42. MV FILE #
+        const mvFileNo = c.mv_file_no || cov.mv_file_no || '';
+
+        return [
+          agentName,
+          dateRequest,
+          requestType,
+          activity,
+          provider,
+          quotationUsed,
+          usage,
+          policyNo,
+          assuredName,
+          assuredAddress,
+          yearModelMake,
+          chassisNo,
+          engineNo,
+          color,
+          plateNumber,
+          bank,
+          inceptionDate,
+          ownership,
+          ownDamageCoverage,
+          aonCoverage,
+          bodilyInjury,
+          propertyDamage,
+          personalAccident,
+          totalPremium,
+          paymentTerms,
+          agentMarkup,
+          subAgentMarkup,
+          subAgentName,
+          freebie,
+          receiverName,
+          deliveryAddress,
+          landmark,
+          contactNo,
+          backupNo,
+          emailAdd,
+          fbLink,
+          orcrStatus,
+          usedRateType,
+          ellaStatus,
+          usedRate,
+          notes,
+          mvFileNo,
+        ];
+      });
+
+      const fileName = `Insurance_Requests_${new Date().toISOString().slice(0, 10)}.xls`;
+      exportToExcelXml(fileName, 'Insurance Requests', headers, rows);
+
+      showToast('Insurance requests exported to Excel successfully!');
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to export insurance requests to Excel.', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleViewAttachment = async (att: any, list?: any[]) => {
     setIsPreviewLoading(true);
@@ -250,9 +548,31 @@ export default function InsuranceRequestsPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Insurance Requests</h1>
-        <p className="text-sm text-slate-500">Review and process submitted policy issuance requests</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Insurance Requests</h1>
+          <p className="text-sm text-slate-500">Review and process submitted policy issuance requests</p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Exporting Excel...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                <span>Export Excel</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Search & Filters */}

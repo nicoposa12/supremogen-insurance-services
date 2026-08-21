@@ -103,6 +103,7 @@ export interface QuotationListParams {
   start_date?: string;
   end_date?: string;
   creator_role?: string;
+  all?: boolean | string;
 }
 
 export interface PolicyListParams {

@@ -28,6 +28,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     // Storage proxy for cloud-stored files (profile photos, etc.)
     Route::get('/storage/{path}', [StorageController::class, 'serve'])->where('path', '.*');
+    // Direct viewable attachment routes (for direct browser preview & Excel links)
+    Route::get('/attachments/{id}/download', [AttachmentController::class, 'download']);
+    Route::get('/attachments/{id}/preview', [AttachmentController::class, 'preview']);
     // Stream notifications (authenticated via query param token or bearer token)
     Route::get('/notifications/stream', [NotificationController::class, 'stream'])
         ->middleware(['auth:sanctum']);
@@ -130,8 +133,6 @@ Route::prefix('v1')->group(function () {
         // Attachments (DMS)
         Route::get('/attachments', [AttachmentController::class, 'index']);
         Route::post('/attachments', [AttachmentController::class, 'store']);
-        Route::get('/attachments/{id}/download', [AttachmentController::class, 'download']);
-        Route::get('/attachments/{id}/preview', [AttachmentController::class, 'preview']);
         Route::delete('/attachments/{id}', [AttachmentController::class, 'destroy']);
 
         // Audit Logs (admin only)
