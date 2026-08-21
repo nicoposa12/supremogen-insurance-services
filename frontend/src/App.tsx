@@ -18,6 +18,9 @@ const FAQPage = lazy(() => import('./pages/website/FAQPage'));
 const ContactPage = lazy(() => import('./pages/website/ContactPage'));
 const InquiryPage = lazy(() => import('./pages/website/InquiryPage'));
 
+// Attachment Direct Viewer
+const AttachmentViewerPage = lazy(() => import('./pages/attachments/AttachmentViewerPage'));
+
 // Auth
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 
@@ -106,6 +109,12 @@ export default function App() {
 
               {/* Agent & Staff Portal - Login */}
               <Route path="agentportal" element={<LoginPage />} />
+
+              {/* Direct Attachment Viewers (from Excel links or external tabs) */}
+              <Route path="api/v1/attachments/:id/preview" element={<AttachmentViewerPage />} />
+              <Route path="api/v1/attachments/:id/download" element={<AttachmentViewerPage />} />
+              <Route path="attachments/:id/preview" element={<AttachmentViewerPage />} />
+              <Route path="attachments/:id" element={<AttachmentViewerPage />} />
 
               {/* Authenticated Dashboard Routes */}
               <Route
