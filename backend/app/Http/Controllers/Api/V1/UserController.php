@@ -28,8 +28,10 @@ class UserController extends Controller
             ->when($status === 'archived', function ($q) {
                 $q->whereRaw('is_archived = true');
             })
-            ->when($request->user()->hasRole('Underwriter'), function ($q) {
-                $q->whereNotIn('email', ['admin@supremogen.com', 'owner@supremogen.com']);
+            ->when(!$request->user()->hasRole('Administrator'), function ($q) {
+                $q->whereDoesntHave('roles', function ($rq) {
+                    $rq->where('name', 'Administrator');
+                })->whereNotIn('email', ['admin@supremogen.com', 'owner@supremogen.com']);
             })
             ->when($request->input('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -173,7 +175,7 @@ class UserController extends Controller
             'role' => 'required|string|exists:roles,name',
         ]);
 
-        if ($request->user()->hasRole('Underwriter') && (in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com']) || $request->input('role') === 'Administrator')) {
+        if (!$request->user()->hasRole('Administrator') && ($user->hasRole('Administrator') || in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com']) || $request->input('role') === 'Administrator')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.',
@@ -227,7 +229,7 @@ class UserController extends Controller
             ], 422);
         }
 
-        if (request()->user()->hasRole('Underwriter') && in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com'])) {
+        if (!request()->user()->hasRole('Administrator') && ($user->hasRole('Administrator') || in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com']))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.',
@@ -281,7 +283,7 @@ class UserController extends Controller
             ], 422);
         }
 
-        if (request()->user()->hasRole('Underwriter') && in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com'])) {
+        if (!request()->user()->hasRole('Administrator') && ($user->hasRole('Administrator') || in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com']))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.',
@@ -349,8 +351,8 @@ class UserController extends Controller
      */
     public function impersonate(Request $request, User $user)
     {
-        // Don't allow Underwriter to impersonate Admin
-        if ($request->user()->hasRole('Underwriter') && in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com'])) {
+        // Don't allow non-Admin to impersonate Admin
+        if (!$request->user()->hasRole('Administrator') && ($user->hasRole('Administrator') || in_array($user->email, ['admin@supremogen.com', 'owner@supremogen.com']))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized action.',

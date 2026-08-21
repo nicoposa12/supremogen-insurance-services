@@ -139,9 +139,11 @@ export default function SettingsPage() {
     enabled: isAdmin && activeTab === 'accounts',
     refetchInterval: 3000,
   });
+  const isAdministratorRole = roles?.includes('Administrator');
+
   const allUserAccounts: UserAccount[] = (usersRes?.data?.data ?? []).filter((u: UserAccount) => {
-    if (roles?.includes('Underwriter')) {
-      return u.email !== 'admin@supremogen.com' && u.email !== 'owner@supremogen.com';
+    if (!isAdministratorRole) {
+      return u.role_name !== 'Administrator' && u.email !== 'admin@supremogen.com' && u.email !== 'owner@supremogen.com';
     }
     return true;
   });
@@ -903,9 +905,11 @@ export default function SettingsPage() {
                     className="w-full px-3 py-2 bg-white border border-slate-200/80 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#4A0E17]/20 focus:border-[#4A0E17] transition-all cursor-pointer truncate"
                   >
                     <option value="All">All Roles</option>
-                    {Object.entries(roleLabels).map(([val]) => (
-                      <option key={val} value={val}>{val}</option>
-                    ))}
+                    {Object.entries(roleLabels)
+                      .filter(([val]) => !(!isAdministratorRole && val === 'Administrator'))
+                      .map(([val]) => (
+                        <option key={val} value={val}>{val}</option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -1265,7 +1269,7 @@ export default function SettingsPage() {
                     disabled={selectedUser?.email === 'admin@supremogen.com'}
                   >
                     {Object.entries(roleLabels)
-                      .filter(([val]) => !(roles?.includes('Underwriter') && val === 'Administrator'))
+                      .filter(([val]) => !(!isAdministratorRole && val === 'Administrator'))
                       .map(([val, label]) => (
                         <option key={val} value={val}>{label}</option>
                       ))}
