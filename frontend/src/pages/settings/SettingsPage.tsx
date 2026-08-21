@@ -148,6 +148,9 @@ export default function SettingsPage() {
 
   const activeAccounts = useMemo(() => allUserAccounts.filter((u) => !u.is_archived), [allUserAccounts]);
   const archivedAccounts = useMemo(() => allUserAccounts.filter((u) => u.is_archived), [allUserAccounts]);
+  const onlineAccountsCount = useMemo(() => {
+    return activeAccounts.filter((u) => u.is_online || u.id === user?.id).length;
+  }, [activeAccounts, user?.id]);
 
   const currentList = accountSubTab === 'active' ? activeAccounts : archivedAccounts;
 
@@ -846,6 +849,16 @@ export default function SettingsPage() {
                     {archivedAccounts.length}
                   </span>
                 </button>
+
+                {roles?.includes('Administrator') && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 shadow-2xs">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>{onlineAccountsCount} Online</span>
+                  </div>
+                )}
               </div>
 
               {accountSubTab === 'archived' && (

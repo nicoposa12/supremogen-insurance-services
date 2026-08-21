@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { getFileUrl } from '../../utils/url';
 
@@ -594,6 +595,29 @@ export default function DashboardLayout() {
   const isFirstLoad = useRef(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  const isAdministrator = roles?.includes('Administrator');
+
+  // Real-time live online users query for Administrator only
+  const { data: onlineUsersRes } = useQuery({
+    queryKey: ['online-users-count'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/users', {
+        params: { no_paginate: true, status: 'active' },
+      });
+      return res.data;
+    },
+    enabled: !!isAdministrator,
+    refetchInterval: 5000,
+  });
+
+  const onlineUserCount = useMemo(() => {
+    if (!isAdministrator) return 0;
+    const list: any[] = onlineUsersRes?.data?.data ?? [];
+    if (list.length === 0) return 1;
+    const count = list.filter((u) => u.is_online || u.id === user?.id).length;
+    return Math.max(1, count);
+  }, [onlineUsersRes, user?.id, isAdministrator]);
+
   // Fetch notifications (include user?.id in queryKey to reset cache on login/logout)
   const { data: notificationsRes } = useQuery({
     queryKey: ['notifications', user?.id],
@@ -874,8 +898,21 @@ export default function DashboardLayout() {
 
             {/* Right: search + notifications + user */}
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              {/* Real-time Date & Time and Role / Dept Badge */}
+              {/* Real-time Online Counter, Role / Dept Badge & Clock */}
               <div className="hidden sm:flex items-center gap-2">
+                {/* Administrator Only: Clean & Professional Total Online Users Pill (Before Role) */}
+                {isAdministrator && (
+                  <div
+                    onClick={() => navigate('/dashboard/settings')}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100/70 transition cursor-pointer select-none"
+                    title={`${onlineUserCount} user${onlineUserCount === 1 ? '' : 's'} currently online. Click to manage accounts.`}
+                  >
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="font-bold text-emerald-950 dark:text-emerald-100 tabular-nums">{onlineUserCount}</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-medium">Online</span>
+                  </div>
+                )}
+
                 {/* Active Role / Department Pill */}
                 <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#8A1C2E]/10 border border-[#8A1C2E]/20 dark:bg-[#8A1C2E]/25 dark:border-[#8A1C2E]/40 rounded-xl text-xs font-semibold text-[#8A1C2E] dark:text-red-300">
                   <Briefcase className="h-3.5 w-3.5 shrink-0" />
