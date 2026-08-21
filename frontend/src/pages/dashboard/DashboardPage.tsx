@@ -53,6 +53,33 @@ const MONTH_NAMES = [
 ];
 const AVAILABLE_YEARS = [2024, 2025, 2026, 2027, 2028];
 
+// Helper for accurate rounding
+const roundTwo = (num: number): number => Math.round(num * 100 + 1e-9) / 100;
+
+// CBIC Tariff Guide Tables (Private Use vs Commercial / TNVS)
+const TABLE_A_PC: Record<number, { ebi: number; tppd: number }> = {
+  100000: { ebi: 270, tppd: 1095 },
+  200000: { ebi: 420, tppd: 1245 },
+  300000: { ebi: 585, tppd: 1395 },
+  400000: { ebi: 675, tppd: 1515 },
+  500000: { ebi: 780, tppd: 1635 },
+};
+
+const TABLE_B_CV: Record<number, { ebi: number; tppd: number }> = {
+  100000: { ebi: 465, tppd: 1290 },
+  200000: { ebi: 660, tppd: 1395 },
+  300000: { ebi: 855, tppd: 1515 },
+  400000: { ebi: 975, tppd: 1590 },
+  500000: { ebi: 1095, tppd: 1680 },
+};
+
+const getCbicTariffPremiums = (coverageAmt: number, isCV: boolean) => {
+  const table = isCV ? TABLE_B_CV : TABLE_A_PC;
+  const amounts = [100000, 200000, 300000, 400000, 500000];
+  const closest = amounts.reduce((prev, curr) => Math.abs(curr - coverageAmt) < Math.abs(prev - coverageAmt) ? curr : prev, 200000);
+  return table[closest] || (isCV ? { ebi: 660, tppd: 1395 } : { ebi: 420, tppd: 1245 });
+};
+
 const getTodayDateStr = () => {
   const today = new Date();
   const yyyy = today.getFullYear();
@@ -158,50 +185,86 @@ export default function DashboardPage() {
     return 'N/A';
   };
 
-  // Helper to compute individual quotation financials accurately
+  // Helper to compute individual quotation financials accurately (100% matched with PolicyStatementsPage)
   const getQuotationFinancials = (q: any) => {
     const firstItem = q.items?.[0];
     const cov = firstItem?.coverage_details || {};
     const custAny = (q.customer || {}) as any;
     const provider = (cov.insurance_provider || cov.provider || custAny.insurance_provider || 'ALPHA').toUpperCase();
-    const usage = ((custAny.usage || '') + ' ' + (custAny.quotation_used || '') + ' ' + (cov.usage || '')).toUpperCase();
-    const isCV = usage.includes('TNVS') || usage.includes('HIRE') || usage.includes('YELLOW');
+    const isCBIC = provider.includes('CBIC');
 
-    const sumIns = Number(firstItem?.sum_insured || cov.sum_insured || custAny.own_damage_coverage || 430000);
-    const totalPolicyPrem = Number(q.total_premium || 0);
+    const totalPolicyPrem = Number(q.total_premium || cov.net_premium || custAny.policy_premium || 0);
     const subAgentMarkup = Number(cov.calculator?.sub_agent_markup || cov.sub_agent_markup || custAny.sub_agent_markup || 0);
-    const freebieCashback = Number(cov.calculator?.freebie_cashback || cov.freebie_cashback || cov.freebie || custAny.freebie || 0);
+    const agentMarkup = Number(cov.calculator?.agent_markup || cov.agent_markup || custAny.agent_markup || 0);
+    const freebie = Number(cov.calculator?.freebie_amount ?? (cov.calculator?.freebie_cashback || cov.freebie || custAny.freebie || 0));
+    const cashback = Number(cov.calculator?.cashback_amount || cov.cashback || custAny.cashback || 0);
+    const totalDeductions = agentMarkup + subAgentMarkup + freebie + cashback;
+
+    const itemSumInsured = Number(firstItem?.sum_insured || 0);
+    const covSumInsured = Number(cov.sum_insured || cov.coverages?.own_damage || cov.own_damage_coverage || custAny.own_damage_coverage || 0);
+    const sumIns = itemSumInsured > 0 ? itemSumInsured : (covSumInsured > 0 ? covSumInsured : 430000);
 
     let remit = 0;
     let compInc = 0;
     let netInc = 0;
 
-    if (provider.includes('CBIC')) {
-      const ebi = isCV ? 660 : 420;
-      const tppd = isCV ? 1395 : 1245;
-      const netBasicPrem = sumIns * (0.0065 + 0.003) + ebi + tppd;
-      const netGrossPrem = netBasicPrem * (1 + 0.125 + 0.12 + 0.0011);
-      const netTariffComm = (ebi * 0.30 + tppd * 0.20) * 0.90;
-      remit = netGrossPrem - netTariffComm;
-      compInc = totalPolicyPrem - remit;
-      netInc = compInc - subAgentMarkup - freebieCashback;
+    if (isCBIC) {
+      const usageStr = ((custAny.usage || '') + ' ' + (custAny.quotation_used || '') + ' ' + (cov.usage || '')).toUpperCase();
+      const isTNVS = usageStr.includes('TNVS') || usageStr.includes('HIRE') || usageStr.includes('YELLOW');
+      const covBIVal = Number(cov.coverages?.bi || cov.cov_bi || custAny.bi_coverage || 200000);
+      const cbicTariff = getCbicTariffPremiums(covBIVal, isTNVS);
+      const cbicEBI = cbicTariff.ebi;
+      const cbicTPPD = cbicTariff.tppd;
+
+      const cbicNetODPrem = roundTwo(sumIns * (0.65 / 100));
+      const cbicNetAONPrem = roundTwo(sumIns * (0.30 / 100));
+      const cbicNetBasicPrem = roundTwo(cbicNetODPrem + cbicNetAONPrem + cbicEBI + cbicTPPD);
+
+      const cbicNetDocStamp = roundTwo(cbicNetBasicPrem * 0.125);
+      const cbicNetEVat = roundTwo(cbicNetBasicPrem * 0.12);
+      const cbicNetLGT = roundTwo(cbicNetBasicPrem * 0.0011);
+      const cbicNetGrossPrem = roundTwo(cbicNetBasicPrem + cbicNetDocStamp + cbicNetEVat + cbicNetLGT);
+
+      const cbicEBIComm = roundTwo(cbicEBI * 0.30);
+      const cbicTPPDComm = roundTwo(cbicTPPD * 0.20);
+      const cbicTotalTariffComm = roundTwo(cbicEBIComm + cbicTPPDComm);
+      const cbicWHTax = roundTwo(cbicTotalTariffComm * 0.10);
+      const cbicNetTariffComm = roundTwo(cbicTotalTariffComm - cbicWHTax);
+
+      remit = roundTwo(cbicNetGrossPrem - cbicNetTariffComm);
+      compInc = roundTwo(totalPolicyPrem - remit);
+      netInc = roundTwo(compInc - totalDeductions);
     } else {
-      // ALPHA
-      const subtotalPrem = sumIns * 0.009 + 420 + 1245;
-      const grossTot = subtotalPrem * (1 + 0.2461) + 100;
-      const netTariffComm = (420 * 0.30 + 1245 * 0.30) * 0.90;
-      remit = grossTot - netTariffComm;
-      compInc = totalPolicyPrem - remit;
-      netInc = compInc - subAgentMarkup - freebieCashback;
+      const premOD = roundTwo(sumIns * (0.70 / 100));
+      const premAON = roundTwo(sumIns * (0.20 / 100));
+      const premBIVal = Number(cov.premiums?.bi || cov.prem_bi || 420);
+      const premPDVal = Number(cov.premiums?.pd || cov.prem_pd || 1245);
+
+      const commBI = roundTwo(premBIVal * 0.30);
+      const commPD = roundTwo(premPDVal * 0.30);
+
+      const subtotalPrem = roundTwo(premOD + premAON + premBIVal + premPDVal);
+      const chargesAmount = roundTwo(subtotalPrem * 0.2461);
+      const grossTot = roundTwo(subtotalPrem + chargesAmount);
+
+      const commOnTariff = roundTwo(commBI + commPD);
+      const withholdingTax = roundTwo(commOnTariff * 0.10);
+      const totalCommOnTariff = roundTwo(commOnTariff - withholdingTax);
+
+      remit = roundTwo(grossTot - totalCommOnTariff);
+      compInc = roundTwo(totalPolicyPrem - remit);
+      netInc = roundTwo(compInc - totalDeductions);
     }
 
     return {
       provider,
+      isCBIC,
       totalPolicyPrem,
       remit,
       compInc,
+      totalDeductions,
       subAgentMarkup,
-      freebieCashback,
+      freebieCashback: freebie + cashback,
       netInc,
       date: new Date(q.created_at || Date.now()),
     };
@@ -322,9 +385,11 @@ export default function DashboardPage() {
       totalPrem += fin.totalPolicyPrem;
       totalRemit += fin.remit;
       totalCompInc += fin.compInc;
-      totalDeductions += (fin.subAgentMarkup + fin.freebieCashback);
+      totalDeductions += fin.totalDeductions;
       totalNetInc += fin.netInc;
     });
+
+    const marginPct = totalPrem > 0 ? ((totalCompInc / totalPrem) * 100).toFixed(1) : '0.0';
 
     return {
       totalPrem: Math.round(totalPrem),
@@ -332,6 +397,7 @@ export default function DashboardPage() {
       totalCompInc: Math.round(totalCompInc),
       totalDeductions: Math.round(totalDeductions),
       totalNetInc: Math.round(totalNetInc),
+      marginPct,
       count: timeframeFilteredQuotations.length,
     };
   }, [timeframeFilteredQuotations]);
@@ -859,8 +925,100 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Primary Executive Metric Stat Cards */}
+        {/* Primary Executive Financial Stat Cards (Top Row) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 1. Total Policy Premium */}
+          <StatCard
+            label="Total Policy Premium"
+            value={`₱${accountingMetrics.totalPrem.toLocaleString('en-US')}`}
+            icon={DollarSign}
+            trend={14.2}
+            trendLabel={`${accountingMetrics.count} policies (${accountingTimeframe})`}
+            iconColor="text-blue-600"
+            iconBg="bg-blue-50"
+          />
+
+          {/* 2. Provider Remittances */}
+          <StatCard
+            label="Provider Remittances"
+            value={`₱${accountingMetrics.totalRemit.toLocaleString('en-US')}`}
+            icon={FileText}
+            trend={9.5}
+            trendLabel="Net Remittance to Alpha & CBIC"
+            iconColor="text-purple-600"
+            iconBg="bg-purple-50"
+          />
+
+          {/* 3. Gross Company Income */}
+          <StatCard
+            label="Gross Company Income"
+            value={`₱${accountingMetrics.totalCompInc.toLocaleString('en-US')}`}
+            icon={TrendingUp}
+            trend={16.8}
+            trendLabel={`Margin ${accountingMetrics.marginPct}%`}
+            iconColor="text-amber-600"
+            iconBg="bg-amber-50"
+          />
+
+          {/* 4. NET COMPANY INCOME (Emerald Theme Highlight Card) */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#022c22] to-[#065f46] rounded-2xl p-5 text-white border border-emerald-400/40 shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300/90 block">NET COMPANY INCOME</span>
+                <h3 className="text-2xl font-black text-white mt-1">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</h3>
+              </div>
+              <div className="p-2.5 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-emerald-300">
+                <Wallet className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-emerald-800/60 flex items-center justify-between text-xs text-emerald-200 font-medium">
+              <span>After Markups, Freebies & Cashback</span>
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-300">
+                <TrendingUp className="h-3.5 w-3.5" /> Net Profit
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Interactive Financial Computation Flow Bar */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 font-bold text-slate-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>FINANCIAL COMPUTATION FLOW ({accountingTimeframe.toUpperCase()}):</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 font-mono text-[11px]">
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Total Premium</span>
+                <span className="font-bold text-blue-700">₱{accountingMetrics.totalPrem.toLocaleString('en-US')}</span>
+              </div>
+              <span className="text-slate-400 font-sans font-bold">−</span>
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Provider Remittances</span>
+                <span className="font-bold text-purple-700">₱{accountingMetrics.totalRemit.toLocaleString('en-US')}</span>
+              </div>
+              <span className="text-slate-400 font-sans font-bold">=</span>
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Company Income</span>
+                <span className="font-bold text-amber-700">₱{accountingMetrics.totalCompInc.toLocaleString('en-US')}</span>
+              </div>
+              <span className="text-slate-400 font-sans font-bold">−</span>
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Markups, Freebies & Cashback</span>
+                <span className="font-bold text-rose-700">₱{accountingMetrics.totalDeductions.toLocaleString('en-US')}</span>
+              </div>
+              <span className="text-slate-400 font-sans font-bold">=</span>
+              <div className="bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-emerald-800 font-extrabold shadow-2xs">
+                <span className="text-emerald-700 uppercase text-[10px] block font-sans font-medium">NET INCOME</span>
+                <span className="text-sm font-bold">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary Operational KPI Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Total Customers */}
           <div
             onClick={() => navigate('/dashboard/customers')}
@@ -934,95 +1092,6 @@ export default function DashboardPage() {
               <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
-
-          {/* Total Policy Premium */}
-          <StatCard
-            label="Total Policy Premium"
-            value={`₱${accountingMetrics.totalPrem.toLocaleString('en-US')}`}
-            icon={DollarSign}
-            trend={14.2}
-            trendLabel={`${accountingMetrics.count} policies (${accountingTimeframe})`}
-            iconColor="text-blue-600"
-            iconBg="bg-blue-50"
-          />
-
-          {/* NET COMPANY INCOME (Emerald Theme Highlight Card) */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#022c22] to-[#065f46] rounded-2xl p-5 text-white border border-emerald-400/40 shadow-lg flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300/90 block">NET COMPANY INCOME</span>
-                <h3 className="text-2xl font-black text-white mt-1">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</h3>
-              </div>
-              <div className="p-2.5 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-emerald-300">
-                <Wallet className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="mt-4 pt-3 border-t border-emerald-800/60 flex items-center justify-between text-xs text-emerald-200 font-medium">
-              <span>After Markups, Freebies & Cashback</span>
-              <span className="inline-flex items-center gap-1 font-bold text-emerald-300">
-                <TrendingUp className="h-3.5 w-3.5" /> Net Profit
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Interactive Financial Computation Flow Bar */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 font-bold text-slate-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>FINANCIAL COMPUTATION FLOW ({accountingTimeframe.toUpperCase()}):</span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 font-mono text-[11px]">
-              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Total Premium</span>
-                <span className="font-bold text-blue-700">₱{accountingMetrics.totalPrem.toLocaleString('en-US')}</span>
-              </div>
-              <span className="text-slate-400 font-sans font-bold">−</span>
-              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Provider Remittances</span>
-                <span className="font-bold text-purple-700">₱{accountingMetrics.totalRemit.toLocaleString('en-US')}</span>
-              </div>
-              <span className="text-slate-400 font-sans font-bold">=</span>
-              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Company Income</span>
-                <span className="font-bold text-amber-700">₱{accountingMetrics.totalCompInc.toLocaleString('en-US')}</span>
-              </div>
-              <span className="text-slate-400 font-sans font-bold">−</span>
-              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500 uppercase text-[10px] block font-sans font-medium">Markups, Freebies & Cashback</span>
-                <span className="font-bold text-rose-700">₱{accountingMetrics.totalDeductions.toLocaleString('en-US')}</span>
-              </div>
-              <span className="text-slate-400 font-sans font-bold">=</span>
-              <div className="bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-emerald-800 font-extrabold shadow-2xs">
-                <span className="text-emerald-700 uppercase text-[10px] block font-sans font-medium">NET INCOME</span>
-                <span className="text-sm font-bold">₱{accountingMetrics.totalNetInc.toLocaleString('en-US')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Secondary Financial & Operational KPI Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <StatCard
-            label="Provider Remittances"
-            value={`₱${accountingMetrics.totalRemit.toLocaleString('en-US')}`}
-            icon={FileText}
-            trend={9.5}
-            trendLabel="Net Remittance to Alpha & CBIC"
-            iconColor="text-purple-600"
-            iconBg="bg-purple-50"
-          />
-          <StatCard
-            label="Gross Company Income"
-            value={`₱${accountingMetrics.totalCompInc.toLocaleString('en-US')}`}
-            icon={TrendingUp}
-            trend={16.8}
-            trendLabel={`Margin ${accountingMetrics.totalPrem > 0 ? ((accountingMetrics.totalCompInc / accountingMetrics.totalPrem) * 100).toFixed(1) : '0'}%`}
-            iconColor="text-amber-600"
-            iconBg="bg-amber-50"
-          />
 
           {/* Operational Queue Action Alerts */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
@@ -1523,7 +1592,7 @@ export default function DashboardPage() {
             value={`₱${accountingMetrics.totalCompInc.toLocaleString('en-US')}`}
             icon={TrendingUp}
             trend={16.8}
-            trendLabel={`Margin ${accountingMetrics.totalPrem > 0 ? ((accountingMetrics.totalCompInc / accountingMetrics.totalPrem) * 100).toFixed(1) : '0'}%`}
+            trendLabel={`Margin ${accountingMetrics.marginPct}%`}
             iconColor="text-amber-600"
             iconBg="bg-amber-50"
           />
