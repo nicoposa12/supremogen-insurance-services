@@ -133,8 +133,7 @@ const calculateQuotationFinancials = (q: Quotation) => {
 
     const subtotalPremium = roundTwo(premOD + premAON + premBIVal + premPDVal);
     const chargesAmount = roundTwo(subtotalPremium * 0.2461);
-    const towingFee = Number(cov.calculator?.towing_fee || cov.towing_fee || 100);
-    const grossTotal = roundTwo(subtotalPremium + chargesAmount + towingFee);
+    const grossTotal = roundTwo(subtotalPremium + chargesAmount);
 
     const commOnTariff = roundTwo(commBI + commPD);
     const withholdingTax = roundTwo(commOnTariff * 0.10);
@@ -1176,7 +1175,7 @@ function StatementDetailView({ quotation, onBack, onOpenFreebieModal, onOpenRemi
 
   const subtotalPremium = roundTwo(premOD + premAON + premBIVal + premPDVal);
   const chargesAmount = roundTwo(subtotalPremium * chargesRate);
-  const grossTotal = roundTwo(subtotalPremium + chargesAmount + towingFee);
+  const grossTotal = roundTwo(subtotalPremium + chargesAmount);
 
   const commOnTariff = roundTwo(commBI + commPD);
   const withholdingTax = roundTwo(commOnTariff * (wHTaxPct / 100));
@@ -1673,10 +1672,6 @@ function StatementDetailView({ quotation, onBack, onOpenFreebieModal, onOpenRemi
                 <div className="flex justify-between text-slate-500">
                   <span>CHARGES ({(chargesRate * 100).toFixed(2)}%)</span>
                   <span className="font-mono tabular-nums">{formatCurrency(chargesAmount)}</span>
-                </div>
-                <div className="flex justify-between text-slate-500">
-                  <span>TOWING (Auto Assist)</span>
-                  <span className="font-mono tabular-nums">{formatCurrency(towingFee)}</span>
                 </div>
                 <div className="flex justify-between font-black text-sm text-slate-900 border-t border-slate-200 pt-2">
                   <span className="uppercase tracking-wider">TOTAL</span>
