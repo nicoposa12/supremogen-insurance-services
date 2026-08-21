@@ -73,7 +73,7 @@ const getCbicTariffPremiums = (coverageAmt: number, isCV: boolean) => {
   return table[closest] || (isCV ? { ebi: 660, tppd: 1395 } : { ebi: 420, tppd: 1245 });
 };
 
-// Unified Quotation Financials Calculator
+// Unified Quotation Financials Calculator (100% matched with StatementDetailView)
 const calculateQuotationFinancials = (q: Quotation) => {
   const firstItem = q.items?.[0];
   const cov = firstItem?.coverage_details || {};
@@ -85,7 +85,7 @@ const calculateQuotationFinancials = (q: Quotation) => {
   const subAgentMarkup = Number(cov.calculator?.sub_agent_markup || cov.sub_agent_markup || custAny.sub_agent_markup || 0);
   const agentMarkup = Number(cov.calculator?.agent_markup || cov.agent_markup || custAny.agent_markup || 0);
   const freebie = Number(cov.calculator?.freebie_amount ?? (cov.calculator?.freebie_cashback || cov.freebie || custAny.freebie || 0));
-  const cashback = Number(cov.calculator?.cashback_amount || 0);
+  const cashback = Number(cov.calculator?.cashback_amount || cov.cashback || custAny.cashback || 0);
   const totalDeductions = agentMarkup + subAgentMarkup + freebie + cashback;
 
   const itemSumInsured = Number(firstItem?.sum_insured || 0);
@@ -101,31 +101,48 @@ const calculateQuotationFinancials = (q: Quotation) => {
     const isTNVS = usageStr.includes('TNVS') || usageStr.includes('HIRE') || usageStr.includes('YELLOW');
     const covBIVal = Number(cov.coverages?.bi || cov.cov_bi || custAny.bi_coverage || 200000);
     const cbicTariff = getCbicTariffPremiums(covBIVal, isTNVS);
-    const cbicNetBasicPrem = Math.round((sumInsured * 0.0065 + sumInsured * 0.0030 + cbicTariff.ebi + cbicTariff.tppd) * 100) / 100;
-    const cbicNetGrossPrem = Math.round((cbicNetBasicPrem + (cbicNetBasicPrem * 0.125) + (cbicNetBasicPrem * 0.12) + (cbicNetBasicPrem * 0.0011)) * 100) / 100;
-    const cbicNetTariffComm = Math.round(((cbicTariff.ebi * 0.30 + cbicTariff.tppd * 0.20) * 0.90) * 100) / 100;
+    const cbicEBI = cbicTariff.ebi;
+    const cbicTPPD = cbicTariff.tppd;
 
-    netRemittance = Math.round((cbicNetGrossPrem - cbicNetTariffComm) * 100) / 100;
-    companyIncome = Math.round((totalPolicyPremium - netRemittance) * 100) / 100;
-    netIncome = Math.round((companyIncome - totalDeductions) * 100) / 100;
+    const cbicNetODPrem = roundTwo(sumInsured * (0.65 / 100));
+    const cbicNetAONPrem = roundTwo(sumInsured * (0.30 / 100));
+    const cbicNetBasicPrem = roundTwo(cbicNetODPrem + cbicNetAONPrem + cbicEBI + cbicTPPD);
+
+    const cbicNetDocStamp = roundTwo(cbicNetBasicPrem * 0.125);
+    const cbicNetEVat = roundTwo(cbicNetBasicPrem * 0.12);
+    const cbicNetLGT = roundTwo(cbicNetBasicPrem * 0.0011);
+    const cbicNetGrossPrem = roundTwo(cbicNetBasicPrem + cbicNetDocStamp + cbicNetEVat + cbicNetLGT);
+
+    const cbicEBIComm = roundTwo(cbicEBI * 0.30);
+    const cbicTPPDComm = roundTwo(cbicTPPD * 0.20);
+    const cbicTotalTariffComm = roundTwo(cbicEBIComm + cbicTPPDComm);
+    const cbicWHTax = roundTwo(cbicTotalTariffComm * 0.10);
+    const cbicNetTariffComm = roundTwo(cbicTotalTariffComm - cbicWHTax);
+
+    netRemittance = roundTwo(cbicNetGrossPrem - cbicNetTariffComm);
+    companyIncome = roundTwo(totalPolicyPremium - netRemittance);
+    netIncome = roundTwo(companyIncome - totalDeductions);
   } else {
-    const premOD = Math.round(sumInsured * 0.0070 * 100) / 100;
-    const premAON = Math.round(sumInsured * 0.0020 * 100) / 100;
+    const premOD = roundTwo(sumInsured * (0.70 / 100));
+    const premAON = roundTwo(sumInsured * (0.20 / 100));
     const premBIVal = Number(cov.premiums?.bi || cov.prem_bi || 420);
     const premPDVal = Number(cov.premiums?.pd || cov.prem_pd || 1245);
-    const premPAVal = Number(cov.premiums?.pa || cov.prem_pa || 0);
 
-    const subtotalPremium = Math.round((premOD + premAON + premBIVal + premPDVal + premPAVal) * 100) / 100;
-    const chargesAmount = Math.round(subtotalPremium * 0.2461 * 100) / 100;
+    const commBI = roundTwo(premBIVal * 0.30);
+    const commPD = roundTwo(premPDVal * 0.30);
+
+    const subtotalPremium = roundTwo(premOD + premAON + premBIVal + premPDVal);
+    const chargesAmount = roundTwo(subtotalPremium * 0.2461);
     const towingFee = Number(cov.calculator?.towing_fee || cov.towing_fee || 100);
-    const grossTotal = Math.round((subtotalPremium + chargesAmount + towingFee) * 100) / 100;
+    const grossTotal = roundTwo(subtotalPremium + chargesAmount + towingFee);
 
-    const commOnTariff = Math.round((premBIVal * 0.30 + premPDVal * 0.30) * 100) / 100;
-    const totalCommOnTariff = Math.round((commOnTariff - (commOnTariff * 0.10)) * 100) / 100;
+    const commOnTariff = roundTwo(commBI + commPD);
+    const withholdingTax = roundTwo(commOnTariff * 0.10);
+    const totalCommOnTariff = roundTwo(commOnTariff - withholdingTax);
 
-    netRemittance = Math.round((grossTotal - totalCommOnTariff) * 100) / 100;
-    companyIncome = Math.round((totalPolicyPremium - netRemittance) * 100) / 100;
-    netIncome = Math.round((companyIncome - totalDeductions) * 100) / 100;
+    netRemittance = roundTwo(grossTotal - totalCommOnTariff);
+    companyIncome = roundTwo(totalPolicyPremium - netRemittance);
+    netIncome = roundTwo(companyIncome - totalDeductions);
   }
 
   return {
