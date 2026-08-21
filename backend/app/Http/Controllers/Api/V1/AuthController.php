@@ -69,6 +69,9 @@ class AuthController extends Controller
         // Create API token
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Mark online immediately
+        $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+
         $this->audit('auth.login', $user, 'User logged in: ' . $user->name . ' (' . $user->email . ')');
 
         return response()->json([
@@ -94,13 +97,32 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $this->audit('auth.logout', $request->user(), 'User logged out: ' . $request->user()->name);
-
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+        if ($user) {
+            $this->audit('auth.logout', $user, 'User logged out: ' . $user->name);
+            $user->forceFill(['last_seen_at' => null])->saveQuietly();
+            $user->currentAccessToken()?->delete();
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Logged out successfully.'
+        ]);
+    }
+
+    /**
+     * Mark user as offline explicitly (on tab close/unload).
+     */
+    public function setOffline(Request $request)
+    {
+        $user = $request->user();
+        if ($user) {
+            $user->forceFill(['last_seen_at' => null])->saveQuietly();
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => 'offline'
         ]);
     }
 

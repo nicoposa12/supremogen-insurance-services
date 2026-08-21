@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  // Periodic online presence heartbeat (every 45s while user is logged in)
+  // Periodic online presence heartbeat and instantaneous tab-close offline trigger
   useEffect(() => {
     if (!token || !user) return;
 
@@ -76,13 +76,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    const handleUnload = () => {
+      if (token && navigator.sendBeacon) {
+        navigator.sendBeacon(`/api/v1/auth/offline?token=${encodeURIComponent(token)}`);
+      }
+    };
+
     sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 45000);
+    const interval = setInterval(sendHeartbeat, 20000); // 20-second active ping
     document.addEventListener('visibilitychange', sendHeartbeat);
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', sendHeartbeat);
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
     };
   }, [token, user?.id]);
 

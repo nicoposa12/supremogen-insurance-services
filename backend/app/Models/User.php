@@ -70,7 +70,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Determine if the user is currently online (active within the last 3 minutes).
+     * Determine if the user is currently online (active within the last 75 seconds).
      */
     public function getIsOnlineAttribute(): bool
     {
@@ -78,7 +78,7 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->last_seen_at->gt(now()->subMinutes(3));
+        return $this->last_seen_at->gt(now()->subSeconds(75));
     }
 
     /**

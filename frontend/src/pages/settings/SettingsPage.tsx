@@ -137,7 +137,7 @@ export default function SettingsPage() {
       return res.data;
     },
     enabled: isAdmin && activeTab === 'accounts',
-    refetchInterval: 15000,
+    refetchInterval: 3000,
   });
   const allUserAccounts: UserAccount[] = (usersRes?.data?.data ?? []).filter((u: UserAccount) => {
     if (roles?.includes('Underwriter')) {

@@ -38,6 +38,8 @@ Route::prefix('v1')->group(function () {
     // Protected routes
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/auth/offline', [AuthController::class, 'setOffline']);
+        Route::post('/offline', [AuthController::class, 'setOffline']);
         Route::get('/auth/profile', [AuthController::class, 'profile']);
         Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
         Route::post('/auth/profile/photo', [AuthController::class, 'updateProfilePhoto']);
