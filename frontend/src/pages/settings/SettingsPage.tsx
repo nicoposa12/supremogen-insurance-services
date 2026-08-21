@@ -20,6 +20,8 @@ interface UserAccount {
   archived_at?: string | null;
   archive_reason?: string | null;
   profile_photo_url?: string | null;
+  is_online?: boolean;
+  last_seen_at?: string | null;
 }
 
 export default function SettingsPage() {
@@ -135,6 +137,7 @@ export default function SettingsPage() {
       return res.data;
     },
     enabled: isAdmin && activeTab === 'accounts',
+    refetchInterval: 15000,
   });
   const allUserAccounts: UserAccount[] = (usersRes?.data?.data ?? []).filter((u: UserAccount) => {
     if (roles?.includes('Underwriter')) {
@@ -910,21 +913,26 @@ export default function SettingsPage() {
                       <div key={u.id} className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs space-y-3 w-full min-w-0 overflow-hidden">
                         {/* Top: Avatar, Name, Role */}
                         <div className="flex items-start gap-3 w-full min-w-0">
-                          {u.profile_photo_url ? (
-                            <img
-                              src={getFileUrl(u.profile_photo_url)}
-                              alt={u.name}
-                              className={`h-11 w-11 rounded-full object-cover border border-slate-100 shrink-0 ${u.is_archived ? 'grayscale opacity-75' : ''}`}
-                            />
-                          ) : (
-                            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${
-                              u.is_archived 
-                                ? 'bg-slate-100 text-slate-500 border-slate-200' 
-                                : 'bg-gradient-to-tr from-[#4A0E17] to-[#7D1E2B] text-white shadow-xs'
-                            }`}>
-                              {u.name?.charAt(0)?.toUpperCase() ?? 'U'}
-                            </div>
-                          )}
+                          <div className="relative shrink-0">
+                            {u.profile_photo_url ? (
+                              <img
+                                src={getFileUrl(u.profile_photo_url)}
+                                alt={u.name}
+                                className={`h-11 w-11 rounded-full object-cover border border-slate-100 shrink-0 ${u.is_archived ? 'grayscale opacity-75' : ''}`}
+                              />
+                            ) : (
+                              <div className={`h-11 w-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${
+                                u.is_archived 
+                                  ? 'bg-slate-100 text-slate-500 border-slate-200' 
+                                  : 'bg-gradient-to-tr from-[#4A0E17] to-[#7D1E2B] text-white shadow-xs'
+                              }`}>
+                                {u.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                              </div>
+                            )}
+                            {(u.is_online || u.id === user?.id) && !u.is_archived && (
+                              <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-[#10b981] ring-2 ring-white" title="Online" />
+                            )}
+                          </div>
                           
                           <div className="min-w-0 flex-1 overflow-hidden">
                             <div className="flex items-center justify-between gap-1.5 min-w-0">
@@ -1050,21 +1058,26 @@ export default function SettingsPage() {
                           <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
                             <td className="px-4 py-3 font-semibold text-slate-800 bg-white">
                               <div className="flex items-center gap-2.5">
-                                {u.profile_photo_url ? (
-                                  <img
-                                    src={getFileUrl(u.profile_photo_url)}
-                                    alt={u.name}
-                                    className={`h-8 w-8 rounded-full object-cover border border-slate-100 shadow-sm shrink-0 ${u.is_archived ? 'grayscale opacity-75' : ''}`}
-                                  />
-                                ) : (
-                                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                                    u.is_archived 
-                                      ? 'bg-slate-200 text-slate-600' 
-                                      : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
-                                  }`}>
-                                    {u.name?.charAt(0)?.toUpperCase() ?? 'U'}
-                                  </div>
-                                )}
+                                <div className="relative shrink-0">
+                                  {u.profile_photo_url ? (
+                                    <img
+                                      src={getFileUrl(u.profile_photo_url)}
+                                      alt={u.name}
+                                      className={`h-8 w-8 rounded-full object-cover border border-slate-100 shadow-sm shrink-0 ${u.is_archived ? 'grayscale opacity-75' : ''}`}
+                                    />
+                                  ) : (
+                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                                      u.is_archived 
+                                        ? 'bg-slate-200 text-slate-600' 
+                                        : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
+                                    }`}>
+                                      {u.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                                    </div>
+                                  )}
+                                  {(u.is_online || u.id === user?.id) && !u.is_archived && (
+                                    <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-[#10b981] ring-2 ring-white" title="Online" />
+                                  )}
+                                </div>
                                 <div className="min-w-0">
                                   <span className={`truncate block ${u.is_archived ? 'text-slate-600 line-through' : ''}`}>{u.name}</span>
                                   {u.is_archived && (

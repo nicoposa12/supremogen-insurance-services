@@ -29,6 +29,7 @@ class User extends Authenticatable
         'is_archived',
         'archived_at',
         'archive_reason',
+        'last_seen_at',
     ];
 
     /**
@@ -39,6 +40,7 @@ class User extends Authenticatable
     protected $appends = [
         'role_name',
         'profile_photo_url',
+        'is_online',
     ];
 
     /**
@@ -63,7 +65,20 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_archived' => 'boolean',
             'archived_at' => 'datetime',
+            'last_seen_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Determine if the user is currently online (active within the last 3 minutes).
+     */
+    public function getIsOnlineAttribute(): bool
+    {
+        if (!$this->last_seen_at) {
+            return false;
+        }
+
+        return $this->last_seen_at->gt(now()->subMinutes(3));
     }
 
     /**

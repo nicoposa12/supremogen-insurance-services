@@ -1203,17 +1203,20 @@ export default function DashboardLayout() {
                   }}
                   className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1.5 rounded-xl hover:bg-slate-100 transition"
                 >
-                  {user?.profile_photo_url ? (
-                    <img
-                      src={getFileUrl(user.profile_photo_url)}
-                      alt={user.name}
-                      className="h-8 w-8 rounded-full object-cover border border-slate-200"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
-                      {user?.name?.charAt(0) ?? 'U'}
-                    </div>
-                  )}
+                  <div className="relative shrink-0">
+                    {user?.profile_photo_url ? (
+                      <img
+                        src={getFileUrl(user.profile_photo_url)}
+                        alt={user.name}
+                        className="h-8 w-8 rounded-full object-cover border border-slate-200"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+                        {user?.name?.charAt(0) ?? 'U'}
+                      </div>
+                    )}
+                    <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-[#10b981] ring-2 ring-white" title="Online" />
+                  </div>
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-slate-700 truncate max-w-[120px]">
                       {user?.name ?? 'User'}

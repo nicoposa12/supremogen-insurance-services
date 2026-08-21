@@ -47,6 +47,15 @@ Route::prefix('v1')->group(function () {
             return $request->user();
         });
 
+        Route::post('/heartbeat', function (Request $request) {
+            return response()->json([
+                'success' => true,
+                'status' => 'online',
+                'user_id' => $request->user()->id,
+                'last_seen_at' => $request->user()->last_seen_at,
+            ]);
+        });
+
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
 

@@ -66,6 +66,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  // Periodic online presence heartbeat (every 45s while user is logged in)
+  useEffect(() => {
+    if (!token || !user) return;
+
+    const sendHeartbeat = () => {
+      if (document.visibilityState === 'visible') {
+        axios.post('/api/v1/heartbeat').catch(() => {});
+      }
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 45000);
+    document.addEventListener('visibilitychange', sendHeartbeat);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', sendHeartbeat);
+    };
+  }, [token, user?.id]);
+
   // Set up Axios interceptor for 401 Unauthorized and 429 Too Many Requests responses
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(

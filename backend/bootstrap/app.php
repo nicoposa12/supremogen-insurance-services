@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             \App\Http\Middleware\QueryParameterTokenAuth::class,
+        ], append: [
+            \App\Http\Middleware\UpdateUserLastActivity::class,
         ]);
 
         $middleware->alias([
