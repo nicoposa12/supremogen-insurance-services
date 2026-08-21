@@ -254,7 +254,10 @@ export default function InsuranceRequestsPage() {
         const allAttachments = [...(r.attachments || []), ...(c.attachments || [])];
         const orcrAtt = allAttachments.find(a => a.document_type === 'orcr_ndos_4sides' || (a.file_name && /orcr/i.test(a.file_name)));
         const orcrStatus = orcrAtt
-          ? { text: orcrAtt.file_name || 'Uploaded File', url: `${window.location.origin}/api/v1/attachments/${orcrAtt.id}/preview` }
+          ? {
+              text: orcrAtt.file_name || 'Uploaded File',
+              url: `${window.location.origin}/attachments/${orcrAtt.id}${orcrAtt.file_name ? `?name=${encodeURIComponent(orcrAtt.file_name)}` : ''}`
+            }
           : 'NO';
 
         // 38. USED RATE
@@ -263,7 +266,10 @@ export default function InsuranceRequestsPage() {
         // 39. Ella Langrio Screenshot
         const ellaAtt = allAttachments.find(a => a.document_type === 'ella_langrio_screenshot' || (a.file_name && /ella|screenshot/i.test(a.file_name)));
         const ellaStatus = ellaAtt
-          ? { text: ellaAtt.file_name || 'Uploaded File', url: `${window.location.origin}/api/v1/attachments/${ellaAtt.id}/preview` }
+          ? {
+              text: ellaAtt.file_name || 'Uploaded File',
+              url: `${window.location.origin}/attachments/${ellaAtt.id}${ellaAtt.file_name ? `?name=${encodeURIComponent(ellaAtt.file_name)}` : ''}`
+            }
           : 'NO';
 
         // 40. USED RATE (EXAMPLE: 1.30% - .10%)

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Loader2, Download, AlertCircle, FileText } from 'lucide-react';
 
 export default function AttachmentViewerPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const queryFileName = searchParams.get('name') || searchParams.get('file') || '';
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>('');
-  const [fileName, setFileName] = useState<string>('');
+  const [fileName, setFileName] = useState<string>(queryFileName || '');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +27,7 @@ export default function AttachmentViewerPage() {
         const type = res.headers['content-type'] || res.data.type || 'application/octet-stream';
         const disposition = res.headers['content-disposition'] || '';
         const match = disposition.match(/filename="?([^";]+)"?/i);
-        const name = match ? match[1] : `attachment-${id}`;
+        const name = queryFileName || (match ? match[1] : `attachment-${id}`);
 
         const url = window.URL.createObjectURL(res.data);
         setBlobUrl(url);
@@ -44,7 +46,7 @@ export default function AttachmentViewerPage() {
       active = false;
       if (blobUrl) window.URL.revokeObjectURL(blobUrl);
     };
-  }, [id]);
+  }, [id, queryFileName]);
 
   if (loading) {
     return (
